@@ -68,6 +68,8 @@ public enum class CareerCompassTextFieldSize(
 /**
  * CareerCompass labelled text input with focus, error, and disabled states.
  *
+ * [label] must be non-blank so the field always exposes an accessibility name.
+ *
  * Error state text must be supplied by the caller through [errorMessage] or [supportingText] so
  * accessibility output is localized with the surrounding screen. Supplying [onClick] turns a
  * [readOnly] field into a button-like picker while preserving the same visual contract.
@@ -91,6 +93,7 @@ public fun CareerCompassTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
+    require(label.isNotBlank()) { "label must not be blank" }
     require(onClick == null || readOnly) {
         "onClick is only supported for read-only fields"
     }

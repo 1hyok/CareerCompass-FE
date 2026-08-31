@@ -1,5 +1,8 @@
 package com.cambridge.core.ui.component
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -13,12 +16,14 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -120,5 +125,80 @@ class CareerCompassTagTest {
             .performTouchInput { click() }
 
         composeRule.runOnIdle { assertEquals(0, clicks) }
+    }
+
+    @Test
+    fun nonBlankLabel_acceptsNullOrNonBlankStateDescription() {
+        composeRule.setContent {
+            CareerCompassTheme {
+                Column {
+                    CareerCompassTag(
+                        label = "기획",
+                        selected = false,
+                        onClick = {},
+                        modifier = Modifier.testTag(DEFAULT_STATE_DESCRIPTION_TAG),
+                    )
+                    CareerCompassTag(
+                        label = "개발",
+                        selected = true,
+                        onClick = {},
+                        modifier = Modifier.testTag(EXPLICIT_STATE_DESCRIPTION_TAG),
+                        stateDescription = "선택됨",
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(DEFAULT_STATE_DESCRIPTION_TAG).assertIsOff()
+        composeRule
+            .onNodeWithTag(EXPLICIT_STATE_DESCRIPTION_TAG)
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "선택됨",
+                ),
+            )
+    }
+
+    @Test
+    fun blankLabel_isRejected() {
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                composeRule.setContent {
+                    CareerCompassTheme {
+                        CareerCompassTag(
+                            label = " \t\n",
+                            selected = false,
+                            onClick = {},
+                        )
+                    }
+                }
+            }
+
+        assertEquals("label must not be blank", error.message)
+    }
+
+    @Test
+    fun blankStateDescription_isRejected() {
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                composeRule.setContent {
+                    CareerCompassTheme {
+                        CareerCompassTag(
+                            label = "기획",
+                            selected = false,
+                            onClick = {},
+                            stateDescription = " \t\n",
+                        )
+                    }
+                }
+            }
+
+        assertEquals("stateDescription must be null or non-blank", error.message)
+    }
+
+    private companion object {
+        const val DEFAULT_STATE_DESCRIPTION_TAG = "career_compass_default_state_description_tag"
+        const val EXPLICIT_STATE_DESCRIPTION_TAG = "career_compass_explicit_state_description_tag"
     }
 }

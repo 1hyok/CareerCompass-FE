@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -125,9 +126,77 @@ public class CareerCompassButtonTest {
             )
     }
 
+    @Test
+    public fun nonBlankText_acceptsNullOrNonBlankContentDescription() {
+        composeRule.setContent {
+            CareerCompassTheme {
+                Column {
+                    CareerCompassButton(
+                        text = "계속",
+                        onClick = {},
+                        modifier = Modifier.testTag(DEFAULT_DESCRIPTION_BUTTON_TAG),
+                    )
+                    CareerCompassButton(
+                        text = "제출",
+                        onClick = {},
+                        modifier = Modifier.testTag(EXPLICIT_DESCRIPTION_BUTTON_TAG),
+                        contentDescription = "지원서 제출",
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(DEFAULT_DESCRIPTION_BUTTON_TAG).assertExists()
+        composeRule
+            .onNodeWithTag(EXPLICIT_DESCRIPTION_BUTTON_TAG)
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ContentDescription,
+                    listOf("지원서 제출"),
+                ),
+            )
+    }
+
+    @Test
+    public fun blankText_isRejected() {
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                composeRule.setContent {
+                    CareerCompassTheme {
+                        CareerCompassButton(
+                            text = " \t\n",
+                            onClick = {},
+                        )
+                    }
+                }
+            }
+
+        assertEquals("text must not be blank", error.message)
+    }
+
+    @Test
+    public fun blankContentDescription_isRejected() {
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                composeRule.setContent {
+                    CareerCompassTheme {
+                        CareerCompassButton(
+                            text = "계속",
+                            onClick = {},
+                            contentDescription = " \t\n",
+                        )
+                    }
+                }
+            }
+
+        assertEquals("contentDescription must be null or non-blank", error.message)
+    }
+
     private companion object {
         const val BUTTON_TAG = "career_compass_button"
         const val SMALL_BUTTON_TAG = "career_compass_small_button"
         const val LARGE_BUTTON_TAG = "career_compass_large_button"
+        const val DEFAULT_DESCRIPTION_BUTTON_TAG = "career_compass_default_description_button"
+        const val EXPLICIT_DESCRIPTION_BUTTON_TAG = "career_compass_explicit_description_button"
     }
 }
