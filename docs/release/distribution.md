@@ -134,7 +134,7 @@ PR 검증용 lint·unit-test·screenshot은 repository secret 대신
 `.github/actions/setup-ci-config`가 만드는 결정적 CI 전용 placeholder를 사용한다. 이 fixture는
 배포에 사용할 수 없으며, production `release-distribution.yml`은 계속 승인된 환경의 JSON 자격을 사용한다. WIF canary 성공만으로 이를 제거하지 않는다.
 
-### 배포 provenance — 이 APK 가 어느 commit·run 에서 나왔는지 (#851)
+### 배포 provenance — 이 APK 가 어느 commit·run 에서 나왔는지
 
 배포 워크플로는 signing 이 끝난 그 APK 하나를 subject 로 [GitHub artifact attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)을 발급하고, 업로드 전에 스스로 검증한다. 서명·저장소·signer workflow·source commit·GitHub-hosted 러너 중 하나라도 어긋나거나 attestation subject digest 가 빌드 직후 digest 와 다르면 Firebase 업로드까지 가지 않는다.
 

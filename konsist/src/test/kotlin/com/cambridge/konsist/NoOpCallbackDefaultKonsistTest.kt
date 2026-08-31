@@ -6,7 +6,7 @@ import com.lemonappdev.konsist.api.declaration.KoParameterDeclaration
 import org.junit.Test
 
 /**
- * 컴포저블 no-op 콜백 디폴트 회귀 가드 (#1388).
+ * 컴포저블 no-op 콜백 디폴트 회귀 가드.
  *
  * `onXxx: (...) -> Unit = {}` 는 배선을 빠뜨려도 컴파일이 통과해 조용히 no-op 이 된다 —
  * "눌러도 아무 일 없는 버튼" 실사고가 #582 · #618 · #722 · #777 로 반복된 패턴이다.
@@ -28,8 +28,8 @@ import org.junit.Test
  *   또는 오버로드 분리. `= {}` 로 죽은 버튼을 그리지 않는다.
  *
  * ### [LEGACY_NO_OP_DEFAULT_FILES]
- * 가드 도입 시점(#1388)에 남아 있던 잔여 파일. 모듈 담당별 후속 PR 이 청소하며 목록에서 뺀다.
- * careercompass(#1388 본체) · receiver 는 청소 완료로 빠졌고, 남은 것은 mindrecord·home(#1540) · timeletter(#1541) 몫이다.
+ * 가드 도입 시점에 남아 있던 잔여 파일. 모듈 담당별 후속 PR 이 청소하며 목록에서 뺀다.
+ * careercompass(#1388 본체) · receiver 는 청소 완료로 빠졌고, 남은 것은 mindrecord·home · timeletter 몫이다.
  * 목록에 있는 파일은 위반이 **있어도 없어도 통과**한다(관대 판정) — 파일을 청소하는 PR 과
  * 목록을 갱신하는 PR 의 머지 순서가 develop 을 red 로 만들지 않게 하기 위해서다
  * ([ResponseDtoContractKonsistTest] 의 #933 전례와 같은 구조). 이미 청소된 항목이 목록에
@@ -139,44 +139,11 @@ class NoOpCallbackDefaultKonsistTest {
 
         val WHITESPACE = Regex("""\s""")
 
-        /** home — #1388 모듈 몫 후속 PR 이 청소한다. */
-        private val HOME =
-            setOf(
-                "feature/home/presentation/WeeklySummaryGrid.kt",
-            )
-
-        /** mindrecord — #1388 모듈 몫 후속 PR 이 청소한다. */
-        private val MINDRECORD =
-            setOf(
-                "feature/mindrecord/presentation/component/DailyQuestionListCard.kt",
-                "feature/mindrecord/presentation/component/DiaryCard.kt",
-                "feature/mindrecord/presentation/component/DiaryComponent.kt",
-                "feature/mindrecord/presentation/component/KeyBoardToolBar.kt",
-                "feature/mindrecord/presentation/component/MemoriesCard.kt",
-                "feature/mindrecord/presentation/component/TodayQuestionCard.kt",
-                "feature/mindrecord/presentation/component/WeeklyReportReviewCard.kt",
-                "feature/mindrecord/presentation/component/WriteTextField.kt",
-                "feature/mindrecord/presentation/screen/receiver/ReceiverMindRecordScreen.kt",
-                "feature/mindrecord/presentation/screen/sender/DailyQuestionAnswerListScreen.kt",
-                "feature/mindrecord/presentation/screen/sender/DailyQuestionWriteScreen.kt",
-                "feature/mindrecord/presentation/screen/sender/DiaryScreen.kt",
-                "feature/mindrecord/presentation/screen/sender/DiaryWriteScreen.kt",
-                "feature/mindrecord/presentation/screen/sender/DraftListScreen.kt",
-                "feature/mindrecord/presentation/screen/sender/HomeScreen.kt",
-            )
-
-        /** timeletter — #1388 모듈 몫 후속 PR 이 청소한다 (TimeLetterWriteScreen 은 #778 과 조정). */
-        private val TIMELETTER =
-            setOf(
-                "feature/timeletter/presentation/component/DraftLetterItem.kt",
-                "feature/timeletter/presentation/component/TimeLetterBlockItem.kt",
-                "feature/timeletter/presentation/component/TimeLetterContent.kt",
-                "feature/timeletter/presentation/component/TimeletterListItem.kt",
-                "feature/timeletter/presentation/screen/recipient/RecipientTimeletterScreen.kt",
-                "feature/timeletter/presentation/screen/sender/TimeLetterWriteScreen.kt",
-                "feature/timeletter/presentation/screen/sender/TimeletterScreen.kt",
-            )
-
-        val LEGACY_NO_OP_DEFAULT_FILES = HOME + MINDRECORD + TIMELETTER
+        /**
+         * 가드가 관대 판정할 잔여 파일. 이 저장소는 가드를 빈 소스에서 켰으므로 면제가 없다.
+         * 면제를 추가할 일이 생기면 청소 PR 과 목록 갱신 PR 의 머지 순서가 develop 을 red 로
+         * 만들지 않게 하는 용도로만 쓰고, 청소가 끝나면 즉시 뺀다.
+         */
+        val LEGACY_NO_OP_DEFAULT_FILES = emptySet<String>()
     }
 }

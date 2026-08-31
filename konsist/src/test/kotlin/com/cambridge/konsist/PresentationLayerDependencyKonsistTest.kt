@@ -5,7 +5,7 @@ import com.lemonappdev.konsist.api.ext.list.withPackage
 import org.junit.Test
 
 /**
- * presentation 이 data 계층 **구현**을 건너뛰고 잡지 않는지 (#1432).
+ * presentation 이 data 계층 **구현**을 건너뛰고 잡지 않는지.
  *
  * [LayerDependencyKonsistTest] 는 반대 방향만 본다 — domain 이 무엇을 보느냐. 이쪽 방향
  * (`presentation → core:datastore`)은 어느 가드의 사정거리에도 없었고, Gradle 도 사이클이

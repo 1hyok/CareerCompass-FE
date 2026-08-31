@@ -74,7 +74,7 @@ adb install -r .claude/worktrees/qa-dev/app/build/outputs/apk/debug/app-debug.ap
 `google-services.json` 은 gitignore 라 새 워크트리에 없다 — 복사하지 않으면 빌드가 깨진다.
 `-r` 재설치는 DataStore 를 지우지 않으므로 로그인 세션이 그대로 유지된다.
 
-앱이 커밋을 들고 다니게 되면(#1135) 이 단계는 "설치된 앱의 sha 를 읽어 확인"으로 줄어든다.
+앱이 커밋을 들고 다니게 되면 이 단계는 "설치된 앱의 sha 를 읽어 확인"으로 줄어든다.
 
 ### 3. 기기를 나 혼자 쓰는가
 
@@ -142,7 +142,7 @@ adb -s <serial> shell dumpsys package com.cambridge.careercompass_fe | grep last
 - 반응형 API(`BoxWithConstraints` / `LocalConfiguration`) 사용은 2파일
 - `verticalScroll` / `Lazy*` / `Pager` 가 없는 `*Screen.kt` 26개
 
-그래서 스크린샷 baseline 에 360×800dp 변형을 넣어 좁은 화면 회귀를 상시 감시한다(#1128).
+그래서 스크린샷 baseline 에 360×800dp 변형을 넣어 좁은 화면 회귀를 상시 감시한다.
 사람이 도는 `compact` QA 는 **레이아웃을 건드린 PR** 에만 추가한다.
 
 반대로 OS 버전 매트릭스는 지금 단계에서 얻는 게 거의 없다.
@@ -156,7 +156,7 @@ adb -s <serial> shell dumpsys package com.cambridge.careercompass_fe | grep last
 
 ### 실기기 1대
 
-현재 실기기 검증은 0건이다(`docs/qa/assumptions.md` 에도 "실기기 종단 확인을 하지 못했다"고 남아
+현재 실기기 검증은 0건이다(아직 QA 라운드를 돈 적이 없다. 첫 라운드 기록이 생기면 여기서 가리킨다
 있다). 에뮬레이터와 결과가 갈리는 영역만 종단으로 본다.
 
 - [ ] 카카오 로그인 — 카카오톡 앱이 설치된 기기에서의 앱 간 전환
@@ -169,7 +169,7 @@ adb -s <serial> shell dumpsys package com.cambridge.careercompass_fe | grep last
 FE 가 확인할 항목이 아니라 **출시 전에 정해야 하는 결정**이다.
 
 `targetSdk = 36` 이므로 Android 16부터 최소 너비 600dp 이상 기기에서는 앱이 선언한 방향·크기
-제한을 시스템이 무시하고 창에 맞춰 펼친다. 세로 고정(#1144)을 선언해도 태블릿과 펼친
+제한을 시스템이 무시하고 창에 맞춰 펼친다. 세로 고정을 선언해도 태블릿과 펼친
 폴더블에는 적용되지 않는다. 즉 **"태블릿 시안이 없다"가 "태블릿에 안 뜬다"를 뜻하지 않는다.**
 
 - [ ] Play Console 기기 카탈로그에서 **대화면 기기를 배포 대상에 포함할지 결정**

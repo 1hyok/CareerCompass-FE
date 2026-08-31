@@ -5,7 +5,7 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import org.junit.Test
 
 /**
- * main 소스셋 `@Preview` 재유입 가드 (#1434).
+ * main 소스셋 `@Preview` 재유입 가드.
  *
  * PR #1435 가 담당 area 의 main `@Preview` 148건을 전량 삭제했는데, 그 뒤로 2건이 다시 들어왔다.
  * 이 가드가 없으면 같은 청소를 주기적으로 되풀이하게 된다.
@@ -14,7 +14,7 @@ import org.junit.Test
  * 1. **CI 가 검증하지 않는다** — 골든이 없어 렌더가 깨져도 아무도 모른다. 같은 그림을 검증받는
  *    `screenshotTest` 쪽이 정본이다.
  * 2. 같은 그림을 두 소스셋에서 관리하면 시안이 바뀔 때 **한쪽만 고쳐진다**.
- * 3. 프리뷰용 더미 데이터와 no-op 배선이 프로덕션 소스셋에 남는다 — #1388 이 막으려던
+ * 3. 프리뷰용 더미 데이터와 no-op 배선이 프로덕션 소스셋에 남는다 이 막으려던
  *    「전 액션을 한 줄로 죽이는 우회로」가 `ReceiverHomeActions.Noop` 으로 프로덕션 API 에
  *    새어 나온 것이 그 실사례다.
  *
@@ -44,7 +44,7 @@ class MainSourcePreviewKonsistTest {
                 appendLine()
                 violations.sorted().forEach { appendLine("  $it") }
                 appendLine()
-                appendLine("프리뷰가 필요하면 src/screenshotTest 에 @PreviewTest + @Preview 로 둔다 (#1434).")
+                appendLine("프리뷰가 필요하면 src/screenshotTest 에 @PreviewTest + @Preview 로 둔다.")
             }
         }
     }

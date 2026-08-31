@@ -103,8 +103,8 @@ class ResponseDtoContractKonsistTest {
         const val REQUEST_DTO = "Request"
 
         /**
-         * 남은 잔여는 timeletter 1건뿐이다 — #790 이 추적하고, `ci-expected-failures.json` 에
-         * 의도된 실패로 등록돼 있다. mindrecord 2건(#789)·careercompass 11건(#957)은 해소돼 빠졌다.
+         * 남은 잔여는 timeletter 1건뿐이다 이 추적하고, `ci-expected-failures.json` 에
+         * 의도된 실패로 등록돼 있다. mindrecord 2건·careercompass 11건은 해소돼 빠졌다.
          *
          * 서버는 이 키를 `null` 로 보내지 않는다(BE `ReceivedTimeLetterResponse` 가 미공개 구간에
          * `List.of()` 를 채운다). 그래서 `coerceInputValues` 없이도 파싱이 깨지지 않는다 — 이

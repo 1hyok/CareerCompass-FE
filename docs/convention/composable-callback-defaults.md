@@ -2,7 +2,7 @@
 
 **컴포저블의 `on*` 콜백 파라미터에 no-op 디폴트(`onXxx: (...) -> Unit = {}`)를 두지 않는다.** 선택적 상호작용은 디폴트가 아니라 타입(nullable 핸들러·오버로드)으로 모델링한다.
 
-`app` · `feature/*` 모듈의 `src/main` 에 적용하고, `konsist` 의 `NoOpCallbackDefaultKonsistTest` 가 강제한다 (#1388).
+`app` · `feature/*` 모듈의 `src/main` 에 적용하고, `konsist` 의 `NoOpCallbackDefaultKonsistTest` 가 강제한다.
 
 ## 왜 금지인가
 
