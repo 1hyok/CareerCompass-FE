@@ -64,6 +64,25 @@ public class OnboardingStep3ScreenTest {
     }
 
     @Test
+    public fun contract_rejectsDifferentExperienceTypeIdsWithTheSameLabel() {
+        assertThrows(IllegalArgumentException::class.java) {
+            completeState.copy(
+                experienceTypes =
+                    experienceTypes +
+                        OnboardingExperienceType(
+                            id = "side-project",
+                            label = "프로젝트",
+                        ),
+            )
+        }
+    }
+
+    @Test
+    public fun contract_acceptsExperienceTypesWithUniqueLabels() {
+        assertEquals(experienceTypes, completeState.experienceTypes)
+    }
+
+    @Test
     public fun experiencePresence_controlsNextAction() {
         assertFalse(completeState.copy(experiences = emptyList()).isNextEnabled)
         assertFalse(completeState.copy(isInputEnabled = false).isNextEnabled)

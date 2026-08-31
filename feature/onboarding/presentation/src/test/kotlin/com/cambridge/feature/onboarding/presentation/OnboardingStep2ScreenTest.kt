@@ -56,6 +56,25 @@ public class OnboardingStep2ScreenTest {
     }
 
     @Test
+    public fun contract_rejectsDifferentJobIdsWithTheSameLabel() {
+        assertThrows(IllegalArgumentException::class.java) {
+            completeState.copy(
+                jobOptions =
+                    jobOptions +
+                        OnboardingJobOption(
+                            id = "server",
+                            label = "백엔드 개발",
+                        ),
+            )
+        }
+    }
+
+    @Test
+    public fun contract_acceptsJobOptionsWithUniqueLabels() {
+        assertEquals(jobOptions, completeState.jobOptions)
+    }
+
+    @Test
     public fun bothRequiredSections_participateInNextActionValidation() {
         assertFalse(completeState.copy(selectedJobIds = emptySet()).isNextEnabled)
         assertFalse(completeState.copy(interestTags = emptyList()).isNextEnabled)

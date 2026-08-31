@@ -50,6 +50,9 @@ public data class OnboardingStep3UiState(
         require(experienceTypes.map(OnboardingExperienceType::id).distinct().size == experienceTypes.size) {
             "Experience type ids must be unique"
         }
+        require(experienceTypes.map(OnboardingExperienceType::label).distinct().size == experienceTypes.size) {
+            "Experience type labels must be unique"
+        }
         require(experienceTypes.any { it.id == selectedExperienceTypeId }) {
             "Selected experience type must be present in experienceTypes"
         }
