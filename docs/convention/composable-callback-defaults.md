@@ -8,35 +8,35 @@
 
 no-op 디폴트는 **배선을 빠뜨려도 컴파일이 통과**하게 만든다. 화면은 그려지고, 버튼도 눌리는데, 아무 일도 일어나지 않는다 — 실패가 조용해서 QA 나 사용자 신고로만 드러난다.
 
-실사고 전례가 반복됐다:
+이 실패는 세 단계로 번진다.
 
-- #582 · #618 · #722 — foryou 미배선 실사고. 콜백을 넘기지 않은 채 화면이 출고됐다.
-- #777 — 137건 전수 대조로 실결함을 적출했지만, **디폴트 자체가 남아 있어 같은 부류가 재발할 통로가 열려 있었다.** 신설 코드가 패턴을 답습하는 것도 확인됐다(PR #1336 의 `onVideoClick`).
-- #778 (open) — `TimeLetterWriteScreen.onTextStyleClick` 이 지금도 미배선 의심으로 추적 중이다.
+- 화면을 새로 붙이면서 콜백 하나를 NavGraph 에 연결하지 않는다 — 컴파일이 통과하므로 아무도 모른다.
+- 한 번 전수 대조로 미배선을 걷어내도 **디폴트가 남아 있는 한 통로가 열려 있어** 같은 부류가 다시 들어온다.
+- 신설 코드가 주변 패턴을 답습해 새 컴포저블에도 `= {}` 가 붙는다.
 
-디폴트가 없으면 같은 실수가 **컴파일 에러**로 드러난다. 폴백보다 값 명시·타입으로 강제한다는 #934 방침과 같은 방향이다.
+디폴트가 없으면 같은 실수가 **컴파일 에러**로 드러난다. 폴백으로 덮지 않고 값 명시·타입으로 강제한다는 이 저장소의 방향과 같다.
 
 ## 처분 기준
 
 ### 화면 컴포저블 — 디폴트 전면 제거
 
-실호출부가 NavGraph 한 곳인 화면 컴포저블은 콜백을 전부 required 로 한다. 프리뷰 · screenshotTest · unit test 는 `{}` 를 **명시**한다 (#602 전례).
+실호출부가 NavGraph 한 곳인 화면 컴포저블은 콜백을 전부 required 로 한다. 프리뷰 · screenshotTest · unit test 는 `{}` 를 **명시**한다.
 
 ```kotlin
 // Before
-fun GalleryDetailScreen(
+fun PostingDetailScreen(
     onBackClick: () -> Unit,
     onEditClick: () -> Unit = {},      // 배선 누락이 조용히 no-op
 )
 
 // After
-fun GalleryDetailScreen(
+fun PostingDetailScreen(
     onBackClick: () -> Unit,
     onEditClick: () -> Unit,           // 누락 = 컴파일 에러
 )
 
 // Preview / screenshotTest
-GalleryDetailScreen(onBackClick = {}, onEditClick = {})
+PostingDetailScreen(onBackClick = {}, onEditClick = {})
 ```
 
 `{}` 명시는 디폴트와 렌더링이 동일하므로 스크린샷 baseline 이 유지된다. reference PNG 재생성이 필요한 처분이라면 그 처분이 틀린 것이다(골든 정본은 CI 컨테이너 — `docs/testing` 참고).
@@ -47,7 +47,7 @@ GalleryDetailScreen(onBackClick = {}, onEditClick = {})
 - **상호작용이 진짜 선택적이다** → `= {}` 로 "눌러도 아무 일 없는 버튼"을 그리는 대신, 상호작용 UI 자체를 접는다:
 
 ```kotlin
-// nullable 핸들러 + UI 숨김 (EditDropdownMenu, #1388)
+// nullable 핸들러 + UI 숨김
 fun EditDropdownMenu(
     onDeleteClick: () -> Unit,
     onEditClick: (() -> Unit)?,        // null = 편집 항목을 그리지 않는다
@@ -64,10 +64,10 @@ nullable 핸들러에도 **`= null` 디폴트를 두지 않는다** — 호출�
 
 ### 콜백 홀더 클래스도 같다
 
-`ReceiverHomeActions` 처럼 콜백을 프로퍼티로 묶은 클래스의 `val onXxx: () -> Unit = {}` 도 같은 방식으로 미배선을 숨긴다. 가드가 클래스 주 생성자까지 본다.
+`FeedHomeActions` 처럼 콜백을 프로퍼티로 묶은 클래스의 `val onXxx: () -> Unit = {}` 도 같은 방식으로 미배선을 숨긴다. 가드가 클래스 주 생성자까지 본다.
 
 ## 강제 수단
 
 `konsist/src/test/kotlin/com/cambridge/konsist/NoOpCallbackDefaultKonsistTest.kt` 가 app · feature `src/main` 의 `@Composable` 함수 파라미터와 클래스 주 생성자 파라미터를 스캔해, `on`+대문자 이름에 no-op 람다 기본값(`{}` · `{ }` · `{ _ -> }`)이 있으면 실패시킨다.
 
-가드 도입 시점의 잔여 파일은 테스트 안 `LEGACY_NO_OP_DEFAULT_FILES` 에 있다. 목록의 파일은 위반이 있어도 없어도 통과한다(관대 판정 — 청소 PR 과 목록 갱신 PR 의 머지 순서가 develop 을 red 로 만들지 않게). 모듈 담당별 후속 PR(#1388 의 자식 이슈)이 청소하면서 목록에서 빼면 되고, 빼는 걸 잊으면 「해소된 항목은 경고로 알린다」 테스트가 CI 로그에 경고를 남긴다.
+테스트 안 `LEGACY_NO_OP_DEFAULT_FILES` 는 관대 판정할 파일 목록이다. **이 저장소는 비어 있다** — 가드를 빈 소스에서 켰기 때문이다. 목록에 올린 파일은 위반이 있어도 없어도 통과하므로, 청소 PR 과 목록 갱신 PR 의 머지 순서가 develop 을 red 로 만드는 상황에서만 쓰고 청소가 끝나면 즉시 뺀다. 빼는 걸 잊으면 「해소된 항목은 경고로 알린다」 테스트가 CI 로그에 경고를 남긴다.

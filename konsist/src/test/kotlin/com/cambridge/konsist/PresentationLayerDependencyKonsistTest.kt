@@ -17,9 +17,9 @@ import org.junit.Test
  * 검사도 이를 알리지 않았다.
  *
  * ### 검사 대상은 main 소스뿐이다
- * 테스트 소스는 `UserRepositoryImpl` 을 직접 조립하는 자리가 남아 있는데(#930 과 얽혀
+ * 테스트 소스는 `UserRepositoryImpl` 을 직접 조립하는 자리가 남아 있는데(테스트 조립과 얽혀
  * `internal` 로 닫지 못하는 그 조립이다), 그건 프로덕션 계층 우회와 성격이 다르다.
- * 한 번에 막으면 #930 이 선행돼야 하므로 1차는 프로덕션 소스로 한정한다.
+ * 한 번에 막으면 테스트 조립부 정리가 선행돼야 하므로 1차는 프로덕션 소스로 한정한다.
  *
  * ### [KNOWN_LAYER_BYPASSES]
  * 도입 시점에 남아 있던 잔여. 수복은 담당 이슈 몫이고 이 가드는 「다음에 또 생겨도 모른다」
@@ -88,14 +88,12 @@ class PresentationLayerDependencyKonsistTest {
          * 막아야 할 것은 「구현을 이름으로 아는 것」 이다.
          */
         val FORBIDDEN_DATA_IMPORT =
-            Regex("""^com\.careercompass\.core\.datastore\..*$|^com\.careercompass\.core\.data\.repoimpl\..*$""")
+            Regex("""^com\.cambridge\.core\.datastore\..*$|^com\.cambridge\.core\.data\.repoimpl\..*$""")
 
         /**
-         * #635 (setting 4건 중 3번) 이 수복한다. `PassKeyViewModel` 이 `UserProfileRepository`
-         * 를 건너뛰고 `UserProfileDataSource` 를 직접 주입받는다. setting 은 다른 담당이라
-         * 이 PR 에서 고치지 않는다.
+         * 관대 판정할 기존 위반. 이 저장소는 가드를 빈 소스에서 켰으므로 비어 있다.
+         * 항목을 추가할 때는 `"클래스명: 우회하는 import"` 형식으로 적고, 수복되면 즉시 뺀다.
          */
-        val KNOWN_LAYER_BYPASSES =
-            setOf("PassKeyViewModel: com.cambridge.core.datastore.UserProfileDataSource")
+        val KNOWN_LAYER_BYPASSES = emptySet<String>()
     }
 }
