@@ -42,9 +42,8 @@ export const AREA_LABEL_BY_MODULE = Object.freeze({
     platform: "area:platform",
 });
 
-// 2인 FE 분담. 이준혁님 GitHub 핸들을 아직 못 받아 임시로 1hyok 을 가리킨다 —
-// 핸들을 받으면 이 상수 한 줄만 바꾸면 분담이 그대로 발효된다.
-const JUNHYEOK = "1hyok";
+// 2인 FE 분담. 이름 대신 상수를 거치는 이유는 매핑이 사람 이름을 여기저기 흩뿌리지 않게 하기 위함이다.
+const JUNHYEOK = "Sadturtleman";
 
 export const ASSIGNEE_BY_MODULE = Object.freeze({
     careercompass: "1hyok",

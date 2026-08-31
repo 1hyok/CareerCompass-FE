@@ -57,8 +57,8 @@ test("generator records startup without an absolute performance threshold", asyn
     assert.match(generator, /startActivityAndWait\(\)/);
     assert.doesNotMatch(generator, /measureRepeated|timeToInitialDisplay|threshold/i);
 
-    assert.match(profile, /^Lcom\/careercompass\/careercompass_fe\/GlobalApplication;$/m);
-    assert.match(profile, /^Lcom\/careercompass\/careercompass_fe\/MainActivity;$/m);
+    assert.match(profile, /^Lcom\/cambridge\/careercompass_fe\/GlobalApplication;$/m);
+    assert.match(profile, /^Lcom\/cambridge\/careercompass_fe\/MainActivity;$/m);
     assert.ok(profile.split("\n").filter(Boolean).length > 100, "committed profile is only a seed");
     assert.equal(startupProfile, profile, "all collected startup rules must feed dex layout");
 });

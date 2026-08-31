@@ -8,13 +8,31 @@
 
 ## 현재 상태
 
-저장소 운영 하네스와 CI/CD 파이프라인만 올라가 있고 **Android 프로젝트는 아직 없다.** Gradle 모듈이 생기기 전까지 대부분의 워크플로는 실패한다 — 정상이다.
+저장소 운영 하네스, GitHub Actions 파이프라인, **Android 멀티모듈 골격**까지 올라가 있다. 화면 구현은 아직 없다 — 각 feature 모듈은 패키지 구조만 잡혀 있는 빈 껍데기다.
 
 ```bash
-node --test .github/scripts/*.test.mjs
+./gradlew assembleDebug          # debug APK 빌드
+./gradlew test testDebugUnitTest # 단위 테스트 + Konsist 아키텍처 테스트
+./gradlew ktlintCheck lint       # 정적 검사
+node --test .github/scripts/*.test.mjs   # 저장소 정책 테스트
 ```
 
-현재 409개 중 398개 통과. 남은 11개는 전부 `settings.gradle.kts`·`app/`·`core/network/`·`gradle/wrapper/`·`build-logic/`·`baselineprofile/` 부재로 인한 `ENOENT` 이며, 프로젝트 골격이 들어오면 함께 풀린다.
+`local.properties` 의 `sdk.dir` 만 채우면 위 넷이 모두 통과한다. `app/google-services.json` 은 커밋하지 않는다 — CI 는 `.github/actions/setup-ci-config` 가 secret 없이 스텁을 만들고, 로컬에서는 `node .github/scripts/create-ci-config.mjs --workspace . --github-env /dev/null` 로 같은 것을 만든다.
+
+### 모듈
+
+28개. `:app` · `:baselineprofile` · `:konsist`, `core` 7개(`common` `data` `datastore` `domain` `model` `network` `ui`), 그리고 feature 6개가 각각 `data`·`domain`·`presentation` 로 나뉜다.
+
+레이어 의존 방향은 `:konsist` 의 아키텍처 테스트가 강제한다. `build-logic` 의 `careercompass.*` 규약 플러그인이 모듈 공통 설정을 소유하므로, 모듈 build 파일에는 그 모듈만의 것을 적는다.
+
+### 아직 빨간 것
+
+정책 테스트 411개 중 409개 통과. 남은 2개는 실제 작업이 있어야 풀린다.
+
+| 실패 | 필요한 것 |
+| --- | --- |
+| `baseline-profile-policy` — 커밋된 프로파일 | `app/src/main/generated/baselineProfiles/baseline-prof.txt` — 화면이 생긴 뒤 Baseline Profile workflow 를 한 번 돌려 수집한다. 100줄 넘는 실제 수집본을 요구하므로 지어낼 수 없다 |
+| `baselineprofile-policy` — API 경계 smoke | `app/src/androidTest/.../ApiBoundarySmokeAndroidTest.kt` — 온보딩 화면의 `onboarding_welcome_start` 시맨틱을 검증하므로 그 화면이 먼저 필요하다 |
 
 ## 분담
 
@@ -22,15 +40,15 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 
 | 모듈 | 범위 | 담당 |
 | --- | --- | --- |
-| `core` | 디자인 시스템·네트워크·인증 | 정일혁 |
-| `careercompass` | 앱 셸·내비게이션 | 정일혁 |
-| `onboarding` | 스플래시·로그인·지문 로그인·온보딩 4단계 | 정일혁 |
-| `feed` | 공고 피드·필터·공고 상세(채용/공모전)·원문 | 정일혁 |
-| `platform` | CI·빌드·릴리스·저장소 운영 | 정일혁 |
-| `editor` | AI 자소서 초안 생성·에디터·재생성·저장/이력 | 이준혁 |
-| `profile` | 마이·프로필 편집·경험 카드 5종·과거 자소서 | 이준혁 |
-| `foryou` | For You·커리어 로드맵·강점 Export | 이준혁 |
-| `notification` | 알림·알림 설정 | 이준혁 |
+| `core` | 디자인 시스템·네트워크·인증 | 정일혁 (`@1hyok`) |
+| `careercompass` | 앱 셸·내비게이션 | 정일혁 (`@1hyok`) |
+| `onboarding` | 스플래시·로그인·지문 로그인·온보딩 4단계 | 정일혁 (`@1hyok`) |
+| `feed` | 공고 피드·필터·공고 상세(채용/공모전)·원문 | 정일혁 (`@1hyok`) |
+| `platform` | CI·빌드·릴리스·저장소 운영 | 정일혁 (`@1hyok`) |
+| `editor` | AI 자소서 초안 생성·에디터·재생성·저장/이력 | 이준혁 (`@Sadturtleman`) |
+| `profile` | 마이·프로필 편집·경험 카드 5종·과거 자소서 | 이준혁 (`@Sadturtleman`) |
+| `foryou` | For You·커리어 로드맵·강점 Export | 이준혁 (`@Sadturtleman`) |
+| `notification` | 알림·알림 설정 | 이준혁 (`@Sadturtleman`) |
 
 `core` 는 두 사람의 공통 선행 의존이다. 여기에 손대는 이슈는 `blocked_by` 로 순서를 걸어 `merge-order-guard` 가 머지 순서를 강제하게 한다.
 
@@ -62,7 +80,8 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 
 ## 문서
 
-- [`AGENTS.md`](AGENTS.md) — 이슈 등록·착수 경계, 머지 정책, 워크트리 위치
+에이전트 하네스(`AGENTS.md`·`CLAUDE.md`·`.claude/`·`.codex/`)는 각자 쓰는 것이 달라 저장소에 올리지 않는다 — `.gitignore` 가 막는다. 저장소가 공유하는 규약은 아래 문서와 `.github/` 의 정책 스크립트다.
+
 - [`docs/convention/`](docs/convention) — presentation 패키지 구조, Composable 콜백 기본값, 리소스 네이밍
 - [`docs/testing/screenshot.md`](docs/testing/screenshot.md) — Compose Preview 스크린샷 테스트
 - [`docs/release/`](docs/release) — 배포·Firebase WIF

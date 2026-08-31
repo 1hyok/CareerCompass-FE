@@ -48,7 +48,7 @@ test('wire smoke uses Testcontainers with a pinned MockServer REST API image', (
   assert.match(smoke, /MOCKSERVER_VERSION = "7\.6\.0"/);
   assert.match(smoke, /DockerClientFactory\.instance\(\)\.isDockerAvailable/);
   assert.match(smoke, /put\("matchType", "STRICT"\)/);
-  assert.match(smoke, /\/api\/v1\/auth\/social\/login/);
+  assert.match(smoke, /\/api\/v1\/auth\/social\/kakao/);
   assert.match(smoke, /Authorization", "Bearer contract-token"/);
 });
 

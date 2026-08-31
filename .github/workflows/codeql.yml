@@ -228,12 +228,12 @@ jobs:
           ./gradlew compileDebugSources
           :core:model:classes
           :core:domain:classes
-          :feature:careercompass:domain:classes
-          :feature:mindrecord:domain:classes
           :feature:onboarding:domain:classes
-          :feature:receiver:domain:classes
-          :feature:setting:domain:classes
-          :feature:timeletter:domain:classes
+          :feature:feed:domain:classes
+          :feature:editor:domain:classes
+          :feature:profile:domain:classes
+          :feature:foryou:domain:classes
+          :feature:notification:domain:classes
           --no-configuration-cache
           --stacktrace
           --console=plain

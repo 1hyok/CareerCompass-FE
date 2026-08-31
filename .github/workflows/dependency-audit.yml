@@ -80,12 +80,12 @@ jobs:
           run_report konsist-test-runtime :konsist:dependencies --configuration testRuntimeClasspath
           run_report core-model-runtime :core:model:dependencies --configuration runtimeClasspath
           run_report core-domain-runtime :core:domain:dependencies --configuration runtimeClasspath
-          run_report careercompass-domain-runtime :feature:careercompass:domain:dependencies --configuration runtimeClasspath
-          run_report mindrecord-domain-runtime :feature:mindrecord:domain:dependencies --configuration runtimeClasspath
           run_report onboarding-domain-runtime :feature:onboarding:domain:dependencies --configuration runtimeClasspath
-          run_report receiver-domain-runtime :feature:receiver:domain:dependencies --configuration runtimeClasspath
-          run_report setting-domain-runtime :feature:setting:domain:dependencies --configuration runtimeClasspath
-          run_report timeletter-domain-runtime :feature:timeletter:domain:dependencies --configuration runtimeClasspath
+          run_report feed-domain-runtime :feature:feed:domain:dependencies --configuration runtimeClasspath
+          run_report editor-domain-runtime :feature:editor:domain:dependencies --configuration runtimeClasspath
+          run_report profile-domain-runtime :feature:profile:domain:dependencies --configuration runtimeClasspath
+          run_report foryou-domain-runtime :feature:foryou:domain:dependencies --configuration runtimeClasspath
+          run_report notification-domain-runtime :feature:notification:domain:dependencies --configuration runtimeClasspath
 
       - name: Run current SDK and JVM compatibility gate
         id: compatibility
@@ -97,9 +97,12 @@ jobs:
           set +e
           ./gradlew assembleDebug testDebugUnitTest \
             :core:model:test :core:domain:test \
-            :feature:careercompass:domain:test :feature:mindrecord:domain:test \
-            :feature:onboarding:domain:test :feature:receiver:domain:test \
-            :feature:setting:domain:test :feature:timeletter:domain:test \
+            :feature:onboarding:domain:test \
+            :feature:feed:domain:test \
+            :feature:editor:domain:test \
+            :feature:profile:domain:test \
+            :feature:foryou:domain:test \
+            :feature:notification:domain:test \
             :konsist:test :build-logic:test \
             --continue --parallel --console=plain > "$REPORT_DIR/compatibility.log" 2>&1
           status=$?
@@ -117,12 +120,12 @@ jobs:
             --resolved-report "$REPORT_DIR/resolved/konsist-test-runtime.txt" \
             --resolved-report "$REPORT_DIR/resolved/core-model-runtime.txt" \
             --resolved-report "$REPORT_DIR/resolved/core-domain-runtime.txt" \
-            --resolved-report "$REPORT_DIR/resolved/careercompass-domain-runtime.txt" \
-            --resolved-report "$REPORT_DIR/resolved/mindrecord-domain-runtime.txt" \
             --resolved-report "$REPORT_DIR/resolved/onboarding-domain-runtime.txt" \
-            --resolved-report "$REPORT_DIR/resolved/receiver-domain-runtime.txt" \
-            --resolved-report "$REPORT_DIR/resolved/setting-domain-runtime.txt" \
-            --resolved-report "$REPORT_DIR/resolved/timeletter-domain-runtime.txt" \
+            --resolved-report "$REPORT_DIR/resolved/feed-domain-runtime.txt" \
+            --resolved-report "$REPORT_DIR/resolved/editor-domain-runtime.txt" \
+            --resolved-report "$REPORT_DIR/resolved/profile-domain-runtime.txt" \
+            --resolved-report "$REPORT_DIR/resolved/foryou-domain-runtime.txt" \
+            --resolved-report "$REPORT_DIR/resolved/notification-domain-runtime.txt" \
             --resolution-status "$REPORT_DIR/resolution-status.txt" \
             --compatibility-status "$REPORT_DIR/compatibility-status.json" \
             --output "$REPORT_DIR/dependency-audit.json" \
