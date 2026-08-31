@@ -19,4 +19,21 @@
     <string name="onboarding_step1_graduation_label">졸업 예정</string>
     <string name="onboarding_step1_graduation_placeholder" translatable="false">YYYY.MM</string>
     <string name="onboarding_step1_next">다음</string>
+    <string name="onboarding_step4_title">과거 지원서가 있다면 올려주세요</string>
+    <string name="onboarding_step4_description">AI가 분류해서 새 지원서 작성에 활용해요. 건너뛰어도 괜찮아요.</string>
+    <string name="onboarding_step4_upload_title">파일을 드래그하거나 탭하세요</string>
+    <string name="onboarding_step4_upload_requirements">PDF · DOCX · TXT · 최대 %1$dMB</string>
+    <string name="onboarding_step4_upload_content_description">지원서 파일 업로드</string>
+    <string name="onboarding_step4_or">또는</string>
+    <string name="onboarding_step4_direct_input_icon" translatable="false">✎</string>
+    <string name="onboarding_step4_direct_input">직접 입력하기</string>
+    <string name="onboarding_step4_uploaded_count">업로드한 지원서 (%1$d/%2$d)</string>
+    <string name="onboarding_step4_document_processing">분류 중</string>
+    <string name="onboarding_step4_document_completed">분류 완료 · %1$d개 항목</string>
+    <string name="onboarding_step4_document_failed_retry">%1$s · 재시도</string>
+    <string name="onboarding_step4_document_retry_description">%1$s 분류 재시도</string>
+    <string name="onboarding_step4_document_menu">%1$s 메뉴</string>
+    <string name="onboarding_step4_document_options_icon" translatable="false">⋯</string>
+    <string name="onboarding_step4_skip">건너뛰기</string>
+    <string name="onboarding_step4_complete">완료</string>
 </resources>
