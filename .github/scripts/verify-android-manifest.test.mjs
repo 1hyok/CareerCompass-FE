@@ -1,12 +1,28 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { inspectManifest } from './verify-android-manifest.mjs';
+import { inspectManifest, inspectPrivacyDefaults } from './verify-android-manifest.mjs';
 
-const manifest = ({ permissions = '', components = '', cleartext = 'false' } = {}) => `
+const disabledFirebaseAutoInit = `
+    <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
+    <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />`;
+
+const manifest = ({
+  permissions = '',
+  components = '',
+  cleartext = 'false',
+  allowBackup = 'false',
+  backupAttributes = '',
+  metadata = disabledFirebaseAutoInit,
+} = {}) => `
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   ${permissions}
-  <application android:usesCleartextTraffic="${cleartext}">
+  <application
+      ${cleartext === null ? '' : `android:usesCleartextTraffic="${cleartext}"`}
+      android:allowBackup="${allowBackup}"
+      ${backupAttributes}>
+    ${metadata}
     ${components}
   </application>
 </manifest>`;
@@ -44,9 +60,52 @@ test('cleartext traffic must stay explicitly disabled', () => {
   assert.deepEqual(inspectManifest(manifest({ cleartext: 'true' })), [
     'application must explicitly set android:usesCleartextTraffic="false"',
   ]);
-  assert.deepEqual(inspectManifest('<manifest><application /></manifest>'), [
+  assert.deepEqual(inspectManifest(manifest({ cleartext: null })), [
     'application must explicitly set android:usesCleartextTraffic="false"',
   ]);
+});
+
+test('backup stays disabled without backup-rule references', () => {
+  assert.deepEqual(
+    inspectPrivacyDefaults(
+      manifest({
+        allowBackup: 'true',
+        backupAttributes:
+          'android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules"',
+      }),
+    ),
+    [
+      'application must explicitly set android:allowBackup="false"',
+      'application must not declare android:dataExtractionRules when backup is disabled',
+      'application must not declare android:fullBackupContent when backup is disabled',
+    ],
+  );
+});
+
+test('Firebase Analytics and Messaging auto-init stay explicitly disabled', () => {
+  assert.deepEqual(inspectPrivacyDefaults(manifest({ metadata: '' })), [
+    'firebase_analytics_collection_enabled must explicitly set android:value="false"',
+    'firebase_messaging_auto_init_enabled must explicitly set android:value="false"',
+  ]);
+  assert.deepEqual(
+    inspectPrivacyDefaults(
+      manifest({
+        metadata: `
+          <meta-data android:name="firebase_analytics_collection_enabled" android:value="true" />
+          <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />`,
+      }),
+    ),
+    ['firebase_analytics_collection_enabled must explicitly set android:value="false"'],
+  );
+});
+
+test('source manifest keeps privacy-sensitive defaults fail closed', async () => {
+  const sourceManifest = await readFile(
+    new URL('../../app/src/main/AndroidManifest.xml', import.meta.url),
+    'utf8',
+  );
+
+  assert.deepEqual(inspectPrivacyDefaults(sourceManifest), []);
 });
 
 test('unprotected exports and every exported provider fail closed', () => {
