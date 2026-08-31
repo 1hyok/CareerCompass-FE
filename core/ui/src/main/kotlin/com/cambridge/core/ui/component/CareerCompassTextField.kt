@@ -109,7 +109,7 @@ public fun CareerCompassTextField(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val borderColor =
         when {
-            !enabled -> colors.outline
+            !enabled -> colors.subtleOutline
             isError -> colors.actionDanger
             isFocused -> colors.primaryEmphasis
             else -> colors.interactiveOutline

@@ -2,19 +2,31 @@ package com.cambridge.core.ui.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.R
 
 private val InterFontFamily =
     FontFamily(
-        Font(R.font.inter_variable, weight = FontWeight.Normal),
-        Font(R.font.inter_variable, weight = FontWeight.Medium),
-        Font(R.font.inter_variable, weight = FontWeight.SemiBold),
-        Font(R.font.inter_variable, weight = FontWeight.Bold),
+        interFont(FontWeight.Normal),
+        interFont(FontWeight.Medium),
+        interFont(FontWeight.SemiBold),
+        interFont(FontWeight.Bold),
+    )
+
+@OptIn(ExperimentalTextApi::class)
+private fun interFont(weight: FontWeight): Font =
+    Font(
+        resId = R.font.inter_variable,
+        weight = weight,
+        style = FontStyle.Normal,
+        variationSettings = FontVariation.Settings(weight, FontStyle.Normal),
     )
 
 /** Typography roles defined by the CareerCompass design system. */

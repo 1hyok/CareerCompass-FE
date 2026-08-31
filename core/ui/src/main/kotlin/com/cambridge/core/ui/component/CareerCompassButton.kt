@@ -166,10 +166,10 @@ private fun buttonContentColor(
     if (!enabled) return colors.disabledContent
 
     return when (variant) {
-        CareerCompassButtonVariant.Primary -> colors.onPrimary
+        CareerCompassButtonVariant.Primary -> colors.onAction
         CareerCompassButtonVariant.Secondary -> colors.onSurface
         CareerCompassButtonVariant.Ghost -> colors.onSurface
         CareerCompassButtonVariant.Dark -> colors.inverseOnSurface
-        CareerCompassButtonVariant.Danger -> colors.onError
+        CareerCompassButtonVariant.Danger -> colors.onAction
     }
 }

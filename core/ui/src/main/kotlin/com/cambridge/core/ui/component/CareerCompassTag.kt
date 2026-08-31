@@ -42,7 +42,7 @@ public fun CareerCompassTag(
                 TagColors(
                     container = colors.disabledContainer,
                     content = colors.disabledContent,
-                    border = colors.outline,
+                    border = colors.subtleOutline,
                 )
             }
 
