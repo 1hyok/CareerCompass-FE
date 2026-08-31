@@ -63,13 +63,19 @@ class MainSourcePreviewKonsistTest {
     private companion object {
         const val PREVIEW = "Preview"
 
-        /** main `@Preview` 가 0건인 모듈들. 새 모듈은 처음부터 여기 더한다. */
+        /**
+         * 가드가 적용되는 모듈. `@Preview` 를 담을 수 있는 모듈은 전부 여기 있어야 한다 —
+         * 빠진 모듈은 검사 자체를 받지 않으므로, presentation 모듈을 새로 만들면 함께 더한다.
+         */
         val GUARDED_MODULE_PREFIXES =
             listOf(
                 "core/ui/",
-                "feature/careercompass/presentation/",
                 "feature/onboarding/presentation/",
-                "feature/receiver/presentation/",
+                "feature/feed/presentation/",
+                "feature/editor/presentation/",
+                "feature/profile/presentation/",
+                "feature/foryou/presentation/",
+                "feature/notification/presentation/",
             )
     }
 }
