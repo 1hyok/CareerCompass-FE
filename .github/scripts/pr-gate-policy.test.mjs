@@ -118,10 +118,12 @@ test("stale runs are cancelled per pull request", async () => {
 
 test("token-authored commits preserve the pull request context on manual dispatch", async () => {
     const entry = await readWorkflow(ENTRY_WORKFLOW);
+    const normalizedPullRequestNumber =
+        /pull_request_number: \$\{\{ fromJSON\(format\('\{0\}', inputs\.pull_request_number \|\| github\.event\.pull_request\.number \|\| 0\)\) \}\}/g;
 
     assert.match(entry, /^\s{2}workflow_dispatch:\n\s{4}inputs:\n\s{6}pull_request_number:/m);
     assert.equal(
-        (entry.match(/pull_request_number: \$\{\{ inputs\.pull_request_number \|\| github\.event\.pull_request\.number \|\| 0 \}\}/g) ?? []).length,
+        (entry.match(normalizedPullRequestNumber) ?? []).length,
         VALIDATION_WORKFLOWS.length,
     );
 });
@@ -144,7 +146,7 @@ test("merge group validation falls back to the full suite without a pull request
     const repositoryQuality = await readWorkflow("repository-quality.yml");
 
     assert.equal(
-        (entry.match(/\|\| github\.event\.pull_request\.number \|\| 0 \}\}/g) ?? []).length,
+        (entry.match(/\|\| github\.event\.pull_request\.number \|\| 0\)\) \}\}/g) ?? []).length,
         VALIDATION_WORKFLOWS.length,
     );
     for (const gate of ["Require linked Issue", "Validate CI Test Plan"]) {

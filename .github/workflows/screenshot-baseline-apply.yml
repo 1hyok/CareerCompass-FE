@@ -234,20 +234,25 @@ jobs:
               repo: context.repo.repo,
               ref: process.env.TARGET_BRANCH,
             };
+            const pullRequestNumber = Number(process.env.TARGET_PR);
+            if (!Number.isSafeInteger(pullRequestNumber) || pullRequestNumber <= 0) {
+              core.setFailed(`Invalid pull request number: ${process.env.TARGET_PR}`);
+              return;
+            }
             await github.rest.actions.createWorkflowDispatch({
               ...common,
               workflow_id: 'pr-validation.yml',
-              inputs: { pull_request_number: process.env.TARGET_PR },
+              inputs: { pull_request_number: pullRequestNumber },
             });
             await github.rest.actions.createWorkflowDispatch({
               ...common,
               workflow_id: 'codeql.yml',
-              inputs: { pull_request_number: process.env.TARGET_PR },
+              inputs: { pull_request_number: pullRequestNumber },
             });
             await github.rest.actions.createWorkflowDispatch({
               ...common,
               workflow_id: 'merge-order-guard.yml',
-              inputs: { pull_request_number: process.env.TARGET_PR },
+              inputs: { pull_request_number: pullRequestNumber },
             });
 
       - name: Comment result on the pull request
