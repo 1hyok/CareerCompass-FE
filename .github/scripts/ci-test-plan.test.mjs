@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+    ANDROID_TEST_DEVICES,
     ciTestPlanDigest,
     inspectAndroidTestImpact,
     inspectCiTestPlan,
@@ -48,6 +49,22 @@ test("selected는 명시적 파일, FQCN#method, lane을 요구한다", () => {
     );
     assert.equal(invalid.valid, false);
     assert.match(invalid.errors.join("\n"), /fully-qualified/);
+});
+
+test("selected는 모든 managed API lane을 허용하고 미지원 device를 거부한다", () => {
+    assert.deepEqual(ANDROID_TEST_DEVICES, ["api26", "api30", "api34", "api36"]);
+    for (const device of ANDROID_TEST_DEVICES) {
+        assert.equal(inspectCiTestPlan(selectedBody.replace('"api30"', `"${device}"`)).valid, true);
+    }
+
+    const invalid = inspectCiTestPlan(selectedBody.replace('"api30"', '"api35"'));
+    assert.equal(invalid.valid, false);
+    assert.match(invalid.errors.join("\n"), /api26, api30, api34, api36/);
+});
+
+test("PR template은 parser가 허용하는 managed API lane을 모두 안내한다", async () => {
+    const template = await fs.readFile(".github/PULL_REQUEST_TEMPLATE.md", "utf8");
+    assert.ok(template.includes(`실행 lane(${ANDROID_TEST_DEVICES.join("/")})`));
 });
 
 test("선택 selector의 package, class, @Test method를 현재 revision에서 확인한다", async () => {
