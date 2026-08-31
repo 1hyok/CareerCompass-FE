@@ -216,15 +216,18 @@ test("loads the committed warning-only baseline with exact develop provenance", 
     );
 
     assert.equal(policy.mode, "warn");
-    assert.equal(policy.source.sha, "393f99660bf2a62ef03d64f191f3c1ff26459dc6");
+    assert.equal(policy.source.sha, "7670b842a4955ca610a898bd70c1c28a6ba866f4");
     assert.equal(
         policy.source.runUrl,
-        "https://github.com/1hyok/CareerCompass-FE/actions/runs/33156896621",
+        "https://github.com/1hyok/CareerCompass-FE/actions/runs/33353737467",
     );
+    // 아직 측정 전이라 모든 모듈이 null 기준선이다 — 하나라도 숫자가 들어오면 첫 측정이
+    // 반영됐다는 뜻이므로, 그때 이 단언을 실제 기준선 검증으로 바꾼다.
     assert.deepEqual(policy.modules["feature/onboarding/data"], {
         line: null,
         branch: null,
     });
+    assert.ok(Object.values(policy.modules).every((m) => m.line === null && m.branch === null));
 });
 
 test("rejects missing metrics and zero-total baseline counters", () => {
