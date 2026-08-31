@@ -20,9 +20,7 @@
 
     <application
             android:name=".GlobalApplication"
-            android:allowBackup="true"
-            android:dataExtractionRules="@xml/data_extraction_rules"
-            android:fullBackupContent="@xml/backup_rules"
+            android:allowBackup="false"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
@@ -34,6 +32,13 @@
                 android:value="false" />
         <meta-data
                 android:name="google_analytics_default_allow_ad_personalization_signals"
+                android:value="false" />
+        <!-- 사용자 동의 흐름이 구현될 때까지 식별자·토큰 수집을 자동으로 시작하지 않는다. -->
+        <meta-data
+                android:name="firebase_analytics_collection_enabled"
+                android:value="false" />
+        <meta-data
+                android:name="firebase_messaging_auto_init_enabled"
                 android:value="false" />
 
         <!--

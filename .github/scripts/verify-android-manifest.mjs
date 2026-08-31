@@ -25,6 +25,11 @@ export const ALLOWED_UNPROTECTED_EXPORTED_COMPONENTS = new Set([
   'com.kakao.sdk.auth.AuthCodeHandlerActivity',
 ]);
 
+export const DISABLED_FIREBASE_AUTO_INIT = new Set([
+  'firebase_analytics_collection_enabled',
+  'firebase_messaging_auto_init_enabled',
+]);
+
 function attributes(source) {
   return Object.fromEntries(
     [...source.matchAll(/android:([A-Za-z][A-Za-z0-9]*)\s*=\s*"([^"]*)"/g)].map((match) => [
@@ -32,6 +37,43 @@ function attributes(source) {
       match[2],
     ]),
   );
+}
+
+export function inspectPrivacyDefaults(source) {
+  const violations = [];
+  const application = /<application\b([^>]*)>/s.exec(source);
+  if (!application) {
+    return ['application declaration is missing'];
+  }
+
+  const applicationAttributes = attributes(application[1]);
+  if (applicationAttributes.allowBackup !== 'false') {
+    violations.push('application must explicitly set android:allowBackup="false"');
+  }
+  for (const backupAttribute of ['dataExtractionRules', 'fullBackupContent']) {
+    if (backupAttribute in applicationAttributes) {
+      violations.push(
+        `application must not declare android:${backupAttribute} when backup is disabled`,
+      );
+    }
+  }
+
+  const metadataValues = new Map();
+  for (const match of source.matchAll(/<meta-data\b([^>]*)\/?\s*>/gs)) {
+    const metadata = attributes(match[1]);
+    if (!metadata.name) continue;
+    const values = metadataValues.get(metadata.name) ?? [];
+    values.push(metadata.value);
+    metadataValues.set(metadata.name, values);
+  }
+  for (const name of DISABLED_FIREBASE_AUTO_INIT) {
+    const values = metadataValues.get(name) ?? [];
+    if (values.length === 0 || values.some((value) => value !== 'false')) {
+      violations.push(`${name} must explicitly set android:value="false"`);
+    }
+  }
+
+  return violations;
 }
 
 export function inspectManifest(
@@ -50,6 +92,7 @@ export function inspectManifest(
     if (applicationAttributes.usesCleartextTraffic !== 'false') {
       violations.push('application must explicitly set android:usesCleartextTraffic="false"');
     }
+    violations.push(...inspectPrivacyDefaults(source));
   }
 
   for (const match of source.matchAll(/<uses-permission\b([^>]*)\/?\s*>/gs)) {
