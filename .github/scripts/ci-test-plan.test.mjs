@@ -515,6 +515,21 @@ test("하네스 변경은 full, Android 런타임 경계는 selected 이상을 �
     );
 });
 
+test("실제 GlobalApplication 변경은 Android 런타임 경계로 분류해 none을 거부한다", async () => {
+    const applicationPath =
+        "app/src/main/java/com/cambridge/careercompass_fe/GlobalApplication.kt";
+
+    await fs.access(applicationPath);
+    assert.deepEqual(inspectAndroidTestImpact([applicationPath]).selected, [applicationPath]);
+    await assert.rejects(
+        validateCiTestPlanImpact(
+            { androidTest: { mode: "none", reason: "Application 기동 경계 변경" } },
+            [applicationPath],
+        ),
+        /selected 또는 full/,
+    );
+});
+
 test("변경한 @Test 파일의 selector를 selected 계획에서 빠뜨릴 수 없다", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "ci-test-impact-"));
     const testPath = "app/src/androidTest/java/com/example/RuntimeTest.kt";

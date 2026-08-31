@@ -277,7 +277,7 @@ export function inspectAndroidTestImpact(changedPaths) {
         if (
             /(^|\/)src\/(?:main|debug)\/AndroidManifest\.xml$/.test(filePath) ||
             /^(?:app|feature\/[^/]+\/presentation)\/src\/main\/(?:java|kotlin)\/.+\/navigation\//.test(filePath) ||
-            /^app\/src\/main\/(?:java|kotlin)\/.+\/(?:MainActivity|CareerCompassApplication)\.kt$/.test(filePath)
+            /^app\/src\/main\/(?:java|kotlin)\/.+\/(?:MainActivity|GlobalApplication)\.kt$/.test(filePath)
         ) {
             selected.push(filePath);
         }
