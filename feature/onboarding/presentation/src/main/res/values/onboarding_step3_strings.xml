@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_step3_title">어떤 경험이 있나요?</string>
+    <string name="onboarding_step3_description">수상, 인턴, 프로젝트 등 — 자유롭게 추가하세요</string>
+    <string name="onboarding_step3_filter_selected">선택됨</string>
+    <string name="onboarding_step3_filter_unselected">선택 안 됨</string>
+    <string name="onboarding_step3_experience_metadata">%1$s · %2$s</string>
+    <string name="onboarding_step3_add_experience">경험 추가하기</string>
+    <string name="onboarding_step3_add_icon" translatable="false">+</string>
+    <string name="onboarding_step3_next">다음</string>
+</resources>
