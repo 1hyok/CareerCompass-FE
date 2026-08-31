@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 export const ANDROID_TEST_MODES = ["none", "selected", "full"];
-export const ANDROID_TEST_DEVICES = ["api30", "api34"];
+export const ANDROID_TEST_DEVICES = ["api26", "api30", "api34", "api36"];
 
 const MAX_REASON_LENGTH = 1_000;
 const MAX_SELECTED_TESTS = 20;

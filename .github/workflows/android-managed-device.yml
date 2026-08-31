@@ -1,9 +1,9 @@
 name: Android Managed Device Test
 
 # 모든 same-repository PR 에 기존 두 required context를 만들되, CI Test Plan이 none이면 에뮬레이터를
-# 만들지 않는다. selected는 선언한 FQCN#method와 lane만, full은 API 30 전체와 API 34 smoke를 실행한다.
-# minSdk API 26과 targetSdk API 36 경계 smoke는 scheduled_only라 정기/default-branch 수동 실행에서만
-# 에뮬레이터를 띄우고 PR full 또는 복구 dispatch 비용을 늘리지 않는다.
+# 만들지 않는다. selected는 선언한 FQCN#method와 lane만, full은 API 26·30·34·36을 실행한다.
+# minSdk API 26과 targetSdk API 36 경계 smoke는 merge queue에서만 빼서 required API 30·34의
+# 재검증 처리량을 지키고, full 또는 명시적인 selected PR에서는 변경과 함께 검증한다.
 # PR head SHA와 default branch에서 staging한 parser/verifier를 함께 검증한다. fork PR은 실행하지 않는다.
 # 라벨 조정기의 자동 dispatch 도 PR head branch ref 에 생성하고 이벤트 SHA 를 현재 PR HEAD 와 다시
 # 대조한다. 정기·일반 수동 실행만 default branch 를 사용하므로 PR 코드가 기본 브랜치 cache scope 에서
@@ -199,7 +199,7 @@ jobs:
             gradle_step_timeout_minutes: 17
             full_selector: com.cambridge.careercompass_fe.ApiBoundarySmokeAndroidTest
             artifact: min-sdk-api26
-            scheduled_only: true
+            merge_queue_skip: true
           - name: Pixel 2 API 30 androidTest
             task: pixel2Api30DebugAndroidTest
             device: api30
@@ -208,7 +208,7 @@ jobs:
             gradle_step_timeout_minutes: 31
             full_selector: ''
             artifact: api30
-            scheduled_only: false
+            merge_queue_skip: false
           - name: Pixel 2 API 34 accessibility smoke
             task: pixel2Api34DebugAndroidTest
             device: api34
@@ -217,7 +217,7 @@ jobs:
             gradle_step_timeout_minutes: 13
             full_selector: com.cambridge.careercompass_fe.AccessibilitySmokeAndroidTest
             artifact: accessibility-api34
-            scheduled_only: false
+            merge_queue_skip: false
           - name: Pixel 2 API 36 targetSdk smoke
             task: pixel2Api36DebugAndroidTest
             device: api36
@@ -226,7 +226,7 @@ jobs:
             gradle_step_timeout_minutes: 17
             full_selector: com.cambridge.careercompass_fe.ApiBoundarySmokeAndroidTest
             artifact: target-sdk-api36
-            scheduled_only: true
+            merge_queue_skip: true
     steps:
       - name: Clone trusted target policy
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -334,7 +334,7 @@ jobs:
           EXECUTION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           FULL_SELECTOR: ${{ matrix.full_selector }}
           POLICY_SOURCE: ${{ steps.policy.outputs.source }}
-          SCHEDULED_ONLY: ${{ matrix.scheduled_only }}
+          MERGE_QUEUE_SKIP: ${{ matrix.merge_queue_skip }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -427,15 +427,12 @@ jobs:
           mode="$(jq -r '.androidTest.mode' "$plan_file")"
           selectors_json='[]'
           run_lane=false
-          if [[ "$SCHEDULED_ONLY" != "true" && "$SCHEDULED_ONLY" != "false" ]]; then
-            echo "::error::scheduled_only matrix 값은 true 또는 false여야 합니다"
+          if [[ "$MERGE_QUEUE_SKIP" != "true" && "$MERGE_QUEUE_SKIP" != "false" ]]; then
+            echo "::error::merge_queue_skip matrix 값은 true 또는 false여야 합니다"
             exit 1
           fi
-          if [[ "$SCHEDULED_ONLY" == "true" && "$target_pr" != "none" ]] ||
-             [[ "$SCHEDULED_ONLY" == "true" && "$EVENT_NAME" == "merge_group" ]]; then
-            # API 경계 lane은 default branch의 정기/일반 수동 실행만 허용한다.
-            # merge group 도 target_pr 이 none 이지만 required 인 API 30·34 만 돌리면
-            # 되므로 경계 lane 을 큐에서 함께 뺀다.
+          if [[ "$MERGE_QUEUE_SKIP" == "true" && "$EVENT_NAME" == "merge_group" ]]; then
+            # merge group은 required인 API 30·34만 다시 검증하므로 경계 lane을 큐에서 뺀다.
             run_lane=false
           elif [[ "$mode" == "full" ]]; then
             run_lane=true
