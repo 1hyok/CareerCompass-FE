@@ -13,13 +13,22 @@ public enum class FeedListingCategory {
 public data class FeedFilterUiModel(
     val category: FeedListingCategory,
     val label: String,
-)
+) {
+    init {
+        requireNonBlank("filter label", label)
+    }
+}
 
 /** The currently selected, localized sort option. */
 public data class FeedSortUiModel(
     val id: String,
     val label: String,
-)
+) {
+    init {
+        requireNonBlank("sort id", id)
+        requireNonBlank("sort label", label)
+    }
+}
 
 /** Display-only data for one listing card. */
 public data class FeedListingUiModel(
@@ -35,9 +44,11 @@ public data class FeedListingUiModel(
     val isBookmarked: Boolean,
 ) {
     init {
-        require(id.isNotBlank()) {
-            "id must not be blank"
-        }
+        requireNonBlank("id", id)
+        requireNonBlank("title", title)
+        requireNonBlank("categoryLabel", categoryLabel)
+        requireNonBlank("sourceLabel", sourceLabel)
+        requireNonBlank("deadlineLabel", deadlineLabel)
         require(suitabilityScore in 0..100) {
             "suitabilityScore must be between 0 and 100: $suitabilityScore"
         }
@@ -76,8 +87,12 @@ public data class FeedUiState(
     val content: FeedContentState,
 ) {
     init {
+        requireNonBlank("userName", userName)
         require(newListingCount >= 0) { "newListingCount must not be negative" }
         require(totalListingCount >= 0) { "totalListingCount must not be negative" }
+        require(filters.map(FeedFilterUiModel::category).distinct().size == filters.size) {
+            "filter categories must be unique"
+        }
         require(filters.any { it.category == selectedFilter }) {
             "selectedFilter must be present in filters"
         }
@@ -105,4 +120,13 @@ public sealed interface FeedUiEvent {
     ) : FeedUiEvent
 
     public data object NotificationsSelected : FeedUiEvent
+}
+
+private fun requireNonBlank(
+    fieldName: String,
+    value: String,
+) {
+    require(value.isNotBlank()) {
+        "$fieldName must not be blank"
+    }
 }
