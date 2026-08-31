@@ -24,10 +24,11 @@ export async function validatePullRequestCiTestPlan(
         changedFiles = null,
         repository = process.env.GITHUB_REPOSITORY,
         actor = trustedPullRequestActorFromEnvironment(process.env),
+        headCommit = payload?.trusted_head_commit,
     } = {},
 ) {
     const pullRequest = pullRequestFrom(payload);
-    const { plan } = resolveAndroidTestPlan(pullRequest, { repository, actor });
+    const { plan } = resolveAndroidTestPlan(pullRequest, { repository, actor, headCommit });
     await validateCiTestPlanSources(plan, { root });
     if (changedFiles !== null) {
         await validateCiTestPlanImpact(plan, changedPathsFromGithubFiles(changedFiles), {

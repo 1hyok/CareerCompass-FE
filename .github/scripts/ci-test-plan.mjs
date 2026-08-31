@@ -5,6 +5,7 @@ import path from "node:path";
 export const ANDROID_TEST_MODES = ["none", "selected", "full"];
 export const ANDROID_TEST_DEVICES = ["api26", "api30", "api34", "api36"];
 export const DEPENDABOT_BOT_ID = 49_699_333;
+export const GITHUB_WEB_FLOW_ID = 19_864_447;
 
 export function trustedPullRequestActorFromEnvironment(environment = {}) {
     const id = Number(environment.TRUSTED_PR_ACTOR_ID);
@@ -21,13 +22,43 @@ export function trustedPullRequestActorFromEnvironment(environment = {}) {
  * fail-closed by requiring both GitHub's immutable Bot identity and the trusted
  * pull_request event sender. A human push to an existing Dependabot branch keeps
  * the PR author but changes the synchronize-event sender, so it loses the exception.
+ *
+ * Dependabot also edits its PR body immediately after a rebase/recreate. That edit
+ * cancels the earlier synchronize run under the PR concurrency group. An edited
+ * event is accepted only when GitHub's commit API proves that the current single
+ * HEAD is a GitHub-signed Dependabot commit directly on the event's base SHA. This
+ * prevents a later metadata edit from blessing a human force-push.
  */
+export function isVerifiedDependabotHeadCommit(pullRequest, headCommit) {
+    const verification = headCommit?.commit?.verification;
+    return typeof pullRequest?.head?.sha === "string"
+        && typeof pullRequest?.base?.sha === "string"
+        && headCommit?.sha === pullRequest.head.sha
+        && headCommit?.author?.login === "dependabot[bot]"
+        && headCommit?.author?.type === "Bot"
+        && headCommit?.author?.id === DEPENDABOT_BOT_ID
+        && headCommit?.committer?.login === "web-flow"
+        && headCommit?.committer?.type === "User"
+        && headCommit?.committer?.id === GITHUB_WEB_FLOW_ID
+        && verification?.verified === true
+        && verification?.reason === "valid"
+        && typeof verification?.signature === "string"
+        && verification.signature.trim().length > 0
+        && Array.isArray(headCommit?.parents)
+        && headCommit.parents.length === 1
+        && headCommit.parents[0]?.sha === pullRequest.base.sha;
+}
+
 export function isTrustedDependabotPullRequest(
     pullRequest,
-    { repository, actor, baseBranch = "develop" } = {},
+    { repository, actor, headCommit, baseBranch = "develop" } = {},
 ) {
     const expectedRepository = typeof repository === "string" ? repository.trim().toLowerCase() : "";
     if (!expectedRepository) return false;
+
+    const trustedEvent = ["opened", "synchronize"].includes(actor?.action)
+        || (actor?.action === "edited"
+            && isVerifiedDependabotHeadCommit(pullRequest, headCommit));
 
     return pullRequest?.user?.login === "dependabot[bot]"
         && pullRequest?.user?.type === "Bot"
@@ -35,7 +66,7 @@ export function isTrustedDependabotPullRequest(
         && actor?.login === "dependabot[bot]"
         && actor?.type === "Bot"
         && actor?.id === DEPENDABOT_BOT_ID
-        && ["opened", "synchronize"].includes(actor?.action)
+        && trustedEvent
         && pullRequest?.commits === 1
         && pullRequest?.head?.repo?.full_name?.toLowerCase() === expectedRepository
         && pullRequest?.base?.repo?.full_name?.toLowerCase() === expectedRepository

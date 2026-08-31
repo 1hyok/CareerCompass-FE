@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import {
     DEPENDABOT_BOT_ID,
+    GITHUB_WEB_FLOW_ID,
 } from "./ci-test-plan.mjs";
 import {
     extractSameRepositoryIssueNumbers,
@@ -13,6 +19,20 @@ import {
 const workflowUrl = new URL("../workflows/repository-quality.yml", import.meta.url);
 const callerWorkflowUrl = new URL("../workflows/pr-validation.yml", import.meta.url);
 const templateUrl = new URL("../PULL_REQUEST_TEMPLATE.md", import.meta.url);
+const issueValidatorPath = fileURLToPath(new URL("./validate-pr-issue-link.mjs", import.meta.url));
+const execFileAsync = promisify(execFile);
+const repository = "Team-CamBridge/CareerCompass-FE";
+const reproducedHeadSha = "4bcc4f4505473d3498ce0972533f37e2ee4cfd3b";
+const reproducedBaseSha = "c29a7ea4f96798f27eaf8cb3c3b55f649ad61687";
+const dependabotIdentity = {
+    login: "dependabot[bot]",
+    type: "Bot",
+    id: DEPENDABOT_BOT_ID,
+};
+const dependabotActor = {
+    ...dependabotIdentity,
+    action: "opened",
+};
 
 function pullRequest({
     title = "change",
@@ -21,10 +41,57 @@ function pullRequest({
     commits,
     user = { login: "author", type: "User" },
     labels = [],
-    head = { ref: "feature/change", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
-    base = { ref: "develop", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
+    head = {
+        ref: "feature/change",
+        sha: reproducedHeadSha,
+        repo: { full_name: repository },
+    },
+    base = {
+        ref: "develop",
+        sha: reproducedBaseSha,
+        repo: { full_name: repository },
+    },
 } = {}) {
     return { number, title, body, commits, user, labels, head, base };
+}
+
+function dependabotPullRequest(overrides = {}) {
+    return pullRequest({
+        title: "chore(deps): bump actions/checkout",
+        commits: 1,
+        user: { ...dependabotIdentity },
+        head: {
+            ref: "dependabot/github_actions/develop/actions-checkout-7",
+            sha: reproducedHeadSha,
+            repo: { full_name: repository },
+        },
+        ...overrides,
+    });
+}
+
+function verifiedDependabotHeadCommit(pullRequestPayload, overrides = {}) {
+    return {
+        sha: pullRequestPayload.head.sha,
+        author: {
+            login: "dependabot[bot]",
+            type: "Bot",
+            id: DEPENDABOT_BOT_ID,
+        },
+        committer: {
+            login: "web-flow",
+            type: "User",
+            id: GITHUB_WEB_FLOW_ID,
+        },
+        commit: {
+            verification: {
+                verified: true,
+                reason: "valid",
+                signature: "-----BEGIN PGP SIGNATURE-----\ntrusted\n-----END PGP SIGNATURE-----",
+            },
+        },
+        parents: [{ sha: pullRequestPayload.base.sha }],
+        ...overrides,
+    };
 }
 
 function assignedIssue(number, overrides = {}) {
@@ -218,24 +285,10 @@ test("exempts bot authors from the assignee check but keeps the Issue link requi
 
 test("only trusted same-repository Dependabot bypasses the human Issue link template", async () => {
     let issueLoads = 0;
-    const dependabotActor = {
-        login: "dependabot[bot]",
-        type: "Bot",
-        id: DEPENDABOT_BOT_ID,
-        action: "opened",
-    };
-    const dependabot = pullRequest({
-        title: "chore(deps): bump actions/checkout",
-        commits: 1,
-        user: { ...dependabotActor },
-        head: {
-            ref: "dependabot/github_actions/develop/actions-checkout-7",
-            repo: { full_name: "Team-CamBridge/CareerCompass-FE" },
-        },
-    });
+    const dependabot = dependabotPullRequest();
     const result = await validatePullRequestIssueLink({
         pullRequest: dependabot,
-        repository: "Team-CamBridge/CareerCompass-FE",
+        repository,
         actor: dependabotActor,
         loadIssue: async () => {
             issueLoads += 1;
@@ -250,8 +303,8 @@ test("only trusted same-repository Dependabot bypasses the human Issue link temp
     assert.equal(issueLoads, 0);
 
     const untrusted = [
-        { pullRequest: { ...dependabot, user: { ...dependabotActor, type: "User" } }, actor: dependabotActor },
-        { pullRequest: { ...dependabot, user: { ...dependabotActor, id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, user: { ...dependabotIdentity, type: "User" } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, user: { ...dependabotIdentity, id: 1 } }, actor: dependabotActor },
         { pullRequest: { ...dependabot, user: { login: "another-bot[bot]", type: "Bot", id: 1 } }, actor: dependabotActor },
         { pullRequest: { ...dependabot, head: { ...dependabot.head, ref: "feature/not-dependabot" } }, actor: dependabotActor },
         { pullRequest: { ...dependabot, head: { ...dependabot.head, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
@@ -264,7 +317,7 @@ test("only trusted same-repository Dependabot bypasses the human Issue link temp
         await assert.rejects(
             validatePullRequestIssueLink({
                 pullRequest: pullRequestPayload,
-                repository: "Team-CamBridge/CareerCompass-FE",
+                repository,
                 actor,
                 loadIssue: async () => {
                     throw new Error("not found");
@@ -273,6 +326,67 @@ test("only trusted same-repository Dependabot bypasses the human Issue link temp
             /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
         );
     }
+});
+
+test("edited Dependabot Issue exemption은 trusted_head_commit provenance와 실제 wrapper를 요구한다", async () => {
+    const dependabot = dependabotPullRequest();
+    const actor = { ...dependabotActor, action: "edited" };
+    const headCommit = verifiedDependabotHeadCommit(dependabot);
+    let issueLoads = 0;
+
+    const result = await validatePullRequestIssueLink({
+        pullRequest: dependabot,
+        repository,
+        actor,
+        headCommit,
+        loadIssue: async () => {
+            issueLoads += 1;
+            throw new Error("must not load");
+        },
+    });
+    assert.deepEqual(result, {
+        issues: [],
+        rejected: [],
+        exemption: "trusted-dependabot",
+    });
+    assert.equal(issueLoads, 0);
+
+    await assert.rejects(
+        validatePullRequestIssueLink({
+            pullRequest: dependabot,
+            repository,
+            actor,
+            headCommit: {
+                ...headCommit,
+                commit: {
+                    verification: { ...headCommit.commit.verification, signature: "" },
+                },
+            },
+            loadIssue: async () => {
+                throw new Error("must not load");
+            },
+        }),
+        /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
+    );
+
+    const root = await mkdtemp(path.join(os.tmpdir(), "dependabot-edited-issue-link-"));
+    const payloadPath = path.join(root, "pull-request-event.json");
+    await writeFile(payloadPath, JSON.stringify({
+        pull_request: dependabot,
+        trusted_head_commit: headCommit,
+    }));
+    const { stdout } = await execFileAsync(process.execPath, [issueValidatorPath, payloadPath], {
+        env: {
+            ...process.env,
+            GH_TOKEN: "test-token-not-used-by-exemption",
+            GITHUB_REPOSITORY: repository,
+            TRUSTED_PR_ACTOR_ID: String(actor.id),
+            TRUSTED_PR_ACTOR_LOGIN: actor.login,
+            TRUSTED_PR_ACTOR_TYPE: actor.type,
+            TRUSTED_PR_EVENT_ACTION: actor.action,
+        },
+    });
+    assert.match(stdout, /trusted same-repository Dependabot/);
 });
 
 test("the issue-assignee-exempt label skips the assignee check but keeps the Issue link requirement", async () => {

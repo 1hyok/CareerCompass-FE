@@ -83,7 +83,7 @@ export function hasIssueAssigneeExemptLabel(pullRequest) {
         .includes(ISSUE_ASSIGNEE_EXEMPT_LABEL);
 }
 
-export async function validatePullRequestIssueLink({ pullRequest, repository, actor, loadIssue }) {
+export async function validatePullRequestIssueLink({ pullRequest, repository, actor, headCommit, loadIssue }) {
     if (typeof loadIssue !== "function") {
         throw new Error("loadIssue 함수가 필요합니다.");
     }
@@ -93,7 +93,7 @@ export async function validatePullRequestIssueLink({ pullRequest, repository, ac
     }
     const author = requiredString(pullRequest?.user?.login, "pull_request.user.login");
 
-    if (isTrustedDependabotPullRequest(pullRequest, { repository, actor })) {
+    if (isTrustedDependabotPullRequest(pullRequest, { repository, actor, headCommit })) {
         return { issues: [], rejected: [], exemption: "trusted-dependabot" };
     }
 
@@ -191,6 +191,7 @@ async function main() {
         pullRequest,
         repository,
         actor: trustedPullRequestActorFromEnvironment(process.env),
+        headCommit: event.trusted_head_commit,
         loadIssue: (issueNumber) => requestIssue(apiUrl, repository, token, issueNumber),
     });
     if (result.exemption === "trusted-dependabot") {
