@@ -23,6 +23,8 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 /**
  * A selectable filter tag with a selected and disabled state.
  *
+ * [label] must be non-blank. When provided, [stateDescription] must also be non-blank.
+ *
  * [stateDescription] overrides the platform checkbox wording only when the caller supplies a
  * localized value. Use [role] to match the caller's selection model: checkbox for independent
  * filters and radio button for a mutually exclusive group.
@@ -37,6 +39,11 @@ public fun CareerCompassTag(
     stateDescription: String? = null,
     role: Role = Role.Checkbox,
 ) {
+    require(label.isNotBlank()) { "label must not be blank" }
+    require(stateDescription == null || stateDescription.isNotBlank()) {
+        "stateDescription must be null or non-blank"
+    }
+
     val colors = CareerCompassTheme.colors
     val tagColors =
         when {
