@@ -140,12 +140,17 @@ test("managed device keeps required contexts but boots only CI Test Plan lanes",
     assert.match(source, /if: steps\.target\.outputs\.run_lane == 'true'/);
     assert.match(source, /selectors_json='\[\]'/);
     assert.match(source, /persist-credentials: false/);
-    assert.match(source, /SCHEDULED_ONLY: \$\{\{ matrix\.scheduled_only \}\}/);
+    assert.match(source, /MERGE_QUEUE_SKIP: \$\{\{ matrix\.merge_queue_skip \}\}/);
     assert.match(
         source,
-        /SCHEDULED_ONLY.*== "true" && "\$target_pr" != "none"[\s\S]*?run_lane=false/,
+        /MERGE_QUEUE_SKIP.*== "true" && "\$EVENT_NAME" == "merge_group"[\s\S]*?run_lane=false[\s\S]*?elif \[\[ "\$mode" == "full" \]\]; then[\s\S]*?run_lane=true/,
     );
-    assert.match(source, /scheduled_only matrix 값은 true 또는 false여야 합니다/);
+    assert.doesNotMatch(source, /MERGE_QUEUE_SKIP.*target_pr/);
+    assert.match(
+        source,
+        /elif \[\[ "\$mode" == "selected" \]\]; then[\s\S]*?select\(\.device == \$device\)[\s\S]*?run_lane=true/,
+    );
+    assert.match(source, /merge_queue_skip matrix 값은 true 또는 false여야 합니다/);
 
     const bootstrapRendererStep = source.slice(bootstrapRenderer, bootstrapVerifier);
     assert.match(bootstrapRendererStep, /steps\.target\.outputs\.run_lane == 'true'/);
@@ -252,14 +257,14 @@ test("managed device fails fast per lane and preserves only bounded infrastructu
     assert.match(source, /device: api34[\s\S]*?job_timeout_minutes: 15[\s\S]*?gradle_timeout_minutes: 12[\s\S]*?gradle_step_timeout_minutes: 13/);
     assert.match(
         source,
-        /device: api26[\s\S]*?full_selector: com\.cambridge\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?scheduled_only: true/,
+        /device: api26[\s\S]*?full_selector: com\.cambridge\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?merge_queue_skip: true/,
     );
     assert.match(
         source,
-        /device: api36[\s\S]*?full_selector: com\.cambridge\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?scheduled_only: true/,
+        /device: api36[\s\S]*?full_selector: com\.cambridge\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?merge_queue_skip: true/,
     );
-    assert.match(source, /device: api30[\s\S]*?scheduled_only: false/);
-    assert.match(source, /device: api34[\s\S]*?scheduled_only: false/);
+    assert.match(source, /device: api30[\s\S]*?merge_queue_skip: false/);
+    assert.match(source, /device: api34[\s\S]*?merge_queue_skip: false/);
     assert.match(
         source,
         /- name: Run managed-device androidTest[\s\S]*?timeout-minutes: \$\{\{ matrix\.gradle_step_timeout_minutes \}\}/,

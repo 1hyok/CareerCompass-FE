@@ -101,7 +101,7 @@ test("both PR managed device lanes stay aligned with the repository ruleset", as
             /^ {10}- name: (Pixel 2 API .+)\n([\s\S]*?)(?=^ {10}- name: Pixel 2 API |^ {4}steps:)/gm,
         ),
     ]
-        .filter((match) => /^ {12}scheduled_only: false$/m.test(match[2]))
+        .filter((match) => /^ {12}merge_queue_skip: false$/m.test(match[2]))
         .map((match) => match[1]);
 
     assert.deepEqual(contexts.sort(), [...REQUIRED_MANAGED_DEVICE_CONTEXTS].sort());
@@ -156,13 +156,13 @@ test("merge group validation falls back to the full suite without a pull request
     }
 });
 
-test("scheduled-only device lanes stay out of the merge queue", async () => {
+test("optional boundary device lanes stay out of the merge queue", async () => {
     // 경계 lane 까지 큐에서 돌면 required 가 아닌 job 이 처리량만 깎는다.
     const managedDevice = await readWorkflow("android-managed-device.yml");
 
     assert.match(
         managedDevice,
-        /\[\[ "\$SCHEDULED_ONLY" == "true" && "\$EVENT_NAME" == "merge_group" \]\]/,
+        /\[\[ "\$MERGE_QUEUE_SKIP" == "true" && "\$EVENT_NAME" == "merge_group" \]\]/,
     );
 });
 
