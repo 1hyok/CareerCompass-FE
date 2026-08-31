@@ -62,6 +62,11 @@ test("selected는 모든 managed API lane을 허용하고 미지원 device를 �
     assert.match(invalid.errors.join("\n"), /api26, api30, api34, api36/);
 });
 
+test("PR template은 parser가 허용하는 managed API lane을 모두 안내한다", async () => {
+    const template = await fs.readFile(".github/PULL_REQUEST_TEMPLATE.md", "utf8");
+    assert.ok(template.includes(`실행 lane(${ANDROID_TEST_DEVICES.join("/")})`));
+});
+
 test("선택 selector의 package, class, @Test method를 현재 revision에서 확인한다", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "ci-test-plan-"));
     const file = path.join(root, "app/src/androidTest/kotlin/com/example/ReceiverTest.kt");
