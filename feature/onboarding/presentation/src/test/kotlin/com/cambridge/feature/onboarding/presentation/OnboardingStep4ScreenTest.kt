@@ -264,6 +264,21 @@ public class OnboardingStep4ScreenTest {
     }
 
     @Test
+    public fun compactFailedDocument_keepsRetryOutsideMenuTouchTarget() {
+        composeRule.setStep4Content(state = failedState)
+
+        val retry = retryButton().performScrollTo()
+        val menu = documentMenuButton()
+
+        assertTrue(
+            "retry overlaps the document menu: " +
+                "retry=${retry.getUnclippedBoundsInRoot()}, " +
+                "menu=${menu.getUnclippedBoundsInRoot()}",
+            retry.getUnclippedBoundsInRoot().right <= menu.getUnclippedBoundsInRoot().left,
+        )
+    }
+
+    @Test
     public fun compactControlsAndDocumentCard_matchFigmaDimensions() {
         composeRule.setStep4Content(state = uploadedState)
 
@@ -313,7 +328,7 @@ public class OnboardingStep4ScreenTest {
             .assertWidthIsEqualTo(232.dp)
         composeRule
             .onNodeWithTag("onboarding_step4_document_text_${sampleDocument.id}")
-            .assertWidthIsEqualTo(164.dp)
+            .assertWidthIsEqualTo(142.dp)
         composeRule
             .onNodeWithTag("onboarding_step4_document_${sampleDocument.id}")
             .assertHeightIsEqualTo(63.dp)
