@@ -7,11 +7,11 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-interface AuthApiService {
-    /** API_SPEC v0.1 §1 — `POST /auth/social/{provider}`. provider 는 `kakao` 또는 `google`. */
+public interface AuthApiService {
+    /** API_SPEC v0.1 §1 — `POST /auth/social/{provider}`. */
     @POST("auth/social/{provider}")
-    suspend fun socialLogin(
-        @Path("provider") provider: String,
+    public suspend fun socialLogin(
+        @Path("provider") provider: SocialLoginProvider,
         @Body body: SocialLoginRequestDto,
     ): BaseResponse<SocialLoginDto>
 }

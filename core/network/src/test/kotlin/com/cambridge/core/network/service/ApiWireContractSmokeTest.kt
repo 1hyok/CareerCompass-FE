@@ -70,49 +70,68 @@ class ApiWireContractSmokeTest {
     }
 
     @Test
-    fun `social login preserves HTTP route, strict request JSON, and response schema`() =
+    fun `Kakao social login preserves HTTP route, strict request JSON, and response schema`() =
         runTest {
-            installExpectation(
-                method = "POST",
-                path = "/api/v1/auth/social/kakao",
-                requestBody =
-                    wireJson
-                        .parseToJsonElement(
-                            """{"accessToken":"provider-token","deviceId":"device-uuid","fcmToken":"fcm-token"}""",
-                        ).jsonObject,
-                responseBody =
-                    """
-                    {
-                      "ok": true,
-                      "data": {
-                        "accessToken": "access",
-                        "refreshToken": "refresh",
-                        "isNewUser": true,
-                        "expiresIn": 3600
-                      }
-                    }
-                    """.trimIndent(),
+            assertSocialLoginContract(
+                provider = SocialLoginProvider.Kakao,
+                expectedPath = "/api/v1/auth/social/kakao",
             )
-
-            val result =
-                authService.socialLogin(
-                    provider = "kakao",
-                    body =
-                        SocialLoginRequestDto(
-                            accessToken = "provider-token",
-                            deviceId = "device-uuid",
-                            fcmToken = "fcm-token",
-                        ),
-                )
-            val data = requireNotNull(result.data)
-
-            assertEquals(true, result.ok)
-            assertEquals("access", data.accessToken)
-            assertEquals("refresh", data.refreshToken)
-            assertEquals(true, data.isNewUser)
-            assertEquals(3600L, data.expiresIn)
-            assertExactlyOneRecordedRequest("POST", "/api/v1/auth/social/kakao")
         }
+
+    @Test
+    fun `Google social login preserves HTTP route, strict request JSON, and response schema`() =
+        runTest {
+            assertSocialLoginContract(
+                provider = SocialLoginProvider.Google,
+                expectedPath = "/api/v1/auth/social/google",
+            )
+        }
+
+    private suspend fun assertSocialLoginContract(
+        provider: SocialLoginProvider,
+        expectedPath: String,
+    ) {
+        installExpectation(
+            method = "POST",
+            path = expectedPath,
+            requestBody =
+                wireJson
+                    .parseToJsonElement(
+                        """{"accessToken":"provider-token","deviceId":"device-uuid","fcmToken":"fcm-token"}""",
+                    ).jsonObject,
+            responseBody =
+                """
+                {
+                  "ok": true,
+                  "data": {
+                    "accessToken": "access",
+                    "refreshToken": "refresh",
+                    "isNewUser": true,
+                    "expiresIn": 3600
+                  }
+                }
+                """.trimIndent(),
+        )
+
+        val result =
+            authService.socialLogin(
+                provider = provider,
+                body =
+                    SocialLoginRequestDto(
+                        accessToken = "provider-token",
+                        deviceId = "device-uuid",
+                        fcmToken = "fcm-token",
+                    ),
+            )
+        val data = requireNotNull(result.data)
+
+        assertEquals(true, result.ok)
+        assertEquals("access", data.accessToken)
+        assertEquals("refresh", data.refreshToken)
+        assertEquals(true, data.isNewUser)
+        assertEquals(3600L, data.expiresIn)
+        assertExactlyOneRecordedRequest("POST", expectedPath)
+    }
 
     private fun installExpectation(
         method: String,
