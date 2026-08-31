@@ -12,6 +12,7 @@ export function trustedPullRequestActorFromEnvironment(environment = {}) {
         login: environment.TRUSTED_PR_ACTOR_LOGIN,
         type: environment.TRUSTED_PR_ACTOR_TYPE,
         id: Number.isSafeInteger(id) ? id : null,
+        action: environment.TRUSTED_PR_EVENT_ACTION,
     };
 }
 
@@ -34,6 +35,8 @@ export function isTrustedDependabotPullRequest(
         && actor?.login === "dependabot[bot]"
         && actor?.type === "Bot"
         && actor?.id === DEPENDABOT_BOT_ID
+        && ["opened", "synchronize"].includes(actor?.action)
+        && pullRequest?.commits === 1
         && pullRequest?.head?.repo?.full_name?.toLowerCase() === expectedRepository
         && pullRequest?.base?.repo?.full_name?.toLowerCase() === expectedRepository
         && pullRequest?.base?.ref === baseBranch

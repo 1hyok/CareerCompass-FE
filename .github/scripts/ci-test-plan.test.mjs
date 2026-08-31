@@ -38,13 +38,19 @@ const selectedBody = `
 `;
 
 const repository = "Team-CamBridge/CareerCompass-FE";
-const dependabotActor = { login: "dependabot[bot]", type: "Bot", id: DEPENDABOT_BOT_ID };
+const dependabotActor = {
+    login: "dependabot[bot]",
+    type: "Bot",
+    id: DEPENDABOT_BOT_ID,
+    action: "synchronize",
+};
 
 function dependabotPullRequest(overrides = {}) {
     return {
         number: 2,
         title: "chore(deps): bump actions/checkout",
         body: "",
+        commits: 1,
         user: { ...dependabotActor },
         head: {
             ref: "dependabot/github_actions/develop/actions-checkout-7",
@@ -130,6 +136,7 @@ test("trusted same-repository Dependabot gets a full plan without the human temp
         TRUSTED_PR_ACTOR_LOGIN: dependabotActor.login,
         TRUSTED_PR_ACTOR_TYPE: dependabotActor.type,
         TRUSTED_PR_ACTOR_ID: String(dependabotActor.id),
+        TRUSTED_PR_EVENT_ACTION: dependabotActor.action,
     });
     assert.deepEqual(actorFromEnvironment, dependabotActor);
     assert.equal(isTrustedDependabotPullRequest(pullRequest, {
@@ -167,6 +174,8 @@ test("Dependabot identity, trusted event sender, same-repository branch, and dev
         { pullRequest: { ...trusted, head: { ...trusted.head, sha: "f".repeat(40) } }, actor: { login: "maintainer", type: "User", id: 7 } },
         { pullRequest: trusted, actor: { ...dependabotActor, id: 1 } },
         { pullRequest: trusted, actor: { ...dependabotActor, type: "User" } },
+        { pullRequest: trusted, actor: { ...dependabotActor, action: "edited" } },
+        { pullRequest: { ...trusted, commits: 2 }, actor: dependabotActor },
     ];
 
     for (const { pullRequest, actor } of untrusted) {
@@ -187,6 +196,7 @@ test("trusted Dependabot exception receives immutable event-sender fields in eve
         assert.match(workflow, /TRUSTED_PR_ACTOR_ID: \$\{\{ github\.event\.sender\.id \}\}/);
         assert.match(workflow, /TRUSTED_PR_ACTOR_LOGIN: \$\{\{ github\.event\.sender\.login \}\}/);
         assert.match(workflow, /TRUSTED_PR_ACTOR_TYPE: \$\{\{ github\.event\.sender\.type \}\}/);
+        assert.match(workflow, /TRUSTED_PR_EVENT_ACTION: \$\{\{ github\.event\.action \}\}/);
     }
 });
 

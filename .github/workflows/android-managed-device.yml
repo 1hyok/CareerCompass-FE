@@ -339,6 +339,7 @@ jobs:
           TRUSTED_PR_ACTOR_ID: ${{ github.event.sender.id }}
           TRUSTED_PR_ACTOR_LOGIN: ${{ github.event.sender.login }}
           TRUSTED_PR_ACTOR_TYPE: ${{ github.event.sender.type }}
+          TRUSTED_PR_EVENT_ACTION: ${{ github.event.action }}
         run: |
           set -euo pipefail
           pull_request_file="$RUNNER_TEMP/android-test-pull-request.json"
@@ -523,6 +524,7 @@ jobs:
           TRUSTED_PR_ACTOR_ID: ${{ github.event.sender.id }}
           TRUSTED_PR_ACTOR_LOGIN: ${{ github.event.sender.login }}
           TRUSTED_PR_ACTOR_TYPE: ${{ github.event.sender.type }}
+          TRUSTED_PR_EVENT_ACTION: ${{ github.event.action }}
         run: >-
           node "$RUNNER_TEMP/android-test-policy/validate-pr-ci-test-plan.mjs"
           "$PULL_REQUEST_FILE"

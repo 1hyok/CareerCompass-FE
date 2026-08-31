@@ -18,12 +18,13 @@ function pullRequest({
     title = "change",
     body = "",
     number = 7,
+    commits,
     user = { login: "author", type: "User" },
     labels = [],
     head = { ref: "feature/change", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
     base = { ref: "develop", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
 } = {}) {
-    return { number, title, body, user, labels, head, base };
+    return { number, title, body, commits, user, labels, head, base };
 }
 
 function assignedIssue(number, overrides = {}) {
@@ -221,9 +222,11 @@ test("only trusted same-repository Dependabot bypasses the human Issue link temp
         login: "dependabot[bot]",
         type: "Bot",
         id: DEPENDABOT_BOT_ID,
+        action: "opened",
     };
     const dependabot = pullRequest({
         title: "chore(deps): bump actions/checkout",
+        commits: 1,
         user: { ...dependabotActor },
         head: {
             ref: "dependabot/github_actions/develop/actions-checkout-7",
@@ -254,6 +257,8 @@ test("only trusted same-repository Dependabot bypasses the human Issue link temp
         { pullRequest: { ...dependabot, head: { ...dependabot.head, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
         { pullRequest: { ...dependabot, base: { ...dependabot.base, ref: "main" } }, actor: dependabotActor },
         { pullRequest: { ...dependabot, head: { ...dependabot.head, sha: "f".repeat(40) } }, actor: { login: "maintainer", type: "User", id: 7 } },
+        { pullRequest: dependabot, actor: { ...dependabotActor, action: "edited" } },
+        { pullRequest: { ...dependabot, commits: 2 }, actor: dependabotActor },
     ];
     for (const { pullRequest: pullRequestPayload, actor } of untrusted) {
         await assert.rejects(
@@ -414,6 +419,7 @@ test("required Repository Quality check runs the issue guard on pull requests", 
     assert.match(workflow, /TRUSTED_PR_ACTOR_ID: \$\{\{ github\.event\.sender\.id \}\}/);
     assert.match(workflow, /TRUSTED_PR_ACTOR_LOGIN: \$\{\{ github\.event\.sender\.login \}\}/);
     assert.match(workflow, /TRUSTED_PR_ACTOR_TYPE: \$\{\{ github\.event\.sender\.type \}\}/);
+    assert.match(workflow, /TRUSTED_PR_EVENT_ACTION: \$\{\{ github\.event\.action \}\}/);
     assert.match(workflow, /validate-pr-issue-link\.mjs "\$\{\{ steps\.changed-files\.outputs\.pull_request_json \}\}"/);
     assert.match(
         callerWorkflow,
