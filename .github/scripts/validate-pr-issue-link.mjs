@@ -2,7 +2,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { isTrustedDependabotPullRequest } from "./ci-test-plan.mjs";
+import {
+    isTrustedDependabotPullRequest,
+    trustedPullRequestActorFromEnvironment,
+} from "./ci-test-plan.mjs";
 
 const ISSUE_REFERENCE_RE = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?|references?|part\s+of|related\s+to)\s*:?[ \t]+(?:(?:([\w.-]+)\/([\w.-]+))?#(\d+)|https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d+))/gi;
 const TITLE_ISSUE_REFERENCE_RE = /\(#([1-9]\d*)\)/g;
@@ -80,7 +83,7 @@ export function hasIssueAssigneeExemptLabel(pullRequest) {
         .includes(ISSUE_ASSIGNEE_EXEMPT_LABEL);
 }
 
-export async function validatePullRequestIssueLink({ pullRequest, repository, loadIssue }) {
+export async function validatePullRequestIssueLink({ pullRequest, repository, actor, loadIssue }) {
     if (typeof loadIssue !== "function") {
         throw new Error("loadIssue 함수가 필요합니다.");
     }
@@ -90,7 +93,7 @@ export async function validatePullRequestIssueLink({ pullRequest, repository, lo
     }
     const author = requiredString(pullRequest?.user?.login, "pull_request.user.login");
 
-    if (isTrustedDependabotPullRequest(pullRequest, { repository })) {
+    if (isTrustedDependabotPullRequest(pullRequest, { repository, actor })) {
         return { issues: [], rejected: [], exemption: "trusted-dependabot" };
     }
 
@@ -187,6 +190,7 @@ async function main() {
     const result = await validatePullRequestIssueLink({
         pullRequest,
         repository,
+        actor: trustedPullRequestActorFromEnvironment(process.env),
         loadIssue: (issueNumber) => requestIssue(apiUrl, repository, token, issueNumber),
     });
     if (result.exemption === "trusted-dependabot") {

@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+    DEPENDABOT_BOT_ID,
+} from "./ci-test-plan.mjs";
+import {
     extractSameRepositoryIssueNumbers,
     extractTitleIssueNumber,
     validatePullRequestIssueLink,
@@ -214,9 +217,14 @@ test("exempts bot authors from the assignee check but keeps the Issue link requi
 
 test("only trusted same-repository Dependabot bypasses the human Issue link template", async () => {
     let issueLoads = 0;
+    const dependabotActor = {
+        login: "dependabot[bot]",
+        type: "Bot",
+        id: DEPENDABOT_BOT_ID,
+    };
     const dependabot = pullRequest({
         title: "chore(deps): bump actions/checkout",
-        user: { login: "dependabot[bot]", type: "Bot" },
+        user: { ...dependabotActor },
         head: {
             ref: "dependabot/github_actions/develop/actions-checkout-7",
             repo: { full_name: "Team-CamBridge/CareerCompass-FE" },
@@ -225,6 +233,7 @@ test("only trusted same-repository Dependabot bypasses the human Issue link temp
     const result = await validatePullRequestIssueLink({
         pullRequest: dependabot,
         repository: "Team-CamBridge/CareerCompass-FE",
+        actor: dependabotActor,
         loadIssue: async () => {
             issueLoads += 1;
             throw new Error("must not load");
@@ -238,20 +247,20 @@ test("only trusted same-repository Dependabot bypasses the human Issue link temp
     assert.equal(issueLoads, 0);
 
     const untrusted = [
-        { ...dependabot, user: { login: "dependabot[bot]", type: "User" } },
-        { ...dependabot, user: { login: "another-bot[bot]", type: "Bot" } },
-        { ...dependabot, head: { ...dependabot.head, ref: "feature/not-dependabot" } },
-        {
-            ...dependabot,
-            head: { ...dependabot.head, repo: { full_name: "outside/fork" } },
-        },
-        { ...dependabot, base: { ...dependabot.base, ref: "main" } },
+        { pullRequest: { ...dependabot, user: { ...dependabotActor, type: "User" } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, user: { ...dependabotActor, id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, user: { login: "another-bot[bot]", type: "Bot", id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, head: { ...dependabot.head, ref: "feature/not-dependabot" } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, head: { ...dependabot.head, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, base: { ...dependabot.base, ref: "main" } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, head: { ...dependabot.head, sha: "f".repeat(40) } }, actor: { login: "maintainer", type: "User", id: 7 } },
     ];
-    for (const pullRequestPayload of untrusted) {
+    for (const { pullRequest: pullRequestPayload, actor } of untrusted) {
         await assert.rejects(
             validatePullRequestIssueLink({
                 pullRequest: pullRequestPayload,
                 repository: "Team-CamBridge/CareerCompass-FE",
+                actor,
                 loadIssue: async () => {
                     throw new Error("not found");
                 },
@@ -402,6 +411,9 @@ test("required Repository Quality check runs the issue guard on pull requests", 
     assert.match(callerWorkflow, /^permissions:\n(?:  .+\n)*  issues: read$/m);
     assert.match(workflow, /- name: Require linked Issue\n\s+if: inputs\.pull_request_number > 0/);
     assert.match(workflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+    assert.match(workflow, /TRUSTED_PR_ACTOR_ID: \$\{\{ github\.event\.sender\.id \}\}/);
+    assert.match(workflow, /TRUSTED_PR_ACTOR_LOGIN: \$\{\{ github\.event\.sender\.login \}\}/);
+    assert.match(workflow, /TRUSTED_PR_ACTOR_TYPE: \$\{\{ github\.event\.sender\.type \}\}/);
     assert.match(workflow, /validate-pr-issue-link\.mjs "\$\{\{ steps\.changed-files\.outputs\.pull_request_json \}\}"/);
     assert.match(
         callerWorkflow,

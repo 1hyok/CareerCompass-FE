@@ -9,13 +9,17 @@ import {
     ciTestPlanDigest,
     inspectPullRequestCiTestPlan,
     isTrustedDependabotPullRequest,
+    trustedPullRequestActorFromEnvironment,
 } from "./ci-test-plan.mjs";
 
 export function resolveAndroidTestPlan(
     pullRequest,
-    { repository = process.env.GITHUB_REPOSITORY } = {},
+    {
+        repository = process.env.GITHUB_REPOSITORY,
+        actor = trustedPullRequestActorFromEnvironment(process.env),
+    } = {},
 ) {
-    if (isTrustedDependabotPullRequest(pullRequest, { repository })) {
+    if (isTrustedDependabotPullRequest(pullRequest, { repository, actor })) {
         const plan = {
             androidTest: {
                 mode: "full",

@@ -6,6 +6,7 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import {
+    trustedPullRequestActorFromEnvironment,
     validateCiTestPlanImpact,
     validateCiTestPlanSources,
 } from "./ci-test-plan.mjs";
@@ -18,10 +19,15 @@ function pullRequestFrom(payload) {
 
 export async function validatePullRequestCiTestPlan(
     payload,
-    { root = process.cwd(), changedFiles = null, repository = process.env.GITHUB_REPOSITORY } = {},
+    {
+        root = process.cwd(),
+        changedFiles = null,
+        repository = process.env.GITHUB_REPOSITORY,
+        actor = trustedPullRequestActorFromEnvironment(process.env),
+    } = {},
 ) {
     const pullRequest = pullRequestFrom(payload);
-    const { plan } = resolveAndroidTestPlan(pullRequest, { repository });
+    const { plan } = resolveAndroidTestPlan(pullRequest, { repository, actor });
     await validateCiTestPlanSources(plan, { root });
     if (changedFiles !== null) {
         await validateCiTestPlanImpact(plan, changedPathsFromGithubFiles(changedFiles), {
