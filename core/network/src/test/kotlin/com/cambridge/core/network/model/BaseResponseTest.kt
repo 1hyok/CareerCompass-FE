@@ -73,6 +73,24 @@ class BaseResponseTest {
     }
 
     @Test
+    fun `requireData uses fallback while preserving empty server error message`() {
+        val response =
+            BaseResponse<String>(
+                ok = false,
+                error = ApiErrorDto(code = "SERVER_ERROR", message = ""),
+            )
+
+        val error =
+            assertThrows(ApiException::class.java) {
+                response.requireData()
+            }
+
+        assertEquals("SERVER_ERROR", error.code)
+        assertEquals("", error.serverMessage)
+        assertEquals("알 수 없는 서버 에러가 발생했습니다.", error.message)
+    }
+
+    @Test
     fun `requireData rejects successful envelope with empty data`() {
         val response = BaseResponse<String>(ok = true)
 
@@ -158,6 +176,24 @@ class BaseResponseTest {
 
         assertEquals("SERVER_ERROR", error.code)
         assertNull(error.serverMessage)
+        assertEquals("요청에 실패했습니다.", error.message)
+    }
+
+    @Test
+    fun `requireOk uses request fallback while preserving blank server error message`() {
+        val response =
+            BaseResponse<Unit>(
+                ok = false,
+                error = ApiErrorDto(code = "SERVER_ERROR", message = " \t"),
+            )
+
+        val error =
+            assertThrows(ApiException::class.java) {
+                response.requireOk()
+            }
+
+        assertEquals("SERVER_ERROR", error.code)
+        assertEquals(" \t", error.serverMessage)
         assertEquals("요청에 실패했습니다.", error.message)
     }
 }
