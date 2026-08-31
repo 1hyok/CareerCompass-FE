@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -99,7 +100,26 @@ public class OnboardingStep1ScreenTest {
                     "학과를 확인해 주세요",
                 ),
             )
-        nextButton().assertIsNotEnabled()
+        nextButton()
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+    }
+
+    @Test
+    public fun multipleValidationErrors_keepNextActionVisible() {
+        setScreen(
+            state =
+                completeState.copy(
+                    name = "",
+                    gradePointAverage = "5.0",
+                    nameError = "이름을 입력해 주세요",
+                    gradePointAverageError = "4.5 이하로 입력해 주세요",
+                ),
+        )
+
+        nextButton()
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
     }
 
     @Test

@@ -18,6 +18,5 @@
     <string name="onboarding_step1_gpa_support">4.5 만점 기준</string>
     <string name="onboarding_step1_graduation_label">졸업 예정</string>
     <string name="onboarding_step1_graduation_placeholder" translatable="false">YYYY.MM</string>
-    <string name="onboarding_step1_graduation_indicator" translatable="false">📅</string>
     <string name="onboarding_step1_next">다음</string>
 </resources>

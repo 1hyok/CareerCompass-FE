@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,10 +18,15 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
@@ -295,9 +301,7 @@ private fun OnboardingFields(
             size = CareerCompassTextFieldSize.Large,
             onClick = { onEvent(OnboardingStep1Event.GraduationDatePickerClicked) },
             trailingIcon = {
-                FieldIndicator(
-                    text = stringResource(R.string.onboarding_step1_graduation_indicator),
-                )
+                CalendarIndicator()
             },
         )
     }
@@ -308,9 +312,56 @@ private fun FieldIndicator(text: String) {
     Text(
         text = text,
         modifier = Modifier.clearAndSetSemantics {},
-        color = CareerCompassTheme.colors.mutedContent,
+        color = LocalContentColor.current,
         style = CareerCompassTheme.typography.bodyLarge,
     )
+}
+
+@Composable
+private fun CalendarIndicator() {
+    val color = LocalContentColor.current
+
+    Canvas(
+        modifier =
+            Modifier
+                .size(20.dp)
+                .clearAndSetSemantics {},
+    ) {
+        val strokeWidth = 1.5.dp.toPx()
+        val topInset = 5.dp.toPx()
+        val sideInset = 2.dp.toPx()
+        val bindingInset = 6.dp.toPx()
+
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(sideInset, topInset),
+            size =
+                Size(
+                    width = size.width - sideInset * 2,
+                    height = size.height - topInset - sideInset,
+                ),
+            cornerRadius = CornerRadius(2.dp.toPx()),
+            style = Stroke(width = strokeWidth),
+        )
+        drawLine(
+            color = color,
+            start = Offset(sideInset, 9.dp.toPx()),
+            end = Offset(size.width - sideInset, 9.dp.toPx()),
+            strokeWidth = strokeWidth,
+        )
+        drawLine(
+            color = color,
+            start = Offset(bindingInset, 2.dp.toPx()),
+            end = Offset(bindingInset, 7.dp.toPx()),
+            strokeWidth = strokeWidth,
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width - bindingInset, 2.dp.toPx()),
+            end = Offset(size.width - bindingInset, 7.dp.toPx()),
+            strokeWidth = strokeWidth,
+        )
+    }
 }
 
 @Composable
