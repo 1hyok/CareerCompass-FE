@@ -37,7 +37,7 @@ class ApiException(
     val code: String,
     val serverMessage: String?,
     fallbackMessage: String,
-) : RuntimeException(serverMessage ?: fallbackMessage)
+) : RuntimeException(serverMessage?.takeIf(String::isNotBlank) ?: fallbackMessage)
 
 fun <T : Any> BaseResponse<T>.requireData(): T {
     throwIfEnvelopeFailed(fallbackMessage = "알 수 없는 서버 에러가 발생했습니다.")
