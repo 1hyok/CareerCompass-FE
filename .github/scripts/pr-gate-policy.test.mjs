@@ -250,7 +250,8 @@ test("repository quality owns fail-closed paginated impact classification and PR
         repositoryQuality,
         /- name: Validate CI Test Plan\n\s+if: inputs\.pull_request_number > 0/,
     );
-    assert.match(repositoryQuality, /pull_request_json=%s\\n' "\$pull_request_file"/);
+    assert.match(repositoryQuality, /pull_request_json=%s\\n' "\$policy_payload_file"/);
+    assert.match(repositoryQuality, /trusted_head_commit: \$headCommit\[0\]/);
     assert.doesNotMatch(unitTest, /Validate CI Test Plan/);
 });
 

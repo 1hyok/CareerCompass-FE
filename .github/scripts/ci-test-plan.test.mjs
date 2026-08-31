@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 
 import {
     ANDROID_TEST_DEVICES,
     DEPENDABOT_BOT_ID,
+    GITHUB_WEB_FLOW_ID,
     ciTestPlanDigest,
     inspectAndroidTestImpact,
     inspectCiTestPlan,
@@ -38,10 +41,16 @@ const selectedBody = `
 `;
 
 const repository = "Team-CamBridge/CareerCompass-FE";
-const dependabotActor = {
+const reproducedHeadSha = "4bcc4f4505473d3498ce0972533f37e2ee4cfd3b";
+const reproducedBaseSha = "c29a7ea4f96798f27eaf8cb3c3b55f649ad61687";
+const execFileAsync = promisify(execFile);
+const dependabotIdentity = {
     login: "dependabot[bot]",
     type: "Bot",
     id: DEPENDABOT_BOT_ID,
+};
+const dependabotActor = {
+    ...dependabotIdentity,
     action: "synchronize",
 };
 
@@ -51,13 +60,42 @@ function dependabotPullRequest(overrides = {}) {
         title: "chore(deps): bump actions/checkout",
         body: "",
         commits: 1,
-        user: { ...dependabotActor },
+        user: { ...dependabotIdentity },
         head: {
             ref: "dependabot/github_actions/develop/actions-checkout-7",
-            sha: "a".repeat(40),
+            sha: reproducedHeadSha,
             repo: { full_name: repository },
         },
-        base: { ref: "develop", repo: { full_name: repository } },
+        base: {
+            ref: "develop",
+            sha: reproducedBaseSha,
+            repo: { full_name: repository },
+        },
+        ...overrides,
+    };
+}
+
+function verifiedDependabotHeadCommit(pullRequest, overrides = {}) {
+    return {
+        sha: pullRequest.head.sha,
+        author: {
+            login: "dependabot[bot]",
+            type: "Bot",
+            id: DEPENDABOT_BOT_ID,
+        },
+        committer: {
+            login: "web-flow",
+            type: "User",
+            id: GITHUB_WEB_FLOW_ID,
+        },
+        commit: {
+            verification: {
+                verified: true,
+                reason: "valid",
+                signature: "-----BEGIN PGP SIGNATURE-----\ntrusted\n-----END PGP SIGNATURE-----",
+            },
+        },
+        parents: [{ sha: pullRequest.base.sha }],
         ...overrides,
     };
 }
@@ -161,11 +199,233 @@ test("trusted same-repository Dependabot gets a full plan without the human temp
     assert.deepEqual(validated.plan, resolved.plan);
 });
 
+test("opened와 synchronize Dependabot 이벤트는 commit provenance 없이 기존 예외를 유지한다", () => {
+    const pullRequest = dependabotPullRequest();
+    for (const action of ["opened", "synchronize"]) {
+        const actor = { ...dependabotActor, action };
+        assert.equal(
+            isTrustedDependabotPullRequest(pullRequest, { repository, actor }),
+            true,
+        );
+        assert.equal(
+            resolveAndroidTestPlan(pullRequest, { repository, actor }).plan.androidTest.mode,
+            "full",
+        );
+    }
+});
+
+test("edited Dependabot 이벤트는 현재 HEAD의 GitHub 검증 provenance가 모두 맞을 때만 예외를 받는다", () => {
+    const pullRequest = dependabotPullRequest();
+    const actor = { ...dependabotActor, action: "edited" };
+    const headCommit = verifiedDependabotHeadCommit(pullRequest);
+
+    assert.equal(
+        isTrustedDependabotPullRequest(pullRequest, { repository, actor, headCommit }),
+        true,
+    );
+    assert.equal(
+        resolveAndroidTestPlan(pullRequest, { repository, actor, headCommit }).plan.androidTest.mode,
+        "full",
+    );
+
+    const untrusted = [
+        {
+            name: "human event sender",
+            pullRequest,
+            actor: { login: "maintainer", type: "User", id: 7, action: "edited" },
+            headCommit,
+        },
+        {
+            name: "forged author login",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, author: { ...headCommit.author, login: "another-bot[bot]" } },
+        },
+        {
+            name: "forged author type",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, author: { ...headCommit.author, type: "User" } },
+        },
+        {
+            name: "forged author id",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, author: { ...headCommit.author, id: 1 } },
+        },
+        {
+            name: "forged committer login",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, committer: { ...headCommit.committer, login: "maintainer" } },
+        },
+        {
+            name: "forged committer type",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, committer: { ...headCommit.committer, type: "Bot" } },
+        },
+        {
+            name: "forged committer id",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, committer: { ...headCommit.committer, id: 1 } },
+        },
+        {
+            name: "unverified signature",
+            pullRequest,
+            actor,
+            headCommit: {
+                ...headCommit,
+                commit: {
+                    verification: { ...headCommit.commit.verification, verified: false },
+                },
+            },
+        },
+        {
+            name: "invalid verification reason",
+            pullRequest,
+            actor,
+            headCommit: {
+                ...headCommit,
+                commit: {
+                    verification: { ...headCommit.commit.verification, reason: "unsigned" },
+                },
+            },
+        },
+        {
+            name: "empty signature",
+            pullRequest,
+            actor,
+            headCommit: {
+                ...headCommit,
+                commit: {
+                    verification: { ...headCommit.commit.verification, signature: "   " },
+                },
+            },
+        },
+        {
+            name: "head SHA mismatch",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, sha: "c".repeat(40) },
+        },
+        {
+            name: "parent SHA mismatch",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, parents: [{ sha: "c".repeat(40) }] },
+        },
+        {
+            name: "base SHA mismatch",
+            pullRequest: {
+                ...pullRequest,
+                base: { ...pullRequest.base, sha: "d".repeat(40) },
+            },
+            actor,
+            headCommit,
+        },
+        {
+            name: "multiple parents",
+            pullRequest,
+            actor,
+            headCommit: {
+                ...headCommit,
+                parents: [{ sha: pullRequest.base.sha }, { sha: "c".repeat(40) }],
+            },
+        },
+        {
+            name: "multiple pull request commits",
+            pullRequest: { ...pullRequest, commits: 2 },
+            actor,
+            headCommit,
+        },
+        { name: "missing commit payload", pullRequest, actor, headCommit: undefined },
+        { name: "missing author", pullRequest, actor, headCommit: { ...headCommit, author: null } },
+        { name: "missing committer", pullRequest, actor, headCommit: { ...headCommit, committer: null } },
+        {
+            name: "missing verification",
+            pullRequest,
+            actor,
+            headCommit: { ...headCommit, commit: {} },
+        },
+        { name: "missing parents", pullRequest, actor, headCommit: { ...headCommit, parents: null } },
+        {
+            name: "missing pull request head SHA",
+            pullRequest: { ...pullRequest, head: { ...pullRequest.head, sha: undefined } },
+            actor,
+            headCommit,
+        },
+        {
+            name: "missing pull request base SHA",
+            pullRequest: { ...pullRequest, base: { ...pullRequest.base, sha: undefined } },
+            actor,
+            headCommit,
+        },
+    ];
+
+    for (const candidate of untrusted) {
+        assert.equal(
+            isTrustedDependabotPullRequest(candidate.pullRequest, {
+                repository,
+                actor: candidate.actor,
+                headCommit: candidate.headCommit,
+            }),
+            false,
+            candidate.name,
+        );
+        assert.throws(
+            () => resolveAndroidTestPlan(candidate.pullRequest, {
+                repository,
+                actor: candidate.actor,
+                headCommit: candidate.headCommit,
+            }),
+            /CI Test Plan/,
+            candidate.name,
+        );
+    }
+});
+
+test("trusted_head_commit payload wrapper가 edited resolver와 CI validator까지 전달된다", async () => {
+    const pullRequest = dependabotPullRequest();
+    const actor = { ...dependabotActor, action: "edited" };
+    const payload = {
+        pull_request: pullRequest,
+        trusted_head_commit: verifiedDependabotHeadCommit(pullRequest),
+    };
+
+    const validated = await validatePullRequestCiTestPlan(payload, {
+        repository,
+        actor,
+        changedFiles: [{ filename: ".github/workflows/codeql.yml", status: "modified" }],
+    });
+    assert.equal(validated.plan.androidTest.mode, "full");
+
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dependabot-edited-resolver-"));
+    const payloadPath = path.join(root, "pull-request-event.json");
+    await fs.writeFile(payloadPath, JSON.stringify(payload));
+    const { stdout } = await execFileAsync(
+        process.execPath,
+        [path.resolve(".github/scripts/resolve-android-test-plan.mjs"), payloadPath],
+        {
+            env: {
+                ...process.env,
+                GITHUB_REPOSITORY: repository,
+                TRUSTED_PR_ACTOR_ID: String(actor.id),
+                TRUSTED_PR_ACTOR_LOGIN: actor.login,
+                TRUSTED_PR_ACTOR_TYPE: actor.type,
+                TRUSTED_PR_EVENT_ACTION: actor.action,
+            },
+        },
+    );
+    assert.equal(JSON.parse(stdout).plan.androidTest.mode, "full");
+});
+
 test("Dependabot identity, trusted event sender, same-repository branch, and develop base are required", () => {
     const trusted = dependabotPullRequest();
     const untrusted = [
-        { pullRequest: { ...trusted, user: { ...dependabotActor, type: "User" } }, actor: dependabotActor },
-        { pullRequest: { ...trusted, user: { ...dependabotActor, id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, user: { ...dependabotIdentity, type: "User" } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, user: { ...dependabotIdentity, id: 1 } }, actor: dependabotActor },
         { pullRequest: { ...trusted, user: { login: "another-bot[bot]", type: "Bot", id: 1 } }, actor: dependabotActor },
         { pullRequest: { ...trusted, head: { ...trusted.head, ref: "feature/not-dependabot" } }, actor: dependabotActor },
         { pullRequest: { ...trusted, head: { ...trusted.head, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
@@ -197,6 +457,12 @@ test("trusted Dependabot exception receives immutable event-sender fields in eve
         assert.match(workflow, /TRUSTED_PR_ACTOR_LOGIN: \$\{\{ github\.event\.sender\.login \}\}/);
         assert.match(workflow, /TRUSTED_PR_ACTOR_TYPE: \$\{\{ github\.event\.sender\.type \}\}/);
         assert.match(workflow, /TRUSTED_PR_EVENT_ACTION: \$\{\{ github\.event\.action \}\}/);
+        assert.match(
+            workflow,
+            /gh api "repos\/\$GITHUB_REPOSITORY\/commits\/\$[a-z_]*head_sha"/,
+        );
+        assert.match(workflow, /--slurpfile headCommit/);
+        assert.match(workflow, /trusted_head_commit:\s*\$headCommit\[0\]/);
     }
 });
 

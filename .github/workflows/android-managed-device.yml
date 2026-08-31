@@ -396,9 +396,31 @@ jobs:
 
           plan_file="$RUNNER_TEMP/android-test-plan.json"
           plan_digest=""
+          policy_payload_file="$pull_request_file"
           if [[ "$target_pr" != "none" ]]; then
+            policy_payload_file="$RUNNER_TEMP/android-test-policy-input.json"
+            jq -n --slurpfile pullRequest "$pull_request_file" \
+              '{pull_request: $pullRequest[0]}' > "$policy_payload_file"
+
+            policy_head_repository="$(jq -r '.head.repo.full_name // ""' "$pull_request_file")"
+            if [[ "$TRUSTED_PR_EVENT_ACTION" == "edited" &&
+                  "$policy_head_repository" == "$GITHUB_REPOSITORY" ]]; then
+              policy_head_sha="$(jq -r '.head.sha // ""' "$pull_request_file")"
+              if ! [[ "$policy_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+                echo "::error::edited PR head SHA가 유효하지 않습니다: $policy_head_sha"
+                exit 1
+              fi
+              head_commit_file="$RUNNER_TEMP/android-test-head-commit.json"
+              gh api "repos/$GITHUB_REPOSITORY/commits/$policy_head_sha" > "$head_commit_file"
+              jq -n \
+                --slurpfile pullRequest "$pull_request_file" \
+                --slurpfile headCommit "$head_commit_file" \
+                '{pull_request: $pullRequest[0], trusted_head_commit: $headCommit[0]}' \
+                > "$policy_payload_file"
+            fi
+
             if [[ "$POLICY_SOURCE" == "trusted" ]]; then
-              resolution="$(node "$RUNNER_TEMP/android-test-policy/resolve-android-test-plan.mjs" "$pull_request_file")"
+              resolution="$(node "$RUNNER_TEMP/android-test-policy/resolve-android-test-plan.mjs" "$policy_payload_file")"
               jq -c '.plan' <<< "$resolution" > "$plan_file"
               plan_digest="$(jq -r '.digest' <<< "$resolution")"
             else
@@ -461,7 +483,7 @@ jobs:
             echo "sha=$target_sha"
             echo "mode=$mode"
             echo "plan_digest=$plan_digest"
-            echo "pull_request_file=$pull_request_file"
+            echo "pull_request_file=$policy_payload_file"
             echo "run_lane=$run_lane"
             echo "selectors=$selectors"
             echo "selectors_json=$selectors_json"

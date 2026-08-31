@@ -17,9 +17,10 @@ export function resolveAndroidTestPlan(
     {
         repository = process.env.GITHUB_REPOSITORY,
         actor = trustedPullRequestActorFromEnvironment(process.env),
+        headCommit,
     } = {},
 ) {
-    if (isTrustedDependabotPullRequest(pullRequest, { repository, actor })) {
+    if (isTrustedDependabotPullRequest(pullRequest, { repository, actor, headCommit })) {
         const plan = {
             androidTest: {
                 mode: "full",
@@ -49,7 +50,9 @@ async function main() {
     }
     const payload = JSON.parse(await fs.readFile(path.resolve(payloadPath), "utf8"));
     const pullRequest = payload?.pull_request ?? payload;
-    process.stdout.write(`${JSON.stringify(resolveAndroidTestPlan(pullRequest))}\n`);
+    process.stdout.write(`${JSON.stringify(resolveAndroidTestPlan(pullRequest, {
+        headCommit: payload?.trusted_head_commit,
+    }))}\n`);
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : "";
