@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_greeting">안녕하세요, %1$s님</string>
+    <string name="feed_today_new_listing_count">오늘 신규 공고 %1$d건</string>
+    <string name="feed_notification_content_description">알림 보기</string>
+    <string name="feed_search_content_description">공고 검색</string>
+    <string name="feed_search_placeholder">공고 제목·키워드 검색</string>
+    <string name="feed_filter_selected_state">선택됨</string>
+    <string name="feed_filter_unselected_state">선택 안 됨</string>
+    <string name="feed_listing_count">%1$d개 공고</string>
+    <string name="feed_sort_content_description">정렬: %1$s</string>
+    <string name="feed_new_listing_content_description">신규 공고</string>
+    <string name="feed_suitability_label">적합도</string>
+    <string name="feed_suitability_content_description">적합도 %1$d점</string>
+    <string name="feed_bookmark_content_description">%1$s 북마크</string>
+    <string name="feed_bookmark_saved_state">저장됨</string>
+    <string name="feed_bookmark_not_saved_state">저장 안 됨</string>
+    <string name="feed_loading">공고를 불러오는 중이에요</string>
+    <string name="feed_empty_title">조건에 맞는 공고가 없어요</string>
+    <string name="feed_empty_description">검색어나 필터를 바꿔 보세요</string>
+
+    <string name="feed_icon_wave" translatable="false">👋</string>
+    <string name="feed_icon_notification" translatable="false">🔔</string>
+    <string name="feed_icon_search" translatable="false">🔍</string>
+    <string name="feed_icon_sort" translatable="false">⌄</string>
+    <string name="feed_icon_bookmark" translatable="false">♡</string>
+    <string name="feed_icon_bookmark_selected" translatable="false">♥</string>
+</resources>
