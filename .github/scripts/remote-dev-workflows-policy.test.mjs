@@ -69,6 +69,7 @@ test("privileged baseline apply is a workflow-run bridge restricted to PNG basel
     assert.match(source, /if: steps\.commit\.outputs\.changed == 'true'/);
     assert.match(source, /const pullRequestNumber = Number\(process\.env\.TARGET_PR\)/);
     assert.match(source, /Number\.isSafeInteger\(pullRequestNumber\)/);
+    assert.match(source, /pullRequestNumber <= 0/);
     assert.equal(
         (source.match(/inputs: \{ pull_request_number: pullRequestNumber \}/g) ?? []).length,
         3,

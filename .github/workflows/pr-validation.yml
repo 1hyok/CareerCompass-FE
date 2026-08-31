@@ -44,7 +44,7 @@ jobs:
     name: Repository Quality
     uses: ./.github/workflows/repository-quality.yml
     with:
-      # workflow_dispatch API payloads arrive as strings even when the declared input type is
+      # workflow_dispatch API payloads can arrive as strings even when the declared input type is
       # number. Reusable workflow inputs are type-checked before any job is created, so normalize
       # every event path back to a JSON number here.
       pull_request_number: ${{ fromJSON(format('{0}', inputs.pull_request_number || github.event.pull_request.number || 0)) }}

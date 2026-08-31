@@ -118,6 +118,7 @@ test("stale runs are cancelled per pull request", async () => {
 
 test("token-authored commits preserve the pull request context on manual dispatch", async () => {
     const entry = await readWorkflow(ENTRY_WORKFLOW);
+    const reusableWorkflows = await Promise.all(VALIDATION_WORKFLOWS.map(readWorkflow));
     const normalizedPullRequestNumber =
         /pull_request_number: \$\{\{ fromJSON\(format\('\{0\}', inputs\.pull_request_number \|\| github\.event\.pull_request\.number \|\| 0\)\) \}\}/g;
 
@@ -126,6 +127,12 @@ test("token-authored commits preserve the pull request context on manual dispatc
         (entry.match(normalizedPullRequestNumber) ?? []).length,
         VALIDATION_WORKFLOWS.length,
     );
+    for (const reusable of reusableWorkflows) {
+        assert.match(
+            reusable,
+            /pull_request_number:\n\s+required: false\n\s+default: 0\n\s+type: number/,
+        );
+    }
 });
 
 test("merge queue groups revalidate every required context", async () => {
