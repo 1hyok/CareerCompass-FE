@@ -11,13 +11,12 @@ const readWorkflow = (name) => readFile(new URL(name, workflowDirectory), "utf8"
 
 const screenshotModules = [
     ":core:ui",
-    ":feature:home:presentation",
-    ":feature:receiver:presentation",
     ":feature:onboarding:presentation",
-    ":feature:careercompass:presentation",
-    ":feature:mindrecord:presentation",
-    ":feature:setting:presentation",
-    ":feature:timeletter:presentation",
+    ":feature:feed:presentation",
+    ":feature:editor:presentation",
+    ":feature:profile:presentation",
+    ":feature:foryou:presentation",
+    ":feature:notification:presentation",
 ];
 
 test("baseline generation executes PR code without write credentials", async () => {
