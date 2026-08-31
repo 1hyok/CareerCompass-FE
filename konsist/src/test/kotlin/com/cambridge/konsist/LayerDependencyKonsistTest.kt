@@ -44,15 +44,58 @@ class LayerDependencyKonsistTest {
         }
     }
 
+    @Test
+    fun `fixture 의 data 와 presentation import 는 모두 금지한다`() {
+        val imports =
+            architectureFixtureImports(
+                relativePath = "domain/ForbiddenLayerImports.kt",
+                expectedImports =
+                    setOf(
+                        "com.cambridge.core.data.UserRepositoryImpl",
+                        "com.cambridge.feature.feed.data.FeedRepositoryImpl",
+                        "com.cambridge.feature.feed.presentation.FeedScreen",
+                    ),
+            )
+        val missedImports = imports.filterNot(FORBIDDEN_LAYER_IMPORT::matches)
+
+        check(missedImports.isEmpty()) {
+            "domain 금지 import 를 놓쳤다: ${missedImports.sorted()}"
+        }
+    }
+
+    @Test
+    fun `fixture 의 model 과 domain 과 표준 라이브러리 import 는 허용한다`() {
+        val imports =
+            architectureFixtureImports(
+                relativePath = "domain/AllowedImports.kt",
+                expectedImports =
+                    setOf(
+                        "com.cambridge.core.domain.UserRepository",
+                        "com.cambridge.core.model.User",
+                        "com.cambridge.feature.feed.domain.GetFeedUseCase",
+                        "kotlin.collections.List",
+                    ),
+            )
+        val falsePositives = imports.filter(::isForbiddenInternalImport)
+
+        check(falsePositives.isEmpty()) {
+            "domain 허용 import 를 금지했다: ${falsePositives.sorted()}"
+        }
+    }
+
+    private fun isForbiddenInternalImport(importName: String): Boolean =
+        FORBIDDEN_LAYER_IMPORT.matches(importName) ||
+            (importName.startsWith(CAREERCOMPASS_PREFIX) && !ALLOWED_INTERNAL_IMPORT.matches(importName))
+
     private companion object {
         const val ANDROID_SDK_PREFIX = "android."
         const val CAREERCOMPASS_PREFIX = "com.cambridge."
 
         /** data / presentation 레이어 패키지. */
-        val FORBIDDEN_LAYER_IMPORT = Regex("""^com\.careercompass\..*\.(data|presentation)\..*$""")
+        val FORBIDDEN_LAYER_IMPORT = Regex("""^com\.cambridge\..*\.(data|presentation)(?:\..*)?$""")
 
         /** core:model 또는 같은 domain 레이어만 허용 (그 외 com.cambridge.* 는 위반). */
         val ALLOWED_INTERNAL_IMPORT =
-            Regex("""^com\.careercompass\.core\.model\..*$|^com\.careercompass\..*\.domain(\..*)?$""")
+            Regex("""^com\.cambridge\.core\.model(?:\..*)?$|^com\.cambridge\..*\.domain(?:\..*)?$""")
     }
 }

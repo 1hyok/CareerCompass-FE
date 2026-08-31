@@ -60,6 +60,43 @@ class PresentationLayerDependencyKonsistTest {
         )
     }
 
+    @Test
+    fun `fixture 의 data 구현 import 는 모두 금지한다`() {
+        val imports =
+            architectureFixtureImports(
+                relativePath = "presentation/ForbiddenDataImports.kt",
+                expectedImports =
+                    setOf(
+                        "com.cambridge.core.data.UserRepositoryImpl",
+                        "com.cambridge.core.datastore.UserPreferencesDataStore",
+                        "com.cambridge.feature.feed.data.FeedRepositoryImpl",
+                    ),
+            )
+        val missedImports = imports.filterNot(FORBIDDEN_DATA_IMPORT::matches)
+
+        check(missedImports.isEmpty()) {
+            "presentation 금지 import 를 놓쳤다: ${missedImports.sorted()}"
+        }
+    }
+
+    @Test
+    fun `fixture 의 model 과 domain import 는 허용한다`() {
+        val imports =
+            architectureFixtureImports(
+                relativePath = "presentation/AllowedContractImports.kt",
+                expectedImports =
+                    setOf(
+                        "com.cambridge.core.domain.UserRepository",
+                        "com.cambridge.core.model.User",
+                    ),
+            )
+        val falsePositives = imports.filter(FORBIDDEN_DATA_IMPORT::matches)
+
+        check(falsePositives.isEmpty()) {
+            "presentation 허용 import 를 금지했다: ${falsePositives.sorted()}"
+        }
+    }
+
     private fun layerBypasses(): Set<String> =
         presentationFiles()
             .flatMap { file ->
@@ -80,15 +117,11 @@ class PresentationLayerDependencyKonsistTest {
             .withPackage("com.cambridge..presentation..")
 
     private companion object {
-        /**
-         * `core:datastore` 전부와 `core:data` 의 구현 패키지.
-         *
-         * `core:data` 를 통째로 막지 않는 것은 그 모듈이 구현만 담고 있지 않기 때문이다 —
-         * 계약 옆에 놓인 타입까지 함께 막으면 가드가 실제 위반이 아닌 것을 잡는다.
-         * 막아야 할 것은 「구현을 이름으로 아는 것」 이다.
-         */
+        /** `core:data`, `core:datastore`, feature `data` 계층의 구현 패키지. */
         val FORBIDDEN_DATA_IMPORT =
-            Regex("""^com\.careercompass\.core\.datastore\..*$|^com\.careercompass\.core\.data\.repoimpl\..*$""")
+            Regex(
+                """^com\.cambridge\.(?:core\.(?:data|datastore)|feature\.[^.]+\.data)(?:\..*)?$""",
+            )
 
         /**
          * #635 (setting 4건 중 3번) 이 수복한다. `PassKeyViewModel` 이 `UserProfileRepository`
