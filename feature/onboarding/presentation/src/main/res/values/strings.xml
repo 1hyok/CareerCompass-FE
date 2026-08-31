@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_step1_back">뒤로가기</string>
+    <string name="onboarding_step1_back_icon" translatable="false">←</string>
+    <string name="onboarding_step1_progress_description">%1$d단계 중 %2$d단계</string>
+    <string name="onboarding_step1_step_label" translatable="false">STEP %1$d / %2$d</string>
+    <string name="onboarding_step1_title">기본 정보를 알려주세요</string>
+    <string name="onboarding_step1_description">공고 추천과 자소서 생성에 사용돼요</string>
+    <string name="onboarding_step1_name_label">이름 *</string>
+    <string name="onboarding_step1_name_placeholder">이름을 입력해 주세요</string>
+    <string name="onboarding_step1_school_label">학교 *</string>
+    <string name="onboarding_step1_school_placeholder">학교를 선택해 주세요</string>
+    <string name="onboarding_step1_school_indicator" translatable="false">⌄</string>
+    <string name="onboarding_step1_major_label">학과 *</string>
+    <string name="onboarding_step1_major_placeholder">학과를 입력해 주세요</string>
+    <string name="onboarding_step1_gpa_label">학점</string>
+    <string name="onboarding_step1_gpa_placeholder">예: 3.87</string>
+    <string name="onboarding_step1_gpa_support">4.5 만점 기준</string>
+    <string name="onboarding_step1_graduation_label">졸업 예정</string>
+    <string name="onboarding_step1_graduation_placeholder" translatable="false">YYYY.MM</string>
+    <string name="onboarding_step1_graduation_indicator" translatable="false">📅</string>
+    <string name="onboarding_step1_next">다음</string>
+</resources>
