@@ -5,6 +5,27 @@ import path from "node:path";
 export const ANDROID_TEST_MODES = ["none", "selected", "full"];
 export const ANDROID_TEST_DEVICES = ["api26", "api30", "api34", "api36"];
 
+/**
+ * Dependabot cannot author this repository's human PR template. Keep its exception
+ * fail-closed by requiring GitHub's Bot identity plus the expected same-repository
+ * branch and base, rather than trusting a title, body, label, or actor string alone.
+ */
+export function isTrustedDependabotPullRequest(
+    pullRequest,
+    { repository, baseBranch = "develop" } = {},
+) {
+    const expectedRepository = typeof repository === "string" ? repository.trim().toLowerCase() : "";
+    if (!expectedRepository) return false;
+
+    return pullRequest?.user?.login === "dependabot[bot]"
+        && pullRequest?.user?.type === "Bot"
+        && pullRequest?.head?.repo?.full_name?.toLowerCase() === expectedRepository
+        && pullRequest?.base?.repo?.full_name?.toLowerCase() === expectedRepository
+        && pullRequest?.base?.ref === baseBranch
+        && typeof pullRequest?.head?.ref === "string"
+        && pullRequest.head.ref.startsWith("dependabot/");
+}
+
 const MAX_REASON_LENGTH = 1_000;
 const MAX_SELECTED_TESTS = 20;
 const PLACEHOLDERS = new Set(["", "-", "...", "none", "n/a", "todo", "tbd", "없음", "해당 없음"]);

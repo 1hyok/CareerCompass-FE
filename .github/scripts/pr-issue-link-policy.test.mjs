@@ -17,8 +17,10 @@ function pullRequest({
     number = 7,
     user = { login: "author", type: "User" },
     labels = [],
+    head = { ref: "feature/change", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
+    base = { ref: "develop", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
 } = {}) {
-    return { number, title, body, user, labels };
+    return { number, title, body, user, labels, head, base };
 }
 
 function assignedIssue(number, overrides = {}) {
@@ -208,6 +210,55 @@ test("exempts bot authors from the assignee check but keeps the Issue link requi
         }),
         /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
     );
+});
+
+test("only trusted same-repository Dependabot bypasses the human Issue link template", async () => {
+    let issueLoads = 0;
+    const dependabot = pullRequest({
+        title: "chore(deps): bump actions/checkout",
+        user: { login: "dependabot[bot]", type: "Bot" },
+        head: {
+            ref: "dependabot/github_actions/develop/actions-checkout-7",
+            repo: { full_name: "Team-CamBridge/CareerCompass-FE" },
+        },
+    });
+    const result = await validatePullRequestIssueLink({
+        pullRequest: dependabot,
+        repository: "Team-CamBridge/CareerCompass-FE",
+        loadIssue: async () => {
+            issueLoads += 1;
+            throw new Error("must not load");
+        },
+    });
+    assert.deepEqual(result, {
+        issues: [],
+        rejected: [],
+        exemption: "trusted-dependabot",
+    });
+    assert.equal(issueLoads, 0);
+
+    const untrusted = [
+        { ...dependabot, user: { login: "dependabot[bot]", type: "User" } },
+        { ...dependabot, user: { login: "another-bot[bot]", type: "Bot" } },
+        { ...dependabot, head: { ...dependabot.head, ref: "feature/not-dependabot" } },
+        {
+            ...dependabot,
+            head: { ...dependabot.head, repo: { full_name: "outside/fork" } },
+        },
+        { ...dependabot, base: { ...dependabot.base, ref: "main" } },
+    ];
+    for (const pullRequestPayload of untrusted) {
+        await assert.rejects(
+            validatePullRequestIssueLink({
+                pullRequest: pullRequestPayload,
+                repository: "Team-CamBridge/CareerCompass-FE",
+                loadIssue: async () => {
+                    throw new Error("not found");
+                },
+            }),
+            /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
+        );
+    }
 });
 
 test("the issue-assignee-exempt label skips the assignee check but keeps the Issue link requirement", async () => {

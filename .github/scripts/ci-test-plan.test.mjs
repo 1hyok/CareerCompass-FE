@@ -10,6 +10,7 @@ import {
     inspectAndroidTestImpact,
     inspectCiTestPlan,
     inspectPullRequestCiTestPlan,
+    isTrustedDependabotPullRequest,
     validateCiTestPlanImpact,
     validateCiTestPlanSources,
 } from "./ci-test-plan.mjs";
@@ -33,6 +34,23 @@ const selectedBody = `
 }
 \`\`\`
 `;
+
+const repository = "Team-CamBridge/CareerCompass-FE";
+
+function dependabotPullRequest(overrides = {}) {
+    return {
+        number: 2,
+        title: "chore(deps): bump actions/checkout",
+        body: "",
+        user: { login: "dependabot[bot]", type: "Bot" },
+        head: {
+            ref: "dependabot/github_actions/develop/actions-checkout-7",
+            repo: { full_name: repository },
+        },
+        base: { ref: "develop", repo: { full_name: repository } },
+        ...overrides,
+    };
+}
 
 test("none, selected, full 세 모드만 받는다", () => {
     const selected = inspectCiTestPlan(selectedBody, { pullRequestNumber: 7 });
@@ -100,6 +118,45 @@ test("기존 PR도 계획이 없으면 실패한다", () => {
     const pullRequest = { number: 3, created_at: "2026-08-01T00:00:00Z", body: "old" };
     assert.equal(inspectPullRequestCiTestPlan(pullRequest).valid, false);
     assert.throws(() => resolveAndroidTestPlan(pullRequest), /CI Test Plan/);
+});
+
+test("trusted same-repository Dependabot gets a full plan without the human template", async () => {
+    const pullRequest = dependabotPullRequest();
+    assert.equal(isTrustedDependabotPullRequest(pullRequest, { repository }), true);
+
+    const resolved = resolveAndroidTestPlan(pullRequest, { repository });
+    assert.deepEqual(resolved.plan, {
+        androidTest: {
+            mode: "full",
+            reason: "Trusted same-repository Dependabot dependency update",
+        },
+    });
+    assert.equal(resolved.digest, ciTestPlanDigest(resolved.plan));
+
+    const validated = await validatePullRequestCiTestPlan(pullRequest, {
+        repository,
+        changedFiles: [{ filename: ".github/workflows/codeql.yml", status: "modified" }],
+    });
+    assert.deepEqual(validated.plan, resolved.plan);
+});
+
+test("Dependabot identity, same-repository branch, and develop base are all required", () => {
+    const trusted = dependabotPullRequest();
+    const untrusted = [
+        { ...trusted, user: { login: "dependabot[bot]", type: "User" } },
+        { ...trusted, user: { login: "another-bot[bot]", type: "Bot" } },
+        { ...trusted, head: { ...trusted.head, ref: "feature/not-dependabot" } },
+        { ...trusted, head: { ...trusted.head, repo: { full_name: "outside/fork" } } },
+        { ...trusted, base: { ...trusted.base, ref: "main" } },
+    ];
+
+    for (const pullRequest of untrusted) {
+        assert.equal(isTrustedDependabotPullRequest(pullRequest, { repository }), false);
+        assert.throws(
+            () => resolveAndroidTestPlan(pullRequest, { repository }),
+            /CI Test Plan/,
+        );
+    }
 });
 
 test("도입 이후 PR은 계획이 필수이고 digest는 결정적이다", () => {

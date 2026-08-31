@@ -8,9 +8,25 @@ import { pathToFileURL } from "node:url";
 import {
     ciTestPlanDigest,
     inspectPullRequestCiTestPlan,
+    isTrustedDependabotPullRequest,
 } from "./ci-test-plan.mjs";
 
-export function resolveAndroidTestPlan(pullRequest) {
+export function resolveAndroidTestPlan(
+    pullRequest,
+    { repository = process.env.GITHUB_REPOSITORY } = {},
+) {
+    if (isTrustedDependabotPullRequest(pullRequest, { repository })) {
+        const plan = {
+            androidTest: {
+                mode: "full",
+                reason: "Trusted same-repository Dependabot dependency update",
+            },
+        };
+        return {
+            plan,
+            digest: ciTestPlanDigest(plan),
+        };
+    }
     const inspection = inspectPullRequestCiTestPlan(pullRequest);
     if (!inspection.valid) {
         throw new Error(inspection.errors.join("\n"));

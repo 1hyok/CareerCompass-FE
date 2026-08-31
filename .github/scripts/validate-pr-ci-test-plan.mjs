@@ -6,10 +6,10 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import {
-    inspectPullRequestCiTestPlan,
     validateCiTestPlanImpact,
     validateCiTestPlanSources,
 } from "./ci-test-plan.mjs";
+import { resolveAndroidTestPlan } from "./resolve-android-test-plan.mjs";
 import { changedPathsFromGithubFiles } from "./resolve-pr-impact.mjs";
 
 function pullRequestFrom(payload) {
@@ -18,20 +18,17 @@ function pullRequestFrom(payload) {
 
 export async function validatePullRequestCiTestPlan(
     payload,
-    { root = process.cwd(), changedFiles = null } = {},
+    { root = process.cwd(), changedFiles = null, repository = process.env.GITHUB_REPOSITORY } = {},
 ) {
     const pullRequest = pullRequestFrom(payload);
-    const inspection = inspectPullRequestCiTestPlan(pullRequest);
-    if (!inspection.valid) {
-        throw new Error(inspection.errors.join("\n"));
-    }
-    await validateCiTestPlanSources(inspection.plan, { root });
+    const { plan } = resolveAndroidTestPlan(pullRequest, { repository });
+    await validateCiTestPlanSources(plan, { root });
     if (changedFiles !== null) {
-        await validateCiTestPlanImpact(inspection.plan, changedPathsFromGithubFiles(changedFiles), {
+        await validateCiTestPlanImpact(plan, changedPathsFromGithubFiles(changedFiles), {
             root,
         });
     }
-    return { plan: inspection.plan };
+    return { plan };
 }
 
 async function main() {
