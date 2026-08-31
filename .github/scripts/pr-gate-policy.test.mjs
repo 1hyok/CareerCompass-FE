@@ -101,7 +101,7 @@ test("both PR managed device lanes stay aligned with the repository ruleset", as
             /^ {10}- name: (Pixel 2 API .+)\n([\s\S]*?)(?=^ {10}- name: Pixel 2 API |^ {4}steps:)/gm,
         ),
     ]
-        .filter((match) => /^ {12}scheduled_only: false$/m.test(match[2]))
+        .filter((match) => /^ {12}merge_queue_skip: false$/m.test(match[2]))
         .map((match) => match[1]);
 
     assert.deepEqual(contexts.sort(), [...REQUIRED_MANAGED_DEVICE_CONTEXTS].sort());
@@ -118,12 +118,21 @@ test("stale runs are cancelled per pull request", async () => {
 
 test("token-authored commits preserve the pull request context on manual dispatch", async () => {
     const entry = await readWorkflow(ENTRY_WORKFLOW);
+    const reusableWorkflows = await Promise.all(VALIDATION_WORKFLOWS.map(readWorkflow));
+    const normalizedPullRequestNumber =
+        /pull_request_number: \$\{\{ fromJSON\(format\('\{0\}', inputs\.pull_request_number \|\| github\.event\.pull_request\.number \|\| 0\)\) \}\}/g;
 
     assert.match(entry, /^\s{2}workflow_dispatch:\n\s{4}inputs:\n\s{6}pull_request_number:/m);
     assert.equal(
-        (entry.match(/pull_request_number: \$\{\{ inputs\.pull_request_number \|\| github\.event\.pull_request\.number \|\| 0 \}\}/g) ?? []).length,
+        (entry.match(normalizedPullRequestNumber) ?? []).length,
         VALIDATION_WORKFLOWS.length,
     );
+    for (const reusable of reusableWorkflows) {
+        assert.match(
+            reusable,
+            /pull_request_number:\n\s+required: false\n\s+default: 0\n\s+type: number/,
+        );
+    }
 });
 
 test("merge queue groups revalidate every required context", async () => {
@@ -144,7 +153,7 @@ test("merge group validation falls back to the full suite without a pull request
     const repositoryQuality = await readWorkflow("repository-quality.yml");
 
     assert.equal(
-        (entry.match(/\|\| github\.event\.pull_request\.number \|\| 0 \}\}/g) ?? []).length,
+        (entry.match(/\|\| github\.event\.pull_request\.number \|\| 0\)\) \}\}/g) ?? []).length,
         VALIDATION_WORKFLOWS.length,
     );
     for (const gate of ["Require linked Issue", "Validate CI Test Plan"]) {
@@ -156,13 +165,13 @@ test("merge group validation falls back to the full suite without a pull request
     }
 });
 
-test("scheduled-only device lanes stay out of the merge queue", async () => {
+test("optional boundary device lanes stay out of the merge queue", async () => {
     // 경계 lane 까지 큐에서 돌면 required 가 아닌 job 이 처리량만 깎는다.
     const managedDevice = await readWorkflow("android-managed-device.yml");
 
     assert.match(
         managedDevice,
-        /\[\[ "\$SCHEDULED_ONLY" == "true" && "\$EVENT_NAME" == "merge_group" \]\]/,
+        /\[\[ "\$MERGE_QUEUE_SKIP" == "true" && "\$EVENT_NAME" == "merge_group" \]\]/,
     );
 });
 

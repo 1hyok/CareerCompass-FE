@@ -85,7 +85,7 @@ test("API boundary devices are explicit and the smoke remains valid for existing
         /^android\.experimental\.testOptions\.managedDevices\.allowOldApiLevelDevices=true$/m,
     );
     assert.match(smoke, /Build\.VERSION\.SDK_INT in 26\.\.36/);
-    assert.match(smoke, /onboarding_welcome_start/);
+    assert.match(smoke, /careercompass_app_start/);
     assert.match(smoke, /FailureArtifactRule/);
     assert.match(smoke, /captureToImage\(\)\.asAndroidBitmap\(\)/);
     assert.doesNotMatch(smoke, /SdkSuppress/);
