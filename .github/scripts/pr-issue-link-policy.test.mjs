@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+    DEPENDABOT_BOT_ID,
+} from "./ci-test-plan.mjs";
+import {
     extractSameRepositoryIssueNumbers,
     extractTitleIssueNumber,
     validatePullRequestIssueLink,
@@ -15,10 +18,13 @@ function pullRequest({
     title = "change",
     body = "",
     number = 7,
+    commits,
     user = { login: "author", type: "User" },
     labels = [],
+    head = { ref: "feature/change", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
+    base = { ref: "develop", repo: { full_name: "Team-CamBridge/CareerCompass-FE" } },
 } = {}) {
-    return { number, title, body, user, labels };
+    return { number, title, body, commits, user, labels, head, base };
 }
 
 function assignedIssue(number, overrides = {}) {
@@ -210,6 +216,65 @@ test("exempts bot authors from the assignee check but keeps the Issue link requi
     );
 });
 
+test("only trusted same-repository Dependabot bypasses the human Issue link template", async () => {
+    let issueLoads = 0;
+    const dependabotActor = {
+        login: "dependabot[bot]",
+        type: "Bot",
+        id: DEPENDABOT_BOT_ID,
+        action: "opened",
+    };
+    const dependabot = pullRequest({
+        title: "chore(deps): bump actions/checkout",
+        commits: 1,
+        user: { ...dependabotActor },
+        head: {
+            ref: "dependabot/github_actions/develop/actions-checkout-7",
+            repo: { full_name: "Team-CamBridge/CareerCompass-FE" },
+        },
+    });
+    const result = await validatePullRequestIssueLink({
+        pullRequest: dependabot,
+        repository: "Team-CamBridge/CareerCompass-FE",
+        actor: dependabotActor,
+        loadIssue: async () => {
+            issueLoads += 1;
+            throw new Error("must not load");
+        },
+    });
+    assert.deepEqual(result, {
+        issues: [],
+        rejected: [],
+        exemption: "trusted-dependabot",
+    });
+    assert.equal(issueLoads, 0);
+
+    const untrusted = [
+        { pullRequest: { ...dependabot, user: { ...dependabotActor, type: "User" } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, user: { ...dependabotActor, id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, user: { login: "another-bot[bot]", type: "Bot", id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, head: { ...dependabot.head, ref: "feature/not-dependabot" } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, head: { ...dependabot.head, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, base: { ...dependabot.base, ref: "main" } }, actor: dependabotActor },
+        { pullRequest: { ...dependabot, head: { ...dependabot.head, sha: "f".repeat(40) } }, actor: { login: "maintainer", type: "User", id: 7 } },
+        { pullRequest: dependabot, actor: { ...dependabotActor, action: "edited" } },
+        { pullRequest: { ...dependabot, commits: 2 }, actor: dependabotActor },
+    ];
+    for (const { pullRequest: pullRequestPayload, actor } of untrusted) {
+        await assert.rejects(
+            validatePullRequestIssueLink({
+                pullRequest: pullRequestPayload,
+                repository: "Team-CamBridge/CareerCompass-FE",
+                actor,
+                loadIssue: async () => {
+                    throw new Error("not found");
+                },
+            }),
+            /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
+        );
+    }
+});
+
 test("the issue-assignee-exempt label skips the assignee check but keeps the Issue link requirement", async () => {
     const labels = [{ name: "issue-assignee-exempt" }];
     const loadIssue = issueLoader(new Map([
@@ -351,6 +416,10 @@ test("required Repository Quality check runs the issue guard on pull requests", 
     assert.match(callerWorkflow, /^permissions:\n(?:  .+\n)*  issues: read$/m);
     assert.match(workflow, /- name: Require linked Issue\n\s+if: inputs\.pull_request_number > 0/);
     assert.match(workflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+    assert.match(workflow, /TRUSTED_PR_ACTOR_ID: \$\{\{ github\.event\.sender\.id \}\}/);
+    assert.match(workflow, /TRUSTED_PR_ACTOR_LOGIN: \$\{\{ github\.event\.sender\.login \}\}/);
+    assert.match(workflow, /TRUSTED_PR_ACTOR_TYPE: \$\{\{ github\.event\.sender\.type \}\}/);
+    assert.match(workflow, /TRUSTED_PR_EVENT_ACTION: \$\{\{ github\.event\.action \}\}/);
     assert.match(workflow, /validate-pr-issue-link\.mjs "\$\{\{ steps\.changed-files\.outputs\.pull_request_json \}\}"/);
     assert.match(
         callerWorkflow,

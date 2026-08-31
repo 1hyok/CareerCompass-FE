@@ -6,10 +6,13 @@ import test from "node:test";
 
 import {
     ANDROID_TEST_DEVICES,
+    DEPENDABOT_BOT_ID,
     ciTestPlanDigest,
     inspectAndroidTestImpact,
     inspectCiTestPlan,
     inspectPullRequestCiTestPlan,
+    isTrustedDependabotPullRequest,
+    trustedPullRequestActorFromEnvironment,
     validateCiTestPlanImpact,
     validateCiTestPlanSources,
 } from "./ci-test-plan.mjs";
@@ -33,6 +36,31 @@ const selectedBody = `
 }
 \`\`\`
 `;
+
+const repository = "Team-CamBridge/CareerCompass-FE";
+const dependabotActor = {
+    login: "dependabot[bot]",
+    type: "Bot",
+    id: DEPENDABOT_BOT_ID,
+    action: "synchronize",
+};
+
+function dependabotPullRequest(overrides = {}) {
+    return {
+        number: 2,
+        title: "chore(deps): bump actions/checkout",
+        body: "",
+        commits: 1,
+        user: { ...dependabotActor },
+        head: {
+            ref: "dependabot/github_actions/develop/actions-checkout-7",
+            sha: "a".repeat(40),
+            repo: { full_name: repository },
+        },
+        base: { ref: "develop", repo: { full_name: repository } },
+        ...overrides,
+    };
+}
 
 test("none, selected, full 세 모드만 받는다", () => {
     const selected = inspectCiTestPlan(selectedBody, { pullRequestNumber: 7 });
@@ -100,6 +128,76 @@ test("기존 PR도 계획이 없으면 실패한다", () => {
     const pullRequest = { number: 3, created_at: "2026-08-01T00:00:00Z", body: "old" };
     assert.equal(inspectPullRequestCiTestPlan(pullRequest).valid, false);
     assert.throws(() => resolveAndroidTestPlan(pullRequest), /CI Test Plan/);
+});
+
+test("trusted same-repository Dependabot gets a full plan without the human template", async () => {
+    const pullRequest = dependabotPullRequest();
+    const actorFromEnvironment = trustedPullRequestActorFromEnvironment({
+        TRUSTED_PR_ACTOR_LOGIN: dependabotActor.login,
+        TRUSTED_PR_ACTOR_TYPE: dependabotActor.type,
+        TRUSTED_PR_ACTOR_ID: String(dependabotActor.id),
+        TRUSTED_PR_EVENT_ACTION: dependabotActor.action,
+    });
+    assert.deepEqual(actorFromEnvironment, dependabotActor);
+    assert.equal(isTrustedDependabotPullRequest(pullRequest, {
+        repository,
+        actor: actorFromEnvironment,
+    }), true);
+
+    const resolved = resolveAndroidTestPlan(pullRequest, { repository, actor: dependabotActor });
+    assert.deepEqual(resolved.plan, {
+        androidTest: {
+            mode: "full",
+            reason: "Trusted same-repository Dependabot dependency update",
+        },
+    });
+    assert.equal(resolved.digest, ciTestPlanDigest(resolved.plan));
+
+    const validated = await validatePullRequestCiTestPlan(pullRequest, {
+        repository,
+        actor: dependabotActor,
+        changedFiles: [{ filename: ".github/workflows/codeql.yml", status: "modified" }],
+    });
+    assert.deepEqual(validated.plan, resolved.plan);
+});
+
+test("Dependabot identity, trusted event sender, same-repository branch, and develop base are required", () => {
+    const trusted = dependabotPullRequest();
+    const untrusted = [
+        { pullRequest: { ...trusted, user: { ...dependabotActor, type: "User" } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, user: { ...dependabotActor, id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, user: { login: "another-bot[bot]", type: "Bot", id: 1 } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, head: { ...trusted.head, ref: "feature/not-dependabot" } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, head: { ...trusted.head, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, base: { ...trusted.base, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, base: { ...trusted.base, ref: "main" } }, actor: dependabotActor },
+        { pullRequest: { ...trusted, head: { ...trusted.head, sha: "f".repeat(40) } }, actor: { login: "maintainer", type: "User", id: 7 } },
+        { pullRequest: trusted, actor: { ...dependabotActor, id: 1 } },
+        { pullRequest: trusted, actor: { ...dependabotActor, type: "User" } },
+        { pullRequest: trusted, actor: { ...dependabotActor, action: "edited" } },
+        { pullRequest: { ...trusted, commits: 2 }, actor: dependabotActor },
+    ];
+
+    for (const { pullRequest, actor } of untrusted) {
+        assert.equal(isTrustedDependabotPullRequest(pullRequest, { repository, actor }), false);
+        assert.throws(
+            () => resolveAndroidTestPlan(pullRequest, { repository, actor }),
+            /CI Test Plan/,
+        );
+    }
+});
+
+test("trusted Dependabot exception receives immutable event-sender fields in every gate", async () => {
+    const [repositoryQuality, androidManagedDevice] = await Promise.all([
+        fs.readFile(".github/workflows/repository-quality.yml", "utf8"),
+        fs.readFile(".github/workflows/android-managed-device.yml", "utf8"),
+    ]);
+    for (const workflow of [repositoryQuality, androidManagedDevice]) {
+        assert.match(workflow, /TRUSTED_PR_ACTOR_ID: \$\{\{ github\.event\.sender\.id \}\}/);
+        assert.match(workflow, /TRUSTED_PR_ACTOR_LOGIN: \$\{\{ github\.event\.sender\.login \}\}/);
+        assert.match(workflow, /TRUSTED_PR_ACTOR_TYPE: \$\{\{ github\.event\.sender\.type \}\}/);
+        assert.match(workflow, /TRUSTED_PR_EVENT_ACTION: \$\{\{ github\.event\.action \}\}/);
+    }
 });
 
 test("도입 이후 PR은 계획이 필수이고 digest는 결정적이다", () => {

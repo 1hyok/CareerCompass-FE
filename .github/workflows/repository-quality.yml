@@ -191,10 +191,19 @@ jobs:
         if: inputs.pull_request_number > 0
         env:
           GH_TOKEN: ${{ github.token }}
+          TRUSTED_PR_ACTOR_ID: ${{ github.event.sender.id }}
+          TRUSTED_PR_ACTOR_LOGIN: ${{ github.event.sender.login }}
+          TRUSTED_PR_ACTOR_TYPE: ${{ github.event.sender.type }}
+          TRUSTED_PR_EVENT_ACTION: ${{ github.event.action }}
         run: node .github/scripts/validate-pr-issue-link.mjs "${{ steps.changed-files.outputs.pull_request_json }}"
 
       - name: Validate CI Test Plan
         if: inputs.pull_request_number > 0
+        env:
+          TRUSTED_PR_ACTOR_ID: ${{ github.event.sender.id }}
+          TRUSTED_PR_ACTOR_LOGIN: ${{ github.event.sender.login }}
+          TRUSTED_PR_ACTOR_TYPE: ${{ github.event.sender.type }}
+          TRUSTED_PR_EVENT_ACTION: ${{ github.event.action }}
         run: >-
           node .github/scripts/validate-pr-ci-test-plan.mjs
           "${{ steps.changed-files.outputs.pull_request_json }}"

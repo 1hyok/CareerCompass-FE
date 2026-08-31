@@ -4,6 +4,45 @@ import path from "node:path";
 
 export const ANDROID_TEST_MODES = ["none", "selected", "full"];
 export const ANDROID_TEST_DEVICES = ["api26", "api30", "api34", "api36"];
+export const DEPENDABOT_BOT_ID = 49_699_333;
+
+export function trustedPullRequestActorFromEnvironment(environment = {}) {
+    const id = Number(environment.TRUSTED_PR_ACTOR_ID);
+    return {
+        login: environment.TRUSTED_PR_ACTOR_LOGIN,
+        type: environment.TRUSTED_PR_ACTOR_TYPE,
+        id: Number.isSafeInteger(id) ? id : null,
+        action: environment.TRUSTED_PR_EVENT_ACTION,
+    };
+}
+
+/**
+ * Dependabot cannot author this repository's human PR template. Keep its exception
+ * fail-closed by requiring both GitHub's immutable Bot identity and the trusted
+ * pull_request event sender. A human push to an existing Dependabot branch keeps
+ * the PR author but changes the synchronize-event sender, so it loses the exception.
+ */
+export function isTrustedDependabotPullRequest(
+    pullRequest,
+    { repository, actor, baseBranch = "develop" } = {},
+) {
+    const expectedRepository = typeof repository === "string" ? repository.trim().toLowerCase() : "";
+    if (!expectedRepository) return false;
+
+    return pullRequest?.user?.login === "dependabot[bot]"
+        && pullRequest?.user?.type === "Bot"
+        && pullRequest?.user?.id === DEPENDABOT_BOT_ID
+        && actor?.login === "dependabot[bot]"
+        && actor?.type === "Bot"
+        && actor?.id === DEPENDABOT_BOT_ID
+        && ["opened", "synchronize"].includes(actor?.action)
+        && pullRequest?.commits === 1
+        && pullRequest?.head?.repo?.full_name?.toLowerCase() === expectedRepository
+        && pullRequest?.base?.repo?.full_name?.toLowerCase() === expectedRepository
+        && pullRequest?.base?.ref === baseBranch
+        && typeof pullRequest?.head?.ref === "string"
+        && pullRequest.head.ref.startsWith("dependabot/");
+}
 
 const MAX_REASON_LENGTH = 1_000;
 const MAX_SELECTED_TESTS = 20;
