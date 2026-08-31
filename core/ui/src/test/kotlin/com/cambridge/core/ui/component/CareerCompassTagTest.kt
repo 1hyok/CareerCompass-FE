@@ -81,6 +81,25 @@ class CareerCompassTagTest {
     }
 
     @Test
+    fun mutuallyExclusiveTag_exposesRadioButtonRole() {
+        composeRule.setContent {
+            CareerCompassTheme {
+                CareerCompassTag(
+                    label = "Single choice",
+                    selected = true,
+                    onClick = {},
+                    role = Role.RadioButton,
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithText("Single choice")
+            .assertIsOn()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+
+    @Test
     fun disabledTag_rejectsPointerInputAndExposesDisabledState() {
         var clicks = 0
         composeRule.setContent {

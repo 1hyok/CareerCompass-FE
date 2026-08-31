@@ -21,10 +21,11 @@ import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /**
- * A checkbox-like filter tag with a selected and disabled state.
+ * A selectable filter tag with a selected and disabled state.
  *
  * [stateDescription] overrides the platform checkbox wording only when the caller supplies a
- * localized value.
+ * localized value. Use [role] to match the caller's selection model: checkbox for independent
+ * filters and radio button for a mutually exclusive group.
  */
 @Composable
 public fun CareerCompassTag(
@@ -34,6 +35,7 @@ public fun CareerCompassTag(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     stateDescription: String? = null,
+    role: Role = Role.Checkbox,
 ) {
     val colors = CareerCompassTheme.colors
     val tagColors =
@@ -73,7 +75,7 @@ public fun CareerCompassTag(
                 }.toggleable(
                     value = selected,
                     enabled = enabled,
-                    role = Role.Checkbox,
+                    role = role,
                     onValueChange = { onClick() },
                 ),
         shape = CareerCompassTheme.shapes.pill,
