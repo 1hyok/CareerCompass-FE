@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-저장소 운영 하네스, GitHub Actions 파이프라인, **Android 멀티모듈 골격**까지 올라가 있다. 화면 구현은 아직 없다 — 각 feature 모듈은 패키지 구조만 잡혀 있는 빈 껍데기다.
+저장소 운영 하네스, GitHub Actions 파이프라인과 **28개 Android 멀티모듈 골격** 위에 공통 UI와 첫 presentation 화면들이 구현돼 있다. 다만 앱의 `AppNavigation` 은 아직 `CareerCompass` 자리표시자만 보여 주며, 아래 온보딩·피드 화면은 실제 내비게이션이나 데이터 흐름에 연결되기 전이다.
 
 ```bash
 ./gradlew assembleDebug          # debug APK 빌드
@@ -17,7 +17,17 @@
 node --test .github/scripts/*.test.mjs   # 저장소 정책 테스트
 ```
 
-`local.properties` 의 `sdk.dir` 만 채우면 위 넷이 모두 통과한다. `app/google-services.json` 은 커밋하지 않는다 — CI 는 `.github/actions/setup-ci-config` 가 secret 없이 스텁을 만들고, 로컬에서는 `node .github/scripts/create-ci-config.mjs --workspace . --github-env /dev/null` 로 같은 것을 만든다.
+Android 명령 전에는 `local.properties` 의 `sdk.dir` 로 SDK 위치를 제공한다. `app/google-services.json` 은 커밋하지 않는다 — CI 는 `.github/actions/setup-ci-config` 가 secret 없이 스텁을 만들고, 로컬에서 같은 검증용 설정이 필요하면 `node .github/scripts/create-ci-config.mjs --workspace . --github-env /dev/null` 로 만든다.
+
+### 구현 범위
+
+| 범위 | 현재 구현 | 아직 구현하지 않은 경계 |
+| --- | --- | --- |
+| [`:core:ui`](core/ui) | 색상·타이포그래피·간격·모양 테마와 버튼, 텍스트 필드, 배지, 태그, 적합도 칩. 단위 테스트와 Compose Preview screenshot baseline 포함 | 기능별 상태·데이터 연결 |
+| [`:feature:onboarding:presentation`](feature/onboarding/presentation) | 상태·이벤트를 외부에서 받는 온보딩 Step 1 폼. 입력·오류·비활성 상태의 단위/Compose 테스트와 screenshot baseline 포함 | `data`·`domain`, ViewModel, 저장·API 연동, Step 2~4 및 앱 내비게이션 |
+| [`:feature:feed:presentation`](feature/feed/presentation) | 상태·이벤트를 외부에서 받는 메인 피드. 검색·필터·정렬·북마크 intent와 loading/empty/list 상태의 단위/Compose 테스트 및 screenshot baseline 포함 | `data`·`domain`, 실제 공고 조회·저장, 상세 화면 및 앱 내비게이션 |
+| [`:app`](app) · [`:baselineprofile`](baselineprofile) | 최소 앱 시작 화면, 수집된 Baseline/Startup Profile, API 26·36 경계 smoke와 API 34 접근성 smoke | 온보딩·피드의 앱 셸 연결. 현재 instrumentation smoke는 `careercompass_app_start` 자리표시자만 검사한다 |
+| `editor` · `profile` · `foryou` · `notification` | 멀티모듈 build/패키지 골격 | `data`·`domain`·`presentation` 전체 구현 |
 
 ### 모듈
 
@@ -25,14 +35,16 @@ node --test .github/scripts/*.test.mjs   # 저장소 정책 테스트
 
 레이어 의존 방향은 `:konsist` 의 아키텍처 테스트가 강제한다. `build-logic` 의 `careercompass.*` 규약 플러그인이 모듈 공통 설정을 소유하므로, 모듈 build 파일에는 그 모듈만의 것을 적는다.
 
-### 아직 빨간 것
+### 검증 기준선
 
-정책 테스트 411개 중 409개 통과. 남은 2개는 실제 작업이 있어야 풀린다.
+예전에 빨갛다고 적혀 있던 두 정책은 필요한 산출물과 smoke가 추가돼 현재 소스 기준으로 해소됐다. 전체 정책 테스트 수는 계속 변하므로 README에 통과 개수를 고정하지 않고 위 명령과 CI 결과를 단일 정본으로 삼는다.
 
-| 실패 | 필요한 것 |
+| 검증 | 현재 기준 |
 | --- | --- |
-| `baseline-profile-policy` — 커밋된 프로파일 | `app/src/main/generated/baselineProfiles/baseline-prof.txt` — 화면이 생긴 뒤 Baseline Profile workflow 를 한 번 돌려 수집한다. 100줄 넘는 실제 수집본을 요구하므로 지어낼 수 없다 |
-| `baselineprofile-policy` — API 경계 smoke | `app/src/androidTest/.../ApiBoundarySmokeAndroidTest.kt` — 온보딩 화면의 `onboarding_welcome_start` 시맨틱을 검증하므로 그 화면이 먼저 필요하다 |
+| Baseline Profile | [`baseline-prof.txt`](app/src/main/generated/baselineProfiles/baseline-prof.txt) 와 [`startup-prof.txt`](app/src/main/generated/baselineProfiles/startup-prof.txt) 를 커밋하고, generator·주간 workflow·release AAB 패키징 계약을 정책 테스트로 검증한다 |
+| API 경계 smoke | [`ApiBoundarySmokeAndroidTest`](app/src/androidTest/java/com/cambridge/careercompass_fe/ApiBoundarySmokeAndroidTest.kt) 가 API 26·36 managed-device lane에서 앱 시작 시맨틱과 지원 범위를 확인한다 |
+| 접근성 smoke | [`AccessibilitySmokeAndroidTest`](app/src/androidTest/java/com/cambridge/careercompass_fe/AccessibilitySmokeAndroidTest.kt) 가 API 34에서 현재 앱 시작 화면에 Android Accessibility Test Framework 검사를 수행한다 |
+| UI 회귀 | `core:ui`, 온보딩 Step 1, 피드의 단위/Compose 테스트와 커밋된 screenshot baseline을 검증한다 |
 
 ## 분담
 
