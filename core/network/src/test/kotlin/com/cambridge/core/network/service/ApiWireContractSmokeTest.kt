@@ -33,7 +33,8 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
  *
  * 단순 fixture decode 테스트와 달리 method/path/header/request body 가 하나라도 바뀌면 MockServer 의
  * strict matcher 가 응답하지 않아 실패한다. 실제 운영 서버를 호출하지 않으므로 계정·secret 은 필요 없다.
- * Docker 가 없는 일반 unit-test 실행에서는 건너뛰고, 전용 Actions workflow 가 명시적으로 활성화한다.
+ * 일반 unit-test 실행에서는 환경 플래그로 건너뛰고, 전용 Actions workflow 가 명시적으로 활성화한다.
+ * 전용 workflow 에서 Docker 런타임을 찾지 못하면 skip 하지 않고 즉시 실패한다.
  *
  * 엔드포인트가 늘면 여기에 케이스를 추가한다 — API_SPEC v0.1 의 각 도메인이 대상이다.
  */
@@ -227,7 +228,9 @@ class ApiWireContractSmokeTest {
                 "$ENABLE_ENV=true 인 전용 workflow 에서만 Docker 계약 검증을 실행한다",
                 System.getenv(ENABLE_ENV) == "true",
             )
-            assumeTrue("Docker runtime is required", DockerClientFactory.instance().isDockerAvailable)
+            check(DockerClientFactory.instance().isDockerAvailable) {
+                "Docker runtime is required when $ENABLE_ENV=true"
+            }
 
             mockServer =
                 MockServerContainer(

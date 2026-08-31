@@ -83,7 +83,7 @@ function parseOpenTag(fragment) {
 }
 
 // Managed Device JUnit XML에 필요한 범위만 파싱한다. 외부 entity나 DTD는 해석하지 않는다.
-function parseXml(xml) {
+function parseXml(xml, { rejectDocumentText = false } = {}) {
     const root = { name: null, attributes: new Map(), content: [] };
     const stack = [root];
     let cursor = xml.charCodeAt(0) === 0xfeff ? 1 : 0;
@@ -145,6 +145,12 @@ function parseXml(xml) {
     }
 
     if (stack.length !== 1) throw new Error(`XML 태그 <${stack.at(-1).name}>가 닫히지 않았습니다.`);
+    if (
+        rejectDocumentText &&
+        root.content.some((item) => typeof item === "string" && item.trim() !== "")
+    ) {
+        throw new Error("XML 루트 요소 앞뒤에는 공백 외 텍스트나 CDATA를 둘 수 없습니다.");
+    }
     const elements = root.content.filter((item) => typeof item !== "string");
     if (elements.length !== 1) throw new Error("XML 문서에는 루트 요소가 하나 있어야 합니다.");
     return elements[0];
@@ -162,6 +168,10 @@ function descendants(node, name) {
 
 function directChild(node, names) {
     return node.content.find((item) => typeof item !== "string" && names.has(item.name)) ?? null;
+}
+
+function directChildren(node, names) {
+    return node.content.filter((item) => typeof item !== "string" && names.has(item.name));
 }
 
 function textContent(node) {
@@ -210,13 +220,112 @@ function incompleteRunMessage(text) {
     return truncateMessage(normalized);
 }
 
-export function parseAndroidTestXml(xml, { file = "JUnit XML" } = {}) {
+function requireSuiteCounter(node, name, file) {
+    const rawValue = node.attributes.get(name);
+    if (rawValue === undefined || !/^\d+$/.test(rawValue)) {
+        throw new Error(`${file}: <${node.name}> ${name} 카운터가 0 이상의 정수여야 합니다.`);
+    }
+    const value = Number(rawValue);
+    if (!Number.isSafeInteger(value)) {
+        throw new Error(`${file}: <${node.name}> ${name} 카운터가 안전한 정수 범위를 벗어났습니다.`);
+    }
+    return value;
+}
+
+function validateDeclaredSuiteCounters(root, file) {
+    if (root.name !== "testsuite" && root.name !== "testsuites") {
+        throw new Error(`${file}: XML 루트는 <testsuite> 또는 <testsuites>여야 합니다.`);
+    }
+
+    const nestedSuiteGroups = descendants(root, "testsuites");
+    if (nestedSuiteGroups.length > 0) {
+        throw new Error(`${file}: <testsuites>는 XML 루트에서만 사용할 수 있습니다.`);
+    }
+    const descendantSuites = descendants(root, "testsuite");
+    const directRootSuites =
+        root.name === "testsuites"
+            ? new Set(directChildren(root, new Set(["testsuite"])))
+            : new Set();
+    if (descendantSuites.some((suite) => !directRootSuites.has(suite))) {
+        throw new Error(
+            `${file}: <testsuite>는 XML 루트 또는 <testsuites>의 직접 자식이어야 합니다.`,
+        );
+    }
+
+    const suiteNodes = [
+        root,
+        ...directRootSuites,
+    ];
+    if (suiteNodes.length === 0) {
+        throw new Error(`${file}: <testsuite> 결과가 없습니다.`);
+    }
+
+    const directSuiteTestcases = new Set(
+        suiteNodes
+            .filter((suite) => suite.name === "testsuite")
+            .flatMap((suite) => directChildren(suite, new Set(["testcase"]))),
+    );
+    if (descendants(root, "testcase").some((testcase) => !directSuiteTestcases.has(testcase))) {
+        throw new Error(`${file}: <testcase> 결과는 <testsuite>의 직접 자식이어야 합니다.`);
+    }
+
+    const testcaseNodes = descendants(root, "testcase");
+    const directTestcaseOutcomes = new Set(
+        testcaseNodes.flatMap((testcase) =>
+            directChildren(testcase, new Set(["failure", "error", "skipped"])),
+        ),
+    );
+    const outcomeNodes = ["failure", "error", "skipped"].flatMap((name) =>
+        descendants(root, name),
+    );
+    if (outcomeNodes.some((outcome) => !directTestcaseOutcomes.has(outcome))) {
+        throw new Error(
+            `${file}: <failure>, <error>, <skipped> 결과는 <testcase>의 직접 자식이어야 합니다.`,
+        );
+    }
+
+    for (const suite of suiteNodes) {
+        const testcaseNodes = descendants(suite, "testcase");
+        const actual = {
+            tests: testcaseNodes.length,
+            failures: 0,
+            errors: 0,
+            skipped: 0,
+        };
+        for (const testcase of testcaseNodes) {
+            const results = directChildren(testcase, new Set(["failure", "error", "skipped"]));
+            if (results.length > 1) {
+                throw new Error(`${file}: <testcase> 결과 태그가 중복됩니다.`);
+            }
+            const status = results[0]?.name;
+            if (status === "failure") actual.failures += 1;
+            else if (status === "error") actual.errors += 1;
+            else if (status === "skipped") actual.skipped += 1;
+        }
+
+        for (const name of ["tests", "failures", "errors", "skipped"]) {
+            const declared = requireSuiteCounter(suite, name, file);
+            if (declared !== actual[name]) {
+                throw new Error(
+                    `${file}: <${suite.name}> ${name} 카운터 불일치 (declared=${declared}, actual=${actual[name]}).`,
+                );
+            }
+        }
+    }
+}
+
+export function parseAndroidTestXml(
+    xml,
+    { file = "JUnit XML", validateSuiteCounters = false } = {},
+) {
     let root;
     try {
-        root = parseXml(xml);
+        root = parseXml(xml, { rejectDocumentText: validateSuiteCounters });
     } catch (error) {
         throw new Error(`${file}: ${error instanceof Error ? error.message : error}`);
     }
+
+    if (validateSuiteCounters) validateDeclaredSuiteCounters(root, file);
 
     const testcases = descendants(root, "testcase").map((node) => {
         const className = node.attributes.get("classname") ?? node.attributes.get("class") ?? "";

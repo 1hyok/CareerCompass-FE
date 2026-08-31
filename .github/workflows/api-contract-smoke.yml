@@ -13,6 +13,8 @@ on:
       - 'gradle.properties'
       - 'gradle/**'
       - 'gradle/libs.versions.toml'
+      - '.github/scripts/render-android-test-results.mjs'
+      - '.github/scripts/verify-api-contract-smoke-result.mjs'
       - '.github/workflows/api-contract-smoke.yml'
   push:
     branches: [develop]
@@ -27,6 +29,8 @@ on:
       - 'gradle.properties'
       - 'gradle/**'
       - 'gradle/libs.versions.toml'
+      - '.github/scripts/render-android-test-results.mjs'
+      - '.github/scripts/verify-api-contract-smoke-result.mjs'
       - '.github/workflows/api-contract-smoke.yml'
   schedule:
     - cron: '41 18 * * 1,4'
@@ -76,6 +80,11 @@ jobs:
           ./gradlew :core:network:testDebugUnitTest
           --tests '*ApiWireContractSmokeTest'
           --stacktrace
+
+      - name: Verify Retrofit wire contract result
+        run: >-
+          node .github/scripts/verify-api-contract-smoke-result.mjs
+          core/network/build/test-results/testDebugUnitTest
 
       - name: Upload failure reports
         if: failure()
