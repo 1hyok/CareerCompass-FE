@@ -53,8 +53,8 @@ test("저장소의 기대 실패 목록은 스키마를 지키고 추적 이슈�
         assert.ok(entry.issues.length > 0);
         assert.ok(entry.reason.length > 0);
     }
-    // 애프터노트에서는 목록이 항상 비어 있지 않았지만, 이 저장소는 의도된 실패가 0 건인
-    // 상태가 정상이다. 스키마·추적 이슈 요구는 위 루프가 그대로 지킨다.
+    // 의도된 실패가 0 건인 상태가 정상이다 — 목록이 비어 있다는 것 자체는 결함이 아니다.
+    // 스키마·추적 이슈 요구는 위 루프가 항목마다 그대로 지킨다.
     assert.ok(Array.isArray(config.unitTests) && Array.isArray(config.screenshotModules));
 });
 

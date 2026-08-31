@@ -49,10 +49,10 @@ class LayerDependencyKonsistTest {
         const val CAREERCOMPASS_PREFIX = "com.cambridge."
 
         /** data / presentation 레이어 패키지. */
-        val FORBIDDEN_LAYER_IMPORT = Regex("""^com\.careercompass\..*\.(data|presentation)\..*$""")
+        val FORBIDDEN_LAYER_IMPORT = Regex("""^com\.cambridge\..*\.(data|presentation)\..*$""")
 
         /** core:model 또는 같은 domain 레이어만 허용 (그 외 com.cambridge.* 는 위반). */
         val ALLOWED_INTERNAL_IMPORT =
-            Regex("""^com\.careercompass\.core\.model\..*$|^com\.careercompass\..*\.domain(\..*)?$""")
+            Regex("""^com\.cambridge\.core\.model\..*$|^com\.cambridge\..*\.domain(\..*)?$""")
     }
 }

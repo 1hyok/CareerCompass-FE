@@ -65,19 +65,6 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 
 리뷰가 게이트가 아니라는 것이 검증을 건너뛴다는 뜻은 아니다. 리뷰어가 잡아 주던 몫을 작성자가 진다 — PR 전에 변경 diff 와 영향 경계를 대조해 테스트 누락을 스스로 점검한다.
 
-## 애프터노트에서 이식하며 뺀 것
-
-이 저장소의 하네스·CI 는 [Afternote-FE](https://github.com/Afternote/Afternote-FE) 에서 통째로 가져왔다. 리뷰가 게이트가 아니므로 다음은 의도적으로 뺐다.
-
-| 뺀 것 | 이유 |
-| --- | --- |
-| `review-debt-guard.yml` | 미처리 리뷰 요청이 있으면 새 PR 을 닫는다 — 리뷰 없이 머지하는 저장소에서는 방해만 된다 |
-| `review-request-all.yml` | 위 가드와 한 세트. 요청이 쌓이기만 한다 |
-| `latest-review-decision-{event,reconcile}.yml` | 리뷰 결정 상태 동기화 — 게이트가 없으면 무의미 |
-| 애프터노트 QA 실측 증적 34건 | 이 프로젝트의 기록이 아니다. 스키마와 `evidence/README.md` 만 남겼다 |
-
-`merge-order-guard` 는 리뷰가 아니라 **이슈 의존성** 게이트라 그대로 남겼다.
-
 ## 문서
 
 에이전트 하네스(`AGENTS.md`·`CLAUDE.md`·`.claude/`·`.codex/`)는 각자 쓰는 것이 달라 저장소에 올리지 않는다 — `.gitignore` 가 막는다. 저장소가 공유하는 규약은 아래 문서와 `.github/` 의 정책 스크립트다.

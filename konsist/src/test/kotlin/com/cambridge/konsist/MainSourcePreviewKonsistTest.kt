@@ -5,17 +5,17 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import org.junit.Test
 
 /**
- * main 소스셋 `@Preview` 재유입 가드 (#1434).
+ * main 소스셋 `@Preview` 재유입 가드.
  *
- * PR #1435 가 담당 area 의 main `@Preview` 148건을 전량 삭제했는데, 그 뒤로 2건이 다시 들어왔다.
- * 이 가드가 없으면 같은 청소를 주기적으로 되풀이하게 된다.
+ * main `@Preview` 는 한 번 걷어내도 가드가 없으면 슬금슬금 다시 들어온다.
+ * 그때마다 같은 청소를 되풀이하지 않으려고 처음부터 막는다.
  *
  * ### 왜 main 프리뷰를 두지 않는가
  * 1. **CI 가 검증하지 않는다** — 골든이 없어 렌더가 깨져도 아무도 모른다. 같은 그림을 검증받는
  *    `screenshotTest` 쪽이 정본이다.
  * 2. 같은 그림을 두 소스셋에서 관리하면 시안이 바뀔 때 **한쪽만 고쳐진다**.
- * 3. 프리뷰용 더미 데이터와 no-op 배선이 프로덕션 소스셋에 남는다 — #1388 이 막으려던
- *    「전 액션을 한 줄로 죽이는 우회로」가 `ReceiverHomeActions.Noop` 으로 프로덕션 API 에
+ * 3. 프리뷰용 더미 데이터와 no-op 배선이 프로덕션 소스셋에 남는다 이 막으려던
+ *    「전 액션을 한 줄로 죽이는 우회로」가 `FeedHomeActions.Noop` 으로 프로덕션 API 에
  *    새어 나온 것이 그 실사례다.
  *
  * ### 검사 대상 — [GUARDED_MODULE_PREFIXES]
@@ -44,7 +44,7 @@ class MainSourcePreviewKonsistTest {
                 appendLine()
                 violations.sorted().forEach { appendLine("  $it") }
                 appendLine()
-                appendLine("프리뷰가 필요하면 src/screenshotTest 에 @PreviewTest + @Preview 로 둔다 (#1434).")
+                appendLine("프리뷰가 필요하면 src/screenshotTest 에 @PreviewTest + @Preview 로 둔다.")
             }
         }
     }
@@ -63,13 +63,19 @@ class MainSourcePreviewKonsistTest {
     private companion object {
         const val PREVIEW = "Preview"
 
-        /** PR #1435 로 main `@Preview` 가 0건이 된 모듈들. 다른 모듈은 담당자가 청소를 마치면 더한다. */
+        /**
+         * 가드가 적용되는 모듈. `@Preview` 를 담을 수 있는 모듈은 전부 여기 있어야 한다 —
+         * 빠진 모듈은 검사 자체를 받지 않으므로, presentation 모듈을 새로 만들면 함께 더한다.
+         */
         val GUARDED_MODULE_PREFIXES =
             listOf(
                 "core/ui/",
-                "feature/careercompass/presentation/",
                 "feature/onboarding/presentation/",
-                "feature/receiver/presentation/",
+                "feature/feed/presentation/",
+                "feature/editor/presentation/",
+                "feature/profile/presentation/",
+                "feature/foryou/presentation/",
+                "feature/notification/presentation/",
             )
     }
 }

@@ -58,14 +58,14 @@
 ```json
 {
   "scope": "app-runtime",
-  "precondition": "삭제할 애프터노트가 목록에 있는 로그인 상태",
+  "precondition": "삭제할 자소서 초안이 목록에 있는 로그인 상태",
   "action": "삭제 확인에서 확인을 눌러 DELETE 요청을 보낸다",
   "expected": "성공 시 목록에서 제거되고 실패 시 기존 항목과 오류 안내가 유지된다",
   "risk": "실패한 삭제가 성공처럼 보이거나 기존 항목이 유실될 수 있다",
   "evidence": [
     {
       "kind": "issue",
-      "ref": "#550",
+      "ref": "#42",
       "assertion": "삭제 성공·실패의 관찰 결과를 정의한다"
     }
   ]
@@ -95,7 +95,7 @@
 
 여기서 배포는 검증할 `main` 빌드를 Firebase 테스터에게 전달하는 단계이며, Play Store 프로덕션 릴리스를 뜻하지 않는다. 일반 배포의 자동 진입점은 `main` push 하나다.
 
-기존 `release-distribution.yml`의 `develop` 수동 배포(`workflow_dispatch`)는 #1029에서 제거했다. 도착지와 산출물 버전이 main 경로와 같아 실익이 PR 생성 한 단계뿐이었던 반면, release keystore와 service account를 임의 ref에 노출하는 표면이었다.
+`release-distribution.yml`에 `develop` 수동 배포(`workflow_dispatch`) 경로는 두지 않는다. 도착지와 산출물 버전이 main 경로와 같아 실익이 PR 생성 한 단계뿐이었던 반면, release keystore와 service account를 임의 ref에 노출하는 표면이었다.
 
 예외적으로 [`firebase-wif-canary.yml`](../../.github/workflows/firebase-wif-canary.yml)은 `develop` 또는 `main`에서 보호 Environment 승인과 명시적 확인을 받은 뒤 실제 APK를 올리는 **수동 인증 호환성 검증 경로**다. 일반 릴리스나 임의 브랜치 배포 수단으로 사용하지 않으며, production JSON 자격을 WIF로 교체하기 전 판정 절차는 [WIF canary runbook](firebase-wif-canary.md)을 따른다.
 
@@ -103,8 +103,8 @@
 
 ```markdown
 ## 포함 이슈
-- #716
-- #723
+- #41
+- #42
 
 ## QA 포인트
 - 오프라인에서 오류 안내와 재시도 수단이 표시되는지 확인
@@ -134,7 +134,7 @@ PR 검증용 lint·unit-test·screenshot은 repository secret 대신
 `.github/actions/setup-ci-config`가 만드는 결정적 CI 전용 placeholder를 사용한다. 이 fixture는
 배포에 사용할 수 없으며, production `release-distribution.yml`은 계속 승인된 환경의 JSON 자격을 사용한다. WIF canary 성공만으로 이를 제거하지 않는다.
 
-### 배포 provenance — 이 APK 가 어느 commit·run 에서 나왔는지 (#851)
+### 배포 provenance — 이 APK 가 어느 commit·run 에서 나왔는지
 
 배포 워크플로는 signing 이 끝난 그 APK 하나를 subject 로 [GitHub artifact attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)을 발급하고, 업로드 전에 스스로 검증한다. 서명·저장소·signer workflow·source commit·GitHub-hosted 러너 중 하나라도 어긋나거나 attestation subject digest 가 빌드 직후 digest 와 다르면 Firebase 업로드까지 가지 않는다.
 
@@ -165,7 +165,7 @@ test -z "$(git status --porcelain)"
 
 ```bash
 EVENT_NAME=workflow_dispatch \
-ISSUE_NUMBERS="#716, #723" \
+ISSUE_NUMBERS="#41, #42" \
 QA_POINTS="오프라인 오류 안내 확인;주차 변경 후 재시도 확인" \
 SOURCE_REF=main \
 SOURCE_SHA="$(git rev-parse origin/main)" \

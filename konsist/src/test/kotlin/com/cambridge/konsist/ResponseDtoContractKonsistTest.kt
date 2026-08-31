@@ -19,7 +19,7 @@ import org.junit.Test
  * 기본값을 두는 순간 "키 누락" 과 "서버가 보낸 정상 빈 값" 이 같은 결과로 수렴한다. 둘은 성격이
  * 다르다 — 키 누락은 계약이 바뀐 것이라 실패해야 드러나고, 값 확장은 관대해도 된다(전용 직렬화기).
  *
- * 전역 `coerceInputValues` 는 #1494 에서 걷어냈다. 그래서 이제 `null` 이 온 경우는 기본값 유무와
+ * 전역 `coerceInputValues` 는 쓰지 않는다. 그래서 이제 `null` 이 온 경우는 기본값 유무와
  * 무관하게 실패하고, 이 가드가 막는 것은 **키 누락**이 기본값으로 성공해 버리는 쪽이다.
  *
  * ### 검사 대상
@@ -57,7 +57,7 @@ class ResponseDtoContractKonsistTest {
      * 실패시키면 「항목을 해소하는 PR」 과 「목록에서 빼는 PR」 이 서로를 깨뜨린다. 둘은 다른
      * 브랜치라 충돌도 나지 않고, 어느 쪽이 먼저 머지되든 그 순간부터 develop 의 `:konsist:test`
      * 가 red 가 된다. 필수 체크가 `guard` 하나뿐이라 머지를 막지도 못한 채 red 만 남는다.
-     * #933(#789 의 26건 해소)과 이 목록 사이에서 실제로 그렇게 됐다.
+     * 목록으로 관대 판정을 두면 그 자리에 새 위반이 숨을 수 있다.
      *
      * 목록이 썩는 것을 막는 값어치는 「신규 추가 금지」 쪽이 이미 담당한다 — 순서와 무관하게
      * 작동하는 그쪽만 실패시키고, 이쪽은 갱신 시점을 알리는 데 그친다.
@@ -103,15 +103,10 @@ class ResponseDtoContractKonsistTest {
         const val REQUEST_DTO = "Request"
 
         /**
-         * 남은 잔여는 timeletter 1건뿐이다 — #790 이 추적하고, `ci-expected-failures.json` 에
-         * 의도된 실패로 등록돼 있다. mindrecord 2건(#789)·careercompass 11건(#957)은 해소돼 빠졌다.
-         *
-         * 서버는 이 키를 `null` 로 보내지 않는다(BE `ReceivedTimeLetterResponse` 가 미공개 구간에
-         * `List.of()` 를 채운다). 그래서 `coerceInputValues` 없이도 파싱이 깨지지 않는다 — 이
-         * 기본값이 실제로 가리는 것은 «키 자체가 빠지는» 경우다.
+         * 관대 판정할 기존 보정형 기본값. 이 저장소는 가드를 빈 소스에서 켰으므로 비어 있다.
+         * 항목을 추가할 때는 `"DtoName.property"` 형식으로 적고, 서버가 그 키를 반드시 보낸다는
+         * 근거를 함께 남긴 뒤 해소되면 즉시 뺀다.
          */
-        private val TIMELETTER = setOf("ReceivedTimeLetterDto.blocks")
-
-        val KNOWN_COERCING_DEFAULTS = TIMELETTER
+        val KNOWN_COERCING_DEFAULTS = emptySet<String>()
     }
 }

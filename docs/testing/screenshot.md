@@ -1,6 +1,6 @@
 # Compose Preview Screenshot Testing (docker baseline)
 
-`Compose Preview Screenshot Testing`의 anti-aliasing·font hinting·scale 등 host 환경 의존 렌더링 차이로 CI rendered PNG를 baseline으로 교체하는 ping-pong이 발생해 왔다 (PR [#302](https://github.com/1hyok/CareerCompass-FE/pull/302) / [#322](https://github.com/1hyok/CareerCompass-FE/pull/322)). 본 저장소는 `Dockerfile.screenshot`을 공통 환경으로 사용하고 역할을 세 workflow로 나눈다.
+`Compose Preview Screenshot Testing`의 anti-aliasing·font hinting·scale 등 host 환경 의존 렌더링 차이로 CI rendered PNG를 baseline으로 교체하는 ping-pong이 발생해 왔다. 본 저장소는 `Dockerfile.screenshot`을 공통 환경으로 사용하고 역할을 세 workflow로 나눈다.
 
 - [Compose Preview Screenshot Test](../../.github/workflows/screenshot.yml): PR과 `develop` 합성 결과의 기존 baseline 검증
 - [Generate Screenshot Baselines](../../.github/workflows/screenshot-baseline-generate.yml): 라벨이 붙은 PR의 정확한 head에서 baseline 생성·재검증 후 artifact 발행
