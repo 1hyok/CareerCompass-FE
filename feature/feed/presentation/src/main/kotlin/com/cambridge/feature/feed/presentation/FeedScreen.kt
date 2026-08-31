@@ -10,15 +10,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -62,7 +66,8 @@ public fun FeedScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .background(CareerCompassTheme.colors.subtleSurface),
+                .background(CareerCompassTheme.colors.subtleSurface)
+                .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         FeedHeader(state = state, onEvent = onEvent)
         FeedSortRow(state = state, onEvent = onEvent)
@@ -105,13 +110,21 @@ private fun FeedHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(end = spacing.small),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text =
                         "${stringResource(R.string.feed_greeting, state.userName)} " +
                             stringResource(R.string.feed_icon_wave),
                     modifier = Modifier.semantics { heading() },
                     color = CareerCompassTheme.colors.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style =
                         CareerCompassTheme.typography.headline4.copy(
                             fontSize = 17.sp,
@@ -151,7 +164,8 @@ private fun FeedHeader(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                    .horizontalScroll(rememberScrollState())
+                    .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
         ) {
             state.filters.forEach { filter ->

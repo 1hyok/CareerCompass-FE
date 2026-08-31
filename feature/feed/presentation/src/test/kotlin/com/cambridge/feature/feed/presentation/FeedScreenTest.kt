@@ -1,5 +1,7 @@
 package com.cambridge.feature.feed.presentation
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -17,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.Density
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -59,6 +62,9 @@ class FeedScreenTest {
         composeRule.setFeedContent(state = sampleState())
 
         composeRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
+            .assertExists()
+        composeRule
             .onNodeWithText("전체")
             .assertIsOn()
             .assert(
@@ -70,6 +76,18 @@ class FeedScreenTest {
         composeRule
             .onNode(hasText("채용") and hasStateDescription("선택 안 됨"))
             .assertIsOff()
+    }
+
+    @Test
+    fun longUserNameAtLargeFontScale_keepsNotificationActionVisible() {
+        composeRule.setFeedContent(
+            state = sampleState(userName = "아주 길어서 한 줄에 전부 표시되지 않는 사용자 이름"),
+            fontScale = 2f,
+        )
+
+        composeRule
+            .onNodeWithContentDescription("알림 보기")
+            .assertIsDisplayed()
     }
 
     @Test
@@ -126,21 +144,28 @@ class FeedScreenTest {
 private fun ComposeContentTestRule.setFeedContent(
     state: FeedUiState,
     onEvent: (FeedUiEvent) -> Unit = {},
+    fontScale: Float = 1f,
 ) {
     setContent {
-        CareerCompassTheme {
-            FeedScreen(state = state, onEvent = onEvent)
+        val currentDensity = LocalDensity.current
+        CompositionLocalProvider(
+            LocalDensity provides Density(currentDensity.density, fontScale),
+        ) {
+            CareerCompassTheme {
+                FeedScreen(state = state, onEvent = onEvent)
+            }
         }
     }
 }
 
 private fun sampleState(
+    userName: String = "일혁",
     totalListingCount: Int = 1,
     content: FeedContentState = FeedContentState.Loaded(listOf(sampleListing())),
     listing: FeedListingUiModel? = null,
 ): FeedUiState =
     FeedUiState(
-        userName = "일혁",
+        userName = userName,
         newListingCount = 12,
         searchQuery = "",
         filters =

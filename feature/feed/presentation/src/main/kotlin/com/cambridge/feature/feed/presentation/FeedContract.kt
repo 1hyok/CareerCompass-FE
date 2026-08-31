@@ -35,6 +35,9 @@ public data class FeedListingUiModel(
     val isBookmarked: Boolean,
 ) {
     init {
+        require(id.isNotBlank()) {
+            "id must not be blank"
+        }
         require(suitabilityScore in 0..100) {
             "suitabilityScore must be between 0 and 100: $suitabilityScore"
         }
@@ -53,6 +56,9 @@ public sealed interface FeedContentState {
         init {
             require(listings.isNotEmpty()) {
                 "Use FeedContentState.Empty when there are no listings"
+            }
+            require(listings.map(FeedListingUiModel::id).distinct().size == listings.size) {
+                "listing ids must be unique"
             }
         }
     }
