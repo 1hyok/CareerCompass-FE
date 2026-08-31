@@ -70,6 +70,8 @@ public enum class CareerCompassButtonSize(
 /**
  * CareerCompass action button.
  *
+ * [text] must be non-blank. When provided, [contentDescription] must also be non-blank.
+ *
  * [contentDescription] replaces the text announced for icon-assisted buttons when callers need
  * a more descriptive accessibility label.
  */
@@ -84,6 +86,11 @@ public fun CareerCompassButton(
     leadingIcon: (@Composable () -> Unit)? = null,
     contentDescription: String? = null,
 ) {
+    require(text.isNotBlank()) { "text must not be blank" }
+    require(contentDescription == null || contentDescription.isNotBlank()) {
+        "contentDescription must be null or non-blank"
+    }
+
     val colors = CareerCompassTheme.colors
     val shape = CareerCompassTheme.shapes.control
     val spacing = CareerCompassTheme.spacing

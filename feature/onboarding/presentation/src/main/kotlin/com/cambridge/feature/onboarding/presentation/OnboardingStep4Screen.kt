@@ -348,6 +348,7 @@ private fun UploadedDocumentItem(
     val spacing = CareerCompassTheme.spacing
     val fontScale = LocalDensity.current.fontScale
     val useFigmaCompactSize = fontScale <= 1f
+    val menuTouchTargetSize = 48.dp
     val cardWidthModifier =
         if (useFigmaCompactSize) {
             Modifier.width(232.dp)
@@ -410,7 +411,7 @@ private fun UploadedDocumentItem(
                         .padding(
                             start = spacing.medium,
                             top = 7.5.dp,
-                            end = if (useFigmaCompactSize) 0.dp else 48.dp,
+                            end = menuTouchTargetSize,
                             bottom = 7.5.dp,
                         ),
                 verticalAlignment = Alignment.CenterVertically,
@@ -421,15 +422,10 @@ private fun UploadedDocumentItem(
                     fontScale = fontScale,
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                val documentTextWidthModifier =
-                    if (useFigmaCompactSize) {
-                        Modifier.width(164.dp)
-                    } else {
-                        Modifier.weight(1f)
-                    }
                 Column(
                     modifier =
-                        documentTextWidthModifier
+                        Modifier
+                            .weight(1f)
                             .heightIn(min = 48.dp)
                             .testTag(documentTextTag(document.id))
                             .then(retryModifier),
@@ -460,7 +456,7 @@ private fun UploadedDocumentItem(
             Box(
                 modifier =
                     Modifier
-                        .size(48.dp)
+                        .size(menuTouchTargetSize)
                         .align(Alignment.CenterEnd)
                         .clickable(
                             enabled = enabled,

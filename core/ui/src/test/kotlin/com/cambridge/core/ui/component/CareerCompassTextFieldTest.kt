@@ -24,6 +24,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -202,5 +203,38 @@ public class CareerCompassTextFieldTest {
                     "이메일 형식이 올바르지 않습니다",
                 ),
             )
+    }
+
+    @Test
+    public fun nonBlankLabel_isAcceptedAsAccessibilityName() {
+        composeRule.setContent {
+            CareerCompassTheme {
+                CareerCompassTextField(
+                    value = "",
+                    onValueChange = {},
+                    label = "문서 이름",
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("문서 이름").assertExists()
+    }
+
+    @Test
+    public fun blankLabel_isRejected() {
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                composeRule.setContent {
+                    CareerCompassTheme {
+                        CareerCompassTextField(
+                            value = "",
+                            onValueChange = {},
+                            label = " \t\n",
+                        )
+                    }
+                }
+            }
+
+        assertEquals("label must not be blank", error.message)
     }
 }

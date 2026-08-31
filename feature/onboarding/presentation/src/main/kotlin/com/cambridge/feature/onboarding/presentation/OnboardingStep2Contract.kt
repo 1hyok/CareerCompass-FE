@@ -29,6 +29,9 @@ public data class OnboardingStep2UiState(
         require(jobOptions.map(OnboardingJobOption::id).distinct().size == jobOptions.size) {
             "job option ids must be unique"
         }
+        require(jobOptions.map(OnboardingJobOption::label).distinct().size == jobOptions.size) {
+            "job option labels must be unique"
+        }
         val knownJobIds = jobOptions.mapTo(mutableSetOf(), OnboardingJobOption::id)
         require(selectedJobIds.all(knownJobIds::contains)) {
             "selected job ids must exist in jobOptions"
