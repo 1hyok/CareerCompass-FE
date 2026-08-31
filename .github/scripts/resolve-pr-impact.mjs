@@ -16,6 +16,7 @@ const GLOBAL_GRADLE_PATHS = new Set([
     "settings.gradle.kts",
     "gradle.properties",
 ]);
+const KOVER_COVERAGE_POLICY_PATH = ".github/kover-coverage-policy.json";
 const IMPACT_POLICY_PATHS = new Set([
     ".github/scripts/resolve-pr-impact.mjs",
     ".github/scripts/resolve-pr-impact.test.mjs",
@@ -170,6 +171,7 @@ export function resolvePrImpact(changedFiles, modules, dependencies) {
     let codeqlActions = false;
     let codeqlJavaKotlin = false;
     let forceFull = false;
+    let fullKoverValidation = false;
     let repositoryQualityFixtures = false;
 
     for (const rawPath of changedFiles) {
@@ -187,6 +189,12 @@ export function resolvePrImpact(changedFiles, modules, dependencies) {
             // A planner or one of its consumers must not be able to classify its own
             // validation away. Policy changes therefore exercise every lane.
             forceFull = true;
+        }
+        if (filePath === KOVER_COVERAGE_POLICY_PATH) {
+            // The committed baseline is executable Kover policy. Validate its parser and
+            // compare every covered module so a policy-only change cannot classify itself away.
+            runNodeTests = true;
+            fullKoverValidation = true;
         }
         if (
             filePath === "scripts/repository-quality.sh" ||
@@ -286,6 +294,11 @@ export function resolvePrImpact(changedFiles, modules, dependencies) {
         compileAndroidTest = true;
     }
     const unitAffected = new Set([...productionAffected, ...unitOnlySeeds]);
+    if (fullKoverValidation) {
+        modules.filter(({ coverage }) => coverage).forEach(({ projectPath }) => {
+            unitAffected.add(projectPath);
+        });
+    }
     const lintAffected = new Set([...productionAffected, ...androidLintOnlySeeds]);
     const screenshotAffected = new Set([...screenshotOnlySeeds]);
     if (screenshotInfrastructureChange) {

@@ -154,6 +154,29 @@ test("expected-failure list changes fail closed to every lane", () => {
     }
 });
 
+test("Kover policy changes run Node tests and the full covered-module evaluation", () => {
+    const impact = resolvePrImpact([".github/kover-coverage-policy.json"], modules, dependencies);
+
+    assert.equal(impact.runNodeTests, true);
+    assert.deepEqual(impact.coverageModules, [
+        ":app",
+        ":core:common",
+        ":core:ui",
+        ":feature:home:presentation",
+        ":feature:setting:domain",
+    ]);
+    assert.deepEqual(impact.unitTestTasks, [
+        ":app:koverXmlReportCi",
+        ":core:common:koverXmlReportCi",
+        ":core:ui:koverXmlReportCi",
+        ":feature:home:presentation:koverXmlReportCi",
+        ":feature:setting:domain:koverXmlReportCi",
+    ]);
+    assert.deepEqual(impact.ktlintTasks, []);
+    assert.deepEqual(impact.androidLintTasks, []);
+    assert.deepEqual(impact.screenshotTasks, []);
+});
+
 test("documentation-only changes have no heavy impact", () => {
     const impact = resolvePrImpact(["README.md", "docs/testing.md"], modules, dependencies);
 
