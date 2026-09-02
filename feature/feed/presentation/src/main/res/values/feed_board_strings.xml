@@ -46,6 +46,23 @@
     <string name="feed_board_retry_content_description">%1$s 재시도</string>
     <string name="feed_board_delete">삭제</string>
     <string name="feed_board_delete_content_description">%1$s 삭제</string>
+    <string name="feed_board_register_url_invalid">올바른 URL 형식이 아니에요</string>
+    <string name="feed_board_register_url_duplicate">이미 등록된 게시판이에요</string>
+    <string name="feed_board_register_limit_reached">게시판은 최대 %1$d개까지 등록할 수 있어요</string>
+    <string name="feed_board_register_detect_failed">구조를 분석하지 못했어요. 잠시 후 다시 시도해 주세요</string>
+    <string name="feed_board_register_failed">게시판을 등록하지 못했어요. 잠시 후 다시 시도해 주세요</string>
+    <string name="feed_board_network_unavailable">네트워크에 연결할 수 없어요. 연결을 확인해 주세요</string>
+    <string name="feed_board_list_error_title">게시판을 불러오지 못했어요</string>
+    <string name="feed_board_list_error_description">잠시 후 다시 시도해 주세요</string>
+    <string name="feed_board_list_error_retry">다시 시도</string>
+    <string name="feed_board_toggle_failed">수집 설정을 바꾸지 못했어요</string>
+    <string name="feed_board_retry_failed">재시도를 요청하지 못했어요</string>
+    <string name="feed_board_retry_requested">다시 수집을 시작했어요</string>
+    <string name="feed_board_delete_failed">게시판을 삭제하지 못했어요</string>
+    <string name="feed_board_delete_dialog_title">게시판을 삭제할까요?</string>
+    <string name="feed_board_delete_dialog_message">%1$s 게시판과 수집 설정이 함께 삭제돼요</string>
+    <string name="feed_board_delete_dialog_confirm">삭제</string>
+    <string name="feed_board_delete_dialog_cancel">취소</string>
 
     <string name="feed_icon_sparkles" translatable="false">✨</string>
     <string name="feed_icon_detect_success" translatable="false">✅</string>

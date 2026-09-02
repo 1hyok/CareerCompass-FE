@@ -24,6 +24,24 @@
     <string name="feed_posting_detail_similar_title">유사 공고</string>
     <string name="feed_posting_detail_view_original">원문 보기</string>
     <string name="feed_posting_detail_create_draft">지원서 초안 작성하기</string>
+    <string name="feed_posting_detail_error_network">공고를 불러오지 못했어요. 네트워크 연결을 확인해 주세요</string>
+    <string name="feed_posting_detail_error_generic">공고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요</string>
+    <string name="feed_posting_detail_draft_coming_soon">지원서 초안 작성은 준비 중이에요</string>
+    <string name="feed_posting_detail_share_chooser">공고 공유</string>
+    <string name="feed_posting_detail_share_text">%1$s\n%2$s</string>
+    <string name="feed_posting_detail_deadline_none">미정</string>
+    <string name="feed_posting_detail_level_very_suitable">매우 적합</string>
+    <string name="feed_posting_detail_level_suitable">적합</string>
+    <string name="feed_posting_detail_level_neutral">보통</string>
+    <string name="feed_posting_detail_level_low">낮음</string>
+    <string name="feed_posting_detail_axis_field_similarity">분야 유사도</string>
+    <string name="feed_posting_detail_axis_qualification">자격 조건 충족도</string>
+    <string name="feed_posting_detail_axis_preference">우대 조건 매칭</string>
+    <string name="feed_posting_detail_axis_competition">경쟁 강도</string>
+    <string name="feed_posting_detail_axis_weight">%1$d%%</string>
+    <string name="feed_posting_detail_max_chars">최대 %1$s자</string>
+    <string name="feed_posting_detail_qualification_year">학년 %1$s</string>
+    <string name="feed_posting_detail_qualification_gpa">학점 %1$s</string>
 
     <string name="feed_icon_share" translatable="false">↗</string>
     <string name="feed_icon_strength" translatable="false">✅</string>

@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -111,6 +112,58 @@ class FeedScreenTest {
         composeRule.runOnIdle {
             assertEquals(listOf(FeedUiEvent.BookmarkToggled(SAMPLE_LISTING_ID)), events)
         }
+    }
+
+    @Test
+    fun filterButton_exposesActiveCountAndEmitsFilterRequested() {
+        val events = mutableListOf<FeedUiEvent>()
+        composeRule.setFeedContent(state = sampleState().copy(activeFilterCount = 2), onEvent = events::add)
+
+        composeRule
+            .onNodeWithContentDescription("필터")
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "2개 적용"))
+            .performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedUiEvent.FilterRequested), events)
+        }
+    }
+
+    @Test
+    fun filterButtonWithoutActiveFilters_hasNoStateDescription() {
+        composeRule.setFeedContent(state = sampleState())
+
+        composeRule
+            .onNodeWithContentDescription("필터")
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+    }
+
+    @Test
+    fun listingWithoutScore_showsAnalyzingChipInsteadOfScore() {
+        composeRule.setFeedContent(state = sampleState(listing = sampleListing().copy(suitabilityScore = null)))
+
+        composeRule.onNodeWithContentDescription("적합도 분석 중").assertIsDisplayed()
+        composeRule.onAllNodesWithText("88").assertCountEquals(0)
+    }
+
+    @Test
+    fun loadingMore_appendsProgressRowBelowListings() {
+        composeRule.setContent {
+            CareerCompassTheme {
+                FeedScreen(
+                    state = sampleState(),
+                    onEvent = {},
+                    listState = rememberLazyListState(),
+                    onLoadMore = {},
+                    isLoadingMore = true,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(SAMPLE_LISTING_TITLE).assertIsDisplayed()
+        composeRule.onNodeWithText("공고를 더 불러오는 중이에요").assertIsDisplayed()
     }
 
     @Test

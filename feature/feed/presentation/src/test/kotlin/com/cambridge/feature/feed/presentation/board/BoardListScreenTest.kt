@@ -49,6 +49,17 @@ class BoardListScreenTest {
     }
 
     @Test
+    fun unknownPostingCount_hidesCountRow() {
+        val loaded = loadedState().content as BoardListContentState.Loaded
+        composeRule.setListContent(
+            state = BoardListUiState(content = BoardListContentState.Loaded(loaded.boards.map { it.copy(postingCount = null) })),
+        )
+
+        composeRule.onAllNodesWithText("공고 12건").assertCountEquals(0)
+        composeRule.onNodeWithText("마지막 수집 방금").assertIsDisplayed()
+    }
+
+    @Test
     fun retry_isOfferedOnlyForFailingBoards() {
         composeRule.setListContent(state = loadedState())
 

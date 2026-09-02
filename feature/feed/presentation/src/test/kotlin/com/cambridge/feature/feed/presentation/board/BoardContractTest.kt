@@ -83,6 +83,7 @@ class BoardContractTest {
         assertThrows(IllegalArgumentException::class.java) { sampleBoard().copy(postingCount = -1) }
         assertThrows(IllegalArgumentException::class.java) { sampleBoard().copy(lastCollectedLabel = " ") }
         assertEquals(null, sampleBoard().copy(lastCollectedLabel = null).lastCollectedLabel)
+        assertEquals(null, sampleBoard().copy(postingCount = null).postingCount)
     }
 
     @Test

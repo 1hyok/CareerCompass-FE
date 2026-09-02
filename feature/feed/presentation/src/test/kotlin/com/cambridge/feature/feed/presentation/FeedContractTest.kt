@@ -97,6 +97,25 @@ class FeedContractTest {
     }
 
     @Test
+    fun listing_allowsMissingScoreButRejectsOutOfRangeScore() {
+        assertEquals(null, sampleListing().copy(suitabilityScore = null).suitabilityScore)
+        listOf(-1, 101).forEach { score ->
+            assertThrows(IllegalArgumentException::class.java) {
+                sampleListing().copy(suitabilityScore = score)
+            }
+        }
+    }
+
+    @Test
+    fun uiState_rejectsNegativeActiveFilterCount() {
+        assertThrows(IllegalArgumentException::class.java) {
+            sampleUiState().copy(activeFilterCount = -1)
+        }
+        assertEquals(0, sampleUiState().activeFilterCount)
+        assertEquals(2, sampleUiState().copy(activeFilterCount = 2).activeFilterCount)
+    }
+
+    @Test
     fun uiState_acceptsUniqueFiltersContainingSelection() {
         val state = sampleUiState()
 
