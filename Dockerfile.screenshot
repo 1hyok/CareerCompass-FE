@@ -1,34 +1,34 @@
 # Compose Preview Screenshot Testing 의 baseline 통일 환경.
 #
 # anti-aliasing / font hinting / scale 등 host 환경 의존 렌더링 차이로
-# CI rendered PNG 를 baseline 으로 교체하는 ping-pong 발생 — PR #302 / #322 사례.
+# CI rendered PNG 를 baseline 으로 교체하는 ping-pong 이 생긴다.
 # 본 이미지에서 baseline 생성·검증을 동일하게 수행해 환경 차이 root fix.
 #
 # 빌드:
 #   docker build --platform linux/amd64 -t careercompass-screenshot:latest -f Dockerfile.screenshot .
 #
+# 대상 모듈은 .github/workflows/screenshot.yml 의 default 목록과 같다.
+#
 # 로컬 baseline 갱신:
 #   docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace careercompass-screenshot:latest \
 #     ./gradlew :core:ui:updateScreenshotTest \
-#               :feature:home:presentation:updateScreenshotTest \
-#               :feature:receiver:presentation:updateScreenshotTest \
 #               :feature:onboarding:presentation:updateScreenshotTest \
-#               :feature:careercompass:presentation:updateScreenshotTest \
-#               :feature:mindrecord:presentation:updateScreenshotTest \
-#               :feature:setting:presentation:updateScreenshotTest \
-#               :feature:timeletter:presentation:updateScreenshotTest \
+#               :feature:feed:presentation:updateScreenshotTest \
+#               :feature:editor:presentation:updateScreenshotTest \
+#               :feature:profile:presentation:updateScreenshotTest \
+#               :feature:foryou:presentation:updateScreenshotTest \
+#               :feature:notification:presentation:updateScreenshotTest \
 #               --rerun
 #
 # 로컬 baseline 검증:
 #   docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace careercompass-screenshot:latest \
 #     ./gradlew :core:ui:validateScreenshotTest \
-#               :feature:home:presentation:validateScreenshotTest \
-#               :feature:receiver:presentation:validateScreenshotTest \
 #               :feature:onboarding:presentation:validateScreenshotTest \
-#               :feature:careercompass:presentation:validateScreenshotTest \
-#               :feature:mindrecord:presentation:validateScreenshotTest \
-#               :feature:setting:presentation:validateScreenshotTest \
-#               :feature:timeletter:presentation:validateScreenshotTest
+#               :feature:feed:presentation:validateScreenshotTest \
+#               :feature:editor:presentation:validateScreenshotTest \
+#               :feature:profile:presentation:validateScreenshotTest \
+#               :feature:foryou:presentation:validateScreenshotTest \
+#               :feature:notification:presentation:validateScreenshotTest
 
 FROM ubuntu:26.04
 

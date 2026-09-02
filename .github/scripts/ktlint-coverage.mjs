@@ -2,9 +2,9 @@
 
 // 어떤 Gradle 모듈이 ktlintCheck 태스크를 갖는지 빌드 스크립트만 읽어 판정한다.
 //
-// resolve-pr-impact.mjs 는 `.kt`·`.kts` 가 바뀐 모듈마다 `<모듈>:ktlintCheck` 를 고르는데
-// (PR #1279), 그 태스크가 실재하는지는 보지 않는다. 없으면 Ktlint job 이 태스크 선택 단계에서
-// 죽는다 (#1419). 모든 모듈은 자기 build.gradle.kts 를 갖고 그 파일 자체가 `.kts` 라, 위험 범위는
+// resolve-pr-impact.mjs 는 `.kt`·`.kts` 가 바뀐 모듈마다 `<모듈>:ktlintCheck` 를 고르는데,
+// 그 태스크가 실재하는지는 보지 않는다. 없으면 Ktlint job 이 태스크 선택 단계에서
+// 죽는다. 모든 모듈은 자기 build.gradle.kts 를 갖고 그 파일 자체가 `.kts` 라, 위험 범위는
 // 「.kt 를 가진 모듈」이 아니라 **등록된 모듈 전부**다.
 //
 // ktlint 는 두 경로로 붙는다 — 모듈이 직접 적용하거나, ktlint 를 적용하는 컨벤션 플러그인을

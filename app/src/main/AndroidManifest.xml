@@ -93,6 +93,20 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+              공고 상세 딥링크 — careercompass://postings/{id}. 알림(notification 모듈)이 이 URI 로 앱을 연다.
+              계약과 파서는 navigation/AppDeepLink.kt, 인증 게이트(로그인·온보딩 뒤에만 적용)는 AppNavigation 에 있다.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                        android:host="postings"
+                        android:scheme="careercompass" />
+            </intent-filter>
         </activity>
     </application>
 

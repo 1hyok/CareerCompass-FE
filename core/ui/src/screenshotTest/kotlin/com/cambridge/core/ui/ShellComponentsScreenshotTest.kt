@@ -1,5 +1,6 @@
 package com.cambridge.core.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,13 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 @Composable
 public fun CareerCompassBottomBarFeedPreview() {
     BottomBarPreview(selectedTab = CareerCompassBottomTab.Feed)
+}
+
+@PreviewTest
+@Preview(name = "Bottom bar - Feed - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun CareerCompassBottomBarFeedDarkPreview() {
+    BottomBarPreview(selectedTab = CareerCompassBottomTab.Feed, darkTheme = true)
 }
 
 @PreviewTest
@@ -99,7 +107,19 @@ public fun CareerCompassTopAppBarSubtitlePreview() {
 @Preview(name = "Top app bar - Action", widthDp = 360, heightDp = 772)
 @Composable
 public fun CareerCompassTopAppBarActionPreview() {
-    TopAppBarPreview {
+    TopAppBarActionPreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "Top app bar - Action - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun CareerCompassTopAppBarActionDarkPreview() {
+    TopAppBarActionPreview(darkTheme = true)
+}
+
+@Composable
+private fun TopAppBarActionPreview(darkTheme: Boolean) {
+    TopAppBarPreview(darkTheme = darkTheme) {
         CareerCompassTopAppBar(
             title = "지원서 작성",
             onBackClick = {},
@@ -119,7 +139,19 @@ public fun CareerCompassTopAppBarActionPreview() {
 @Preview(name = "Card", widthDp = 360, heightDp = 772)
 @Composable
 public fun CareerCompassCardPreview() {
-    ShellPreviewSurface {
+    CardPreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "Card - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun CareerCompassCardDarkPreview() {
+    CardPreview(darkTheme = true)
+}
+
+@Composable
+private fun CardPreview(darkTheme: Boolean) {
+    ShellPreviewSurface(darkTheme = darkTheme) {
         Box(
             modifier =
                 Modifier
@@ -153,7 +185,19 @@ public fun CareerCompassCardPreview() {
 @Preview(name = "State - Network error", widthDp = 360, heightDp = 772)
 @Composable
 public fun CareerCompassNetworkErrorStatePreview() {
-    ShellPreviewSurface {
+    NetworkErrorStatePreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "State - Network error - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun CareerCompassNetworkErrorStateDarkPreview() {
+    NetworkErrorStatePreview(darkTheme = true)
+}
+
+@Composable
+private fun NetworkErrorStatePreview(darkTheme: Boolean) {
+    ShellPreviewSurface(darkTheme = darkTheme) {
         CareerCompassNetworkErrorState(
             onRetryClick = {},
             onOfflineClick = {},
@@ -193,7 +237,19 @@ public fun CareerCompassEmptyStatePreview() {
 @Preview(name = "State - Permission denied", widthDp = 360, heightDp = 772)
 @Composable
 public fun CareerCompassPermissionDeniedStatePreview() {
-    ShellPreviewSurface {
+    PermissionDeniedStatePreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "State - Permission denied - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun CareerCompassPermissionDeniedStateDarkPreview() {
+    PermissionDeniedStatePreview(darkTheme = true)
+}
+
+@Composable
+private fun PermissionDeniedStatePreview(darkTheme: Boolean) {
+    ShellPreviewSurface(darkTheme = darkTheme) {
         CareerCompassPermissionDeniedState(
             title = "알림 권한이 꺼져 있어요",
             description = "마감 알림과 새 공고를 받으려면 알림 권한이 필요해요",
@@ -225,8 +281,11 @@ public fun CareerCompassMaintenanceStatePreview() {
 }
 
 @Composable
-private fun BottomBarPreview(selectedTab: CareerCompassBottomTab) {
-    ShellPreviewSurface {
+private fun BottomBarPreview(
+    selectedTab: CareerCompassBottomTab,
+    darkTheme: Boolean = false,
+) {
+    ShellPreviewSurface(darkTheme = darkTheme) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter,
@@ -240,8 +299,11 @@ private fun BottomBarPreview(selectedTab: CareerCompassBottomTab) {
 }
 
 @Composable
-private fun TopAppBarPreview(content: @Composable () -> Unit) {
-    ShellPreviewSurface {
+private fun TopAppBarPreview(
+    darkTheme: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    ShellPreviewSurface(darkTheme = darkTheme) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter,
@@ -252,8 +314,11 @@ private fun TopAppBarPreview(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ShellPreviewSurface(content: @Composable () -> Unit) {
-    CareerCompassTheme {
+private fun ShellPreviewSurface(
+    darkTheme: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    CareerCompassTheme(darkTheme = darkTheme) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = CareerCompassTheme.colors.subtleSurface,

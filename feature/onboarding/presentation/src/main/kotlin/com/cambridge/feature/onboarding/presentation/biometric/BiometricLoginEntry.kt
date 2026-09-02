@@ -23,10 +23,14 @@ import com.cambridge.feature.onboarding.presentation.R
  * `ComponentActivity` 다 — 전환은 앱 셸 #65 몫) 프롬프트를 띄우지 않고 [BiometricFailureReason.Unavailable] 을
  * 보여 「다른 방법으로 로그인」 만 남긴다. 사용자 취소(`ERROR_USER_CANCELED`·`ERROR_NEGATIVE_BUTTON`·`ERROR_CANCELED`)
  * 는 표시하지 않는다.
+ *
+ * 인증 성공 뒤 목적지는 ViewModel 이 세션 검증으로 정한다 — 피드([onLoginSuccess]), 온보딩 미완료([onOnboardingRequired]),
+ * 세션 만료([onOtherMethodLogin] 과 같은 로그인 화면).
  */
 @Composable
 public fun BiometricLoginEntry(
     onLoginSuccess: () -> Unit,
+    onOnboardingRequired: () -> Unit,
     onOtherMethodLogin: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BiometricLoginViewModel = hiltViewModel(),
@@ -34,6 +38,7 @@ public fun BiometricLoginEntry(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val activity = LocalActivity.current as? FragmentActivity
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
+    val currentOnOnboardingRequired by rememberUpdatedState(onOnboardingRequired)
     val currentOnOtherMethodLogin by rememberUpdatedState(onOtherMethodLogin)
     val promptTitle = stringResource(R.string.onboarding_biometric_prompt_title)
     val promptNegative = stringResource(R.string.onboarding_biometric_prompt_negative)
@@ -42,6 +47,7 @@ public fun BiometricLoginEntry(
     LaunchedEffect(state.pendingNavigation) {
         when (state.pendingNavigation) {
             BiometricDestination.Feed -> currentOnLoginSuccess()
+            BiometricDestination.Onboarding -> currentOnOnboardingRequired()
             BiometricDestination.Login -> currentOnOtherMethodLogin()
             null -> return@LaunchedEffect
         }

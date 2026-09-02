@@ -42,6 +42,7 @@ class AuthRepositoryImplTest {
         }
         val loginRequests = mutableListOf<Pair<SocialLoginProvider, SocialLoginRequestDto>>()
         var logoutThrows: Throwable? = null
+        var onLogout: suspend () -> Unit = {}
         val logoutRequests = mutableListOf<LogoutRequestDto>()
         val biometricRequests = mutableListOf<BiometricRegisterRequestDto>()
 
@@ -55,6 +56,7 @@ class AuthRepositoryImplTest {
 
         override suspend fun logout(body: LogoutRequestDto): BaseResponse<Unit> {
             logoutRequests += body
+            onLogout()
             logoutThrows?.let { throw it }
             return BaseResponse(ok = true)
         }
@@ -214,11 +216,110 @@ class AuthRepositoryImplTest {
         }
 
     @Test
-    fun `지문 등록은 기기 식별자를 보내고 기기 플래그를 켠다`() =
+    fun `로그아웃 서버 응답을 기다리는 동안 저장된 새 세션은 지우지 않는다`() =
         runTest {
+            tokenDataSource.saveTokens("access", "refresh")
+            val gate = CompletableDeferred<Unit>()
+            authApi.onLogout = { gate.await() }
+            val logout = async { repository.logout() }
+            runCurrent()
+
+            repository.saveSession(Session("access-2", "refresh-2", isNewUser = false, expiresInSeconds = 3600)).getOrThrow()
+            gate.complete(Unit)
+            logout.await().getOrThrow()
+
+            assertEquals("refresh", authApi.logoutRequests.single().refreshToken)
+            assertTrue(registry.clearedScopes.isEmpty())
+            assertEquals("access-2", tokenDataSource.getAccessToken())
+            assertEquals("refresh-2", tokenDataSource.getRefreshToken())
+            assertTrue(repository.isLoggedIn.first())
+        }
+
+    @Test
+    fun `회전 도중 새 세션이 저장되면 회전 결과를 버린다`() =
+        runTest {
+            tokenDataSource.saveTokens("access", "refresh")
+            val gate = CompletableDeferred<Unit>()
+            tokenApi.response = {
+                gate.await()
+                BaseResponse(ok = true, data = RefreshDto("access-old-rotated", "refresh-old-rotated", 1800))
+            }
+            val rotation = async { repository.rotateToken() }
+            runCurrent()
+
+            repository.saveSession(Session("access-2", "refresh-2", isNewUser = false, expiresInSeconds = 3600)).getOrThrow()
+            gate.complete(Unit)
+
+            assertTrue(rotation.await().exceptionOrNull() is SessionEndedException)
+            assertEquals("access-2", tokenDataSource.getAccessToken())
+            assertEquals("refresh-2", tokenDataSource.getRefreshToken())
+        }
+
+    @Test
+    fun `지문 등록은 기기 식별자를 보내고 현재 사용자에게 귀속한다`() =
+        runTest {
+            profileDataSource.saveProfile(profileJson(userId = 1L), userId = 1L)
+
             repository.registerBiometric().getOrThrow()
 
             assertEquals(deviceDataSource.getOrCreateDeviceId(), authApi.biometricRequests.single().deviceId)
+            assertEquals(1L, deviceDataSource.biometricUserId.first())
             assertTrue(repository.isBiometricEnabled.first())
         }
+
+    @Test
+    fun `프로필을 받기 전에는 지문 등록이 서버 호출 없이 실패한다`() =
+        runTest {
+            val result = repository.registerBiometric()
+
+            assertTrue(result.exceptionOrNull() is IllegalStateException)
+            assertTrue(authApi.biometricRequests.isEmpty())
+            assertNull(deviceDataSource.biometricUserId.first())
+            assertFalse(repository.isBiometricEnabled.first())
+        }
+
+    @Test
+    fun `계정 A 가 켠 지문 로그인은 로그아웃 뒤 계정 B 세션에서 꺼져 있다`() =
+        runTest {
+            profileDataSource.saveProfile(profileJson(userId = 1L), userId = 1L)
+            repository.registerBiometric().getOrThrow()
+            assertTrue(repository.isBiometricEnabled.first())
+
+            repository.logout().getOrThrow()
+            assertFalse(repository.isBiometricEnabled.first())
+
+            profileDataSource.saveProfile(profileJson(userId = 2L), userId = 2L)
+            assertFalse(repository.isBiometricEnabled.first())
+            assertEquals(1L, deviceDataSource.biometricUserId.first())
+        }
+
+    @Test
+    fun `같은 계정이 다시 로그인해 프로필을 받으면 지문 로그인이 다시 켜진다`() =
+        runTest {
+            profileDataSource.saveProfile(profileJson(userId = 1L), userId = 1L)
+            repository.registerBiometric().getOrThrow()
+
+            repository.logout().getOrThrow()
+            assertFalse(repository.isBiometricEnabled.first())
+
+            profileDataSource.saveProfile(profileJson(userId = 1L), userId = 1L)
+            assertTrue(repository.isBiometricEnabled.first())
+        }
+
+    @Test
+    fun `지문 로그인을 끄면 등록 사용자까지 지우고 켜면 현재 사용자에게 귀속한다`() =
+        runTest {
+            assertTrue(repository.setBiometricEnabled(true).exceptionOrNull() is IllegalStateException)
+
+            profileDataSource.saveProfile(profileJson(userId = 3L), userId = 3L)
+            repository.setBiometricEnabled(true).getOrThrow()
+            assertEquals(3L, deviceDataSource.biometricUserId.first())
+            assertTrue(repository.isBiometricEnabled.first())
+
+            repository.setBiometricEnabled(false).getOrThrow()
+            assertNull(deviceDataSource.biometricUserId.first())
+            assertFalse(repository.isBiometricEnabled.first())
+        }
+
+    private fun profileJson(userId: Long) = """{"id":$userId,"jobInterests":[],"tags":[],"onboardingDone":true,"completion":10}"""
 }

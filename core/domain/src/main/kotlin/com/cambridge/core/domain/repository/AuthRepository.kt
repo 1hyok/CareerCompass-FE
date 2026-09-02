@@ -14,7 +14,13 @@ public interface AuthRepository {
     /** 액세스 토큰 보유 여부. 세션 정리 시 false 로 바뀐다. */
     public val isLoggedIn: Flow<Boolean>
 
-    /** 이 기기에서 지문 로그인을 켰는지(DEVICE 스코프). */
+    /**
+     * 이 기기에 지문 로그인을 등록한 사용자가 **현재 세션 사용자와 같은지**.
+     *
+     * 등록 사용자 id 는 DEVICE 스코프, 현재 사용자 id 는 SESSION 스코프 프로필 캐시에서 읽어 대조한다. 그래서
+     * 로그아웃·다른 계정 로그인 뒤에는 false 이고, 같은 계정이 다시 로그인해 프로필을 받으면 true 로 돌아온다.
+     * 프로필을 아직 받지 못한 세션에서는 false 다.
+     */
     public val isBiometricEnabled: Flow<Boolean>
 
     /** `POST /auth/social/{provider}` — 성공해도 세션은 저장하지 않는다. 저장은 use case 가 [saveSession] 으로 한다. */
@@ -39,8 +45,13 @@ public interface AuthRepository {
     /** 서버 호출 없이 로컬 세션만 정리한다 — refresh 거절 등 되돌릴 수 없는 실패용. */
     public suspend fun clearSession(): Result<Unit>
 
-    /** `POST /auth/biometric/register` 후 기기 플래그를 켠다. */
+    /**
+     * `POST /auth/biometric/register` 후 지문 로그인을 현재 세션 사용자에게 귀속해 켠다.
+     *
+     * 현재 사용자 id 를 모르면(프로필을 받기 전) 서버를 부르지 않고 [IllegalStateException] 으로 실패한다.
+     */
     public suspend fun registerBiometric(): Result<Unit>
 
+    /** 켜면 현재 세션 사용자에게 귀속하고(프로필 전이면 [IllegalStateException]), 끄면 등록 사용자까지 지운다. */
     public suspend fun setBiometricEnabled(enabled: Boolean): Result<Unit>
 }

@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation
 
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
@@ -11,14 +12,19 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 public fun OnboardingStep1FilledPreview() {
     CareerCompassTheme {
         OnboardingStep1Screen(
-            state =
-                OnboardingStep1UiState(
-                    name = "정일혁",
-                    school = "건국대학교",
-                    major = "컴퓨터공학부",
-                    gradePointAverage = "3.87",
-                    graduationDate = "2027.02",
-                ),
+            state = onboardingStep1FilledState(),
+            onEvent = {},
+        )
+    }
+}
+
+@PreviewTest
+@Preview(name = "Onboarding Step 1 filled - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 800)
+@Composable
+public fun OnboardingStep1FilledDarkPreview() {
+    CareerCompassTheme(darkTheme = true) {
+        OnboardingStep1Screen(
+            state = onboardingStep1FilledState(),
             onEvent = {},
         )
     }
@@ -64,3 +70,12 @@ public fun OnboardingStep1DisabledPreview() {
         )
     }
 }
+
+private fun onboardingStep1FilledState(): OnboardingStep1UiState =
+    OnboardingStep1UiState(
+        name = "정일혁",
+        school = "건국대학교",
+        major = "컴퓨터공학부",
+        gradePointAverage = "3.87",
+        graduationDate = "2027.02",
+    )

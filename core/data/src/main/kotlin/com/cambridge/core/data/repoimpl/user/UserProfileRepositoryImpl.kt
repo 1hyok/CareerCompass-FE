@@ -71,14 +71,19 @@ internal class UserProfileRepositoryImpl
         }
 
         private suspend fun store(dto: UserProfileDto): UserProfile {
-            profileDataSource.saveProfileJson(json.encodeToString(UserProfileDto.serializer(), dto))
+            persist(dto)
             return UserMapper.toProfile(dto)
         }
 
         /** 저장된 프로필이 없으면 건너뛴다 — 부분 갱신만으로 프로필을 지어내지 않는다. */
         private suspend fun updateStored(transform: (UserProfileDto) -> UserProfileDto) {
             val current = profileDataSource.profileJson.first()?.let(::decodeOrNull) ?: return
-            profileDataSource.saveProfileJson(json.encodeToString(UserProfileDto.serializer(), transform(current)))
+            persist(transform(current))
+        }
+
+        /** 사용자 id 를 JSON 과 함께 남긴다 — 지문 등록 사용자와의 대조는 JSON 해석 없이 id 만 읽는다. */
+        private suspend fun persist(dto: UserProfileDto) {
+            profileDataSource.saveProfile(json = json.encodeToString(UserProfileDto.serializer(), dto), userId = dto.id)
         }
 
         private fun decodeOrNull(stored: String): UserProfileDto? =
