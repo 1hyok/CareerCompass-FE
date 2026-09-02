@@ -3,6 +3,7 @@ package com.cambridge.core.data.repoimpl.auth
 import com.cambridge.core.data.support.FakeLocalStoreRegistry
 import com.cambridge.core.data.support.InMemoryPreferencesDataStore
 import com.cambridge.core.datastore.DeviceDataSource
+import com.cambridge.core.datastore.ProfileDataSource
 import com.cambridge.core.datastore.StoreScope
 import com.cambridge.core.datastore.TokenDataSource
 import com.cambridge.core.domain.error.CoreAuthFailure
@@ -75,6 +76,7 @@ class AuthRepositoryImplTest {
     private val registry = FakeLocalStoreRegistry()
     private val tokenDataSource = TokenDataSource(registry.store("Token", StoreScope.SESSION))
     private val deviceDataSource = DeviceDataSource(InMemoryPreferencesDataStore())
+    private val profileDataSource = ProfileDataSource(registry.store("Profile", StoreScope.SESSION))
     private var now = 0L
     private val tracker = AccessTokenExpiryTracker { now }
     private val repository =
@@ -85,6 +87,7 @@ class AuthRepositoryImplTest {
             tokenApiService = tokenApi,
             expiryTracker = tracker,
             localStoreRegistry = registry,
+            profileDataSource = profileDataSource,
         )
 
     @Test
@@ -108,6 +111,19 @@ class AuthRepositoryImplTest {
             assertTrue(repository.isLoggedIn.first())
             assertEquals("access", repository.getAccessToken().getOrThrow())
             assertTrue(tracker.isExpiringSoon())
+        }
+
+    @Test
+    fun `세션 저장은 신규 여부를 온보딩 완료 힌트로 남긴다`() =
+        runTest {
+            repository.saveSession(Session("access", "refresh", isNewUser = true, expiresInSeconds = 3600)).getOrThrow()
+            assertEquals(false, profileDataSource.onboardingDoneHint.first())
+
+            repository.saveSession(Session("access-2", "refresh-2", isNewUser = false, expiresInSeconds = 3600)).getOrThrow()
+            assertEquals(true, profileDataSource.onboardingDoneHint.first())
+
+            repository.logout().getOrThrow()
+            assertNull(profileDataSource.onboardingDoneHint.first())
         }
 
     @Test

@@ -15,6 +15,9 @@ public class FakeUserProfileRepository(
     public var onUpdateProfile: (suspend (UserProfileUpdate) -> Result<UserProfile>)? = null,
     public var onReplaceJobInterests: (suspend (List<JobInterest>) -> Result<Unit>)? = null,
     public var onReplaceTags: (suspend (List<String>) -> Result<Unit>)? = null,
+    public var onLastKnownOnboardingDone: (suspend () -> Boolean?)? = null,
+    /** 저장 프로필이 없을 때 [lastKnownOnboardingDone] 이 돌려줄 로그인 힌트. */
+    public var onboardingDoneHint: Boolean? = null,
 ) : UserProfileRepository {
     public val profileState: MutableStateFlow<UserProfile?> = MutableStateFlow(initialProfile)
     public val updates: CopyOnWriteArrayList<UserProfileUpdate> = CopyOnWriteArrayList()
@@ -27,6 +30,11 @@ public class FakeUserProfileRepository(
         onRefreshProfile?.let { return it() }
         return profileState.value?.let { Result.success(it) }
             ?: Result.failure(IllegalStateException("프로필이 준비되지 않았습니다."))
+    }
+
+    override suspend fun lastKnownOnboardingDone(): Boolean? {
+        onLastKnownOnboardingDone?.let { return it() }
+        return profileState.value?.onboardingDone ?: onboardingDoneHint
     }
 
     override suspend fun updateProfile(update: UserProfileUpdate): Result<UserProfile> {
@@ -67,6 +75,7 @@ public class FakeUserProfileRepository(
                 onUpdateProfile = { unexpectedCall("UserProfileRepository.updateProfile") },
                 onReplaceJobInterests = { unexpectedCall("UserProfileRepository.replaceJobInterests") },
                 onReplaceTags = { unexpectedCall("UserProfileRepository.replaceTags") },
+                onLastKnownOnboardingDone = { unexpectedCall("UserProfileRepository.lastKnownOnboardingDone") },
             )
     }
 }

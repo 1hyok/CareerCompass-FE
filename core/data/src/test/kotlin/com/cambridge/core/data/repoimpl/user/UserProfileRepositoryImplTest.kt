@@ -1,7 +1,8 @@
 package com.cambridge.core.data.repoimpl.user
 
-import com.cambridge.core.data.support.InMemoryPreferencesDataStore
-import com.cambridge.core.datastore.TokenDataSource
+import com.cambridge.core.data.support.FakeLocalStoreRegistry
+import com.cambridge.core.datastore.ProfileDataSource
+import com.cambridge.core.datastore.StoreScope
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.model.user.JobInterest
 import com.cambridge.core.model.user.UserProfileUpdate
@@ -15,6 +16,7 @@ import com.cambridge.core.network.model.BaseResponse
 import com.cambridge.core.network.service.UserApiService
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -52,20 +54,20 @@ class UserProfileRepositoryImplTest {
     }
 
     private val api = FakeUserApi()
-    private val tokenDataSource = TokenDataSource(InMemoryPreferencesDataStore())
-    private val repository = UserProfileRepositoryImpl(api, tokenDataSource)
+    private val registry = FakeLocalStoreRegistry()
+    private val profileDataSource = ProfileDataSource(registry.store("Profile", StoreScope.SESSION))
+    private val repository = UserProfileRepositoryImpl(api, profileDataSource, Json { ignoreUnknownKeys = true })
 
     @Test
-    fun `조회 성공은 캐시를 갱신하고 로그인 상태에서만 흘린다`() =
+    fun `조회 성공은 프로필을 영속하고 세션 정리 때 함께 비운다`() =
         runTest {
             assertNull(repository.profile.first())
 
             repository.refreshProfile().getOrThrow()
 
-            assertNull(repository.profile.first())
-            tokenDataSource.saveTokens("access", "refresh")
             assertEquals("정일혁", repository.profile.first()?.name)
-            tokenDataSource.clear()
+            assertEquals(true, repository.lastKnownOnboardingDone())
+            registry.clearScope(StoreScope.SESSION)
             assertNull(repository.profile.first())
         }
 
@@ -81,9 +83,8 @@ class UserProfileRepositoryImplTest {
         }
 
     @Test
-    fun `부분 수정과 직무·태그 교체는 캐시에 반영된다`() =
+    fun `부분 수정과 직무·태그 교체는 영속 프로필에 반영된다`() =
         runTest {
-            tokenDataSource.saveTokens("access", "refresh")
             repository.refreshProfile().getOrThrow()
 
             repository.updateProfile(UserProfileUpdate(name = "일혁")).getOrThrow()
@@ -95,6 +96,37 @@ class UserProfileRepositoryImplTest {
             assertEquals(listOf("frontend", "data"), cached.jobInterests.map { it.code })
             assertEquals(listOf("AI", "환경"), cached.tags)
             assertEquals(UpdateProfileRequestDto(name = "일혁"), api.updates.single())
+        }
+
+    @Test
+    fun `저장된 프로필이 없으면 직무·태그 교체는 서버만 갱신한다`() =
+        runTest {
+            repository.replaceTags(listOf("AI")).getOrThrow()
+
+            assertNull(repository.profile.first())
+            assertEquals(listOf("AI"), api.tags.single().tags)
+        }
+
+    @Test
+    fun `마지막 완료 여부는 프로필이 우선이고 없으면 로그인 힌트를 쓴다`() =
+        runTest {
+            assertNull(repository.lastKnownOnboardingDone())
+
+            profileDataSource.setOnboardingDoneHint(true)
+            assertEquals(true, repository.lastKnownOnboardingDone())
+
+            api.profile = api.profile.copy(onboardingDone = false)
+            repository.refreshProfile().getOrThrow()
+            assertEquals(false, repository.lastKnownOnboardingDone())
+        }
+
+    @Test
+    fun `해석할 수 없는 저장 프로필은 캐시 없음으로 본다`() =
+        runTest {
+            profileDataSource.saveProfileJson("""{"id":"not-a-number"}""")
+
+            assertNull(repository.profile.first())
+            assertNull(repository.lastKnownOnboardingDone())
         }
 
     @Test

@@ -3,7 +3,7 @@ package com.cambridge.core.data.repoimpl.user
 import com.cambridge.core.common.result.runCatchingCancellable
 import com.cambridge.core.data.failure.mapDataFailure
 import com.cambridge.core.data.mapper.UserMapper
-import com.cambridge.core.datastore.TokenDataSource
+import com.cambridge.core.datastore.ProfileDataSource
 import com.cambridge.core.domain.repository.UserProfileRepository
 import com.cambridge.core.model.user.JobInterest
 import com.cambridge.core.model.user.MAX_JOB_INTERESTS
@@ -12,38 +12,43 @@ import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.model.user.UserProfileUpdate
 import com.cambridge.core.network.dto.JobInterestsRequestDto
 import com.cambridge.core.network.dto.TagsRequestDto
+import com.cambridge.core.network.dto.UserProfileDto
 import com.cambridge.core.network.model.requireData
 import com.cambridge.core.network.model.requireOk
 import com.cambridge.core.network.service.UserApiService
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * 프로필 캐시는 SESSION 스코프 저장소에 wire JSON 으로 영속한다 — 로그아웃·세션 정리 때 레지스트리가 함께 비우고
+ * 프로세스 종료를 견딘다. 저장된 JSON 을 해석하지 못하면(스키마 변경) 캐시 없음으로 본다.
+ */
 @Singleton
 internal class UserProfileRepositoryImpl
     @Inject
     constructor(
         private val userApiService: UserApiService,
-        private val tokenDataSource: TokenDataSource,
+        private val profileDataSource: ProfileDataSource,
+        private val json: Json,
     ) : UserProfileRepository {
-        private val cache = MutableStateFlow<UserProfile?>(null)
-
-        /** 세션이 끝나면 캐시 값을 흘리지 않는다 — 다음 로그인 사용자에게 이전 프로필이 보이면 안 된다. */
         override val profile: Flow<UserProfile?> =
-            combine(tokenDataSource.isLoggedIn, cache) { loggedIn, cached -> cached.takeIf { loggedIn } }
+            profileDataSource.profileJson.map { stored -> stored?.let(::decodeOrNull)?.let(UserMapper::toProfile) }
 
         override suspend fun refreshProfile(): Result<UserProfile> =
-            runCatchingCancellable {
-                UserMapper.toProfile(userApiService.getMe().requireData()).also { cache.value = it }
-            }.mapDataFailure()
+            runCatchingCancellable { store(userApiService.getMe().requireData()) }.mapDataFailure()
+
+        override suspend fun lastKnownOnboardingDone(): Boolean? =
+            profile.first()?.onboardingDone ?: profileDataSource.onboardingDoneHint.first()
 
         override suspend fun updateProfile(update: UserProfileUpdate): Result<UserProfile> {
-            if (update.isEmpty) return cache.value?.let { Result.success(it) } ?: refreshProfile()
+            if (update.isEmpty) return profile.first()?.let { Result.success(it) } ?: refreshProfile()
             return runCatchingCancellable {
-                UserMapper.toProfile(userApiService.updateMe(UserMapper.toUpdateRequest(update)).requireData()).also { cache.value = it }
+                store(userApiService.updateMe(UserMapper.toUpdateRequest(update)).requireData())
             }.mapDataFailure()
         }
 
@@ -52,7 +57,7 @@ internal class UserProfileRepositoryImpl
             require(interests.map(JobInterest::code).distinct().size == interests.size) { "job interest codes must be unique" }
             return runCatchingCancellable {
                 userApiService.replaceJobInterests(JobInterestsRequestDto(interests.map(UserMapper::toJobInterestDto))).requireOk()
-                cache.update { it?.copy(jobInterests = interests) }
+                updateStored { it.copy(jobInterests = interests.map(UserMapper::toJobInterestDto)) }
             }.mapDataFailure()
         }
 
@@ -61,7 +66,27 @@ internal class UserProfileRepositoryImpl
             require(tags.all(String::isNotBlank) && tags.distinct().size == tags.size) { "tags must be non-blank and unique" }
             return runCatchingCancellable {
                 userApiService.replaceTags(TagsRequestDto(tags)).requireOk()
-                cache.update { it?.copy(tags = tags) }
+                updateStored { it.copy(tags = tags) }
             }.mapDataFailure()
         }
+
+        private suspend fun store(dto: UserProfileDto): UserProfile {
+            profileDataSource.saveProfileJson(json.encodeToString(UserProfileDto.serializer(), dto))
+            return UserMapper.toProfile(dto)
+        }
+
+        /** 저장된 프로필이 없으면 건너뛴다 — 부분 갱신만으로 프로필을 지어내지 않는다. */
+        private suspend fun updateStored(transform: (UserProfileDto) -> UserProfileDto) {
+            val current = profileDataSource.profileJson.first()?.let(::decodeOrNull) ?: return
+            profileDataSource.saveProfileJson(json.encodeToString(UserProfileDto.serializer(), transform(current)))
+        }
+
+        private fun decodeOrNull(stored: String): UserProfileDto? =
+            try {
+                json.decodeFromString(UserProfileDto.serializer(), stored)
+            } catch (exception: SerializationException) {
+                null
+            } catch (exception: IllegalArgumentException) {
+                null
+            }
     }
