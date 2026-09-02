@@ -7,4 +7,10 @@
     <string name="onboarding_biometric_title">지문으로 빠른 로그인</string>
     <string name="onboarding_biometric_description">등록된 지문을 사용해 바로 로그인해요</string>
     <string name="onboarding_biometric_other_method">다른 방법으로 로그인</string>
+    <string name="onboarding_biometric_default_user_name">회원</string>
+    <string name="onboarding_biometric_prompt_title">지문으로 로그인</string>
+    <string name="onboarding_biometric_prompt_negative">취소</string>
+    <string name="onboarding_biometric_failure_unavailable">이 기기에서는 지문 로그인을 쓸 수 없어요. 다른 방법으로 로그인해 주세요</string>
+    <string name="onboarding_biometric_failure_failed">지문을 확인하지 못했어요. 다시 시도해 주세요</string>
+    <string name="onboarding_biometric_failure_lockout">시도 횟수를 초과했어요. 잠시 후 다시 시도하거나 다른 방법으로 로그인해 주세요</string>
 </resources>
