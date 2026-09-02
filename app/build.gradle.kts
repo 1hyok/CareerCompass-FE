@@ -216,7 +216,10 @@ baselineProfile {
 dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.core.splashscreen)
+    // 지문 로그인의 BiometricPrompt 가 FragmentActivity 를 요구한다 — MainActivity 의 부모 클래스.
+    implementation(libs.androidx.fragment.ktx)
 
     // App Startup — 기동 초기화는 app 매니페스트에 등록한 Initializer 로 실행한다.
     implementation(libs.androidx.startup.runtime)
