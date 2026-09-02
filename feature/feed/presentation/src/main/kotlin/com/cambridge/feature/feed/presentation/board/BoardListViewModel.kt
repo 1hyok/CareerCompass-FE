@@ -5,12 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.model.board.Board
+import com.cambridge.core.model.board.BoardUpdate
 import com.cambridge.feature.feed.domain.usecase.DeleteBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.RetryBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.ToggleBoardActiveUseCase
+import com.cambridge.feature.feed.domain.usecase.UpdateBoardUseCase
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
+import com.cambridge.feature.feed.presentation.shared.util.toCollectCycle
+import com.cambridge.feature.feed.presentation.shared.util.toDomainBoardType
+import com.cambridge.feature.feed.presentation.shared.util.toUiBoardType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,12 +50,50 @@ public enum class BoardListMessage {
     RetryFailed,
     RetryRequested,
     DeleteFailed,
+    Updated,
+    UpdateFailed,
+}
+
+/**
+ * 수정 시트가 편집 중인 값 — 「저장」 전까지 [board] 에 반영되지 않는다.
+ *
+ * URL 은 서버가 감지 결과와 묶어 두므로 바꿀 수 없다. [toUpdate] 는 원본과 다른 필드만 담아
+ * `PATCH /boards/{id}` 가 바뀐 것만 실어 나가게 한다.
+ */
+public data class BoardEditDraft(
+    val board: Board,
+    val name: String,
+    val type: BoardType,
+    val cycle: BoardCollectCycle,
+    val isSaving: Boolean = false,
+) {
+    /** 원본과 다른 필드만 채운 부분 수정. 이름은 trim 해 비교하고, 비어 있으면 바뀐 것으로 보지 않는다. */
+    public fun toUpdate(): BoardUpdate {
+        val trimmedName = name.trim()
+        return BoardUpdate(
+            name = trimmedName.takeIf { it.isNotEmpty() && it != board.name },
+            type = type.toDomainBoardType().takeIf { it != board.type },
+            cycleHours = cycle.hours.takeIf { it != board.cycleHours },
+        )
+    }
+
+    public companion object {
+        public fun from(board: Board): BoardEditDraft =
+            BoardEditDraft(
+                board = board,
+                name = board.name,
+                type = board.type.toUiBoardType(),
+                cycle = board.cycleHours.toCollectCycle(),
+            )
+    }
 }
 
 public data class BoardListViewState(
     val loadState: BoardListLoadState = BoardListLoadState.Loading,
     /** 삭제 확인 다이얼로그가 가리키는 게시판. null 이면 닫힘. */
     val pendingDeletion: Board? = null,
+    /** 수정 시트가 편집 중인 게시판. null 이면 닫힘. */
+    val editDraft: BoardEditDraft? = null,
     val pendingNavigation: BoardListDestination? = null,
     val message: BoardListMessage? = null,
     val sessionEnded: Boolean = false,
@@ -60,6 +103,7 @@ public data class BoardListViewState(
 
 /**
  * 내 게시판 목록 — 수집 ON/OFF 는 먼저 뒤집고 실패하면 되돌리며, 삭제는 확인 뒤에만 보낸다.
+ * 카드를 누르면 수정 시트가 열리고, 저장은 바뀐 필드만 `PATCH` 로 보낸다.
  *
  * 등록 화면에서 돌아오면 Entry 가 [refresh] 를 부른다.
  */
@@ -71,6 +115,7 @@ public class BoardListViewModel
         private val toggleBoardActive: ToggleBoardActiveUseCase,
         private val retryBoard: RetryBoardUseCase,
         private val deleteBoard: DeleteBoardUseCase,
+        private val updateBoard: UpdateBoardUseCase,
         private val errorReporter: ErrorReporter,
         /** Entry 가 마지막 수집 상대 시각에 같은 시계를 쓴다. */
         public val clock: Clock,
@@ -104,13 +149,41 @@ public class BoardListViewModel
                     _state.update { it.copy(pendingDeletion = board) }
                 }
 
-                // 게시판 수정 화면은 1차 범위 밖이라 선택은 아직 아무 데도 가지 않는다.
                 is BoardListEvent.BoardSelected -> {
-                    Unit
+                    val boardId = event.boardId.toLongOrNull() ?: return
+                    val board = _state.value.boards.firstOrNull { it.id == boardId } ?: return
+                    _state.update { it.copy(editDraft = BoardEditDraft.from(board)) }
                 }
 
                 BoardListEvent.BackClicked -> {
                     _state.update { it.copy(pendingNavigation = BoardListDestination.Back) }
+                }
+            }
+        }
+
+        /** 수정 시트 이벤트. 저장 중에는 닫기를 무시해 응답이 시트 없는 화면에 떨어지지 않게 한다. */
+        public fun onEditEvent(event: BoardEditEvent) {
+            when (event) {
+                is BoardEditEvent.NameChanged -> {
+                    updateDraft { it.copy(name = event.value) }
+                }
+
+                is BoardEditEvent.TypeSelected -> {
+                    updateDraft { it.copy(type = event.type) }
+                }
+
+                is BoardEditEvent.CycleSelected -> {
+                    updateDraft { it.copy(cycle = event.cycle) }
+                }
+
+                BoardEditEvent.SaveClicked -> {
+                    save()
+                }
+
+                BoardEditEvent.DismissClicked -> {
+                    _state.update { state ->
+                        if (state.editDraft?.isSaving == true) state else state.copy(editDraft = null)
+                    }
                 }
             }
         }
@@ -210,6 +283,33 @@ public class BoardListViewModel
                         _state.update { it.copy(message = BoardListMessage.RetryFailed) }
                     }
             }
+        }
+
+        /** 바뀐 필드만 보낸다. 바뀐 게 없으면 요청 없이 닫고, 실패하면 시트를 유지한 채 알린다. */
+        private fun save() {
+            val draft = _state.value.editDraft ?: return
+            if (draft.isSaving || draft.name.isBlank()) return
+            val update = draft.toUpdate()
+            if (update.isEmpty) {
+                _state.update { it.copy(editDraft = null) }
+                return
+            }
+            updateDraft { it.copy(isSaving = true) }
+            viewModelScope.launch {
+                updateBoard(draft.board.id, update)
+                    .onSuccess { updated ->
+                        replaceBoard(updated)
+                        _state.update { it.copy(editDraft = null, message = BoardListMessage.Updated) }
+                    }.onFailure { throwable ->
+                        recordFailure(FeedFailureStage.BoardUpdate, throwable)
+                        updateDraft { it.copy(isSaving = false) }
+                        _state.update { it.copy(message = BoardListMessage.UpdateFailed) }
+                    }
+            }
+        }
+
+        private fun updateDraft(transform: (BoardEditDraft) -> BoardEditDraft) {
+            _state.update { state -> state.editDraft?.let { state.copy(editDraft = transform(it)) } ?: state }
         }
 
         private fun replaceBoard(board: Board) {

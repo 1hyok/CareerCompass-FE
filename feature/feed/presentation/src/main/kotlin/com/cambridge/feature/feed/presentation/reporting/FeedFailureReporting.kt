@@ -25,6 +25,7 @@ public enum class FeedFailureStage(
     BoardToggle("board_toggle"),
     BoardRetry("board_retry"),
     BoardDelete("board_delete"),
+    BoardUpdate("board_update"),
 }
 
 /** [ErrorReporter.recordFailure] 에 피드 단계 속성을 붙여 기록한다. 취소 필터링은 인터페이스가 한다. */

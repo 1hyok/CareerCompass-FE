@@ -7,6 +7,7 @@ import com.cambridge.feature.feed.domain.usecase.DeleteBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.RetryBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.ToggleBoardActiveUseCase
+import com.cambridge.feature.feed.domain.usecase.UpdateBoardUseCase
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
@@ -22,6 +23,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.net.UnknownHostException
 import com.cambridge.core.model.board.BoardStatus as DomainBoardStatus
+import com.cambridge.core.model.board.BoardType as DomainBoardType
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BoardListViewModelTest {
@@ -36,6 +38,7 @@ class BoardListViewModelTest {
             toggleBoardActive = ToggleBoardActiveUseCase(repository),
             retryBoard = RetryBoardUseCase(repository),
             deleteBoard = DeleteBoardUseCase(repository),
+            updateBoard = UpdateBoardUseCase(repository),
             errorReporter = reporter,
             clock = FIXED_CLOCK,
         )
@@ -227,6 +230,181 @@ class BoardListViewModelTest {
             listOf(1L, 2L, 3L),
             viewModel.state.value.boards
                 .map { it.id },
+        )
+    }
+
+    @Test
+    fun `카드를 누르면 원본 값으로 수정 시트가 열린다`() {
+        val viewModel = viewModel(repository())
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+
+        val draft = checkNotNull(viewModel.state.value.editDraft)
+        assertEquals(1L, draft.board.id)
+        assertEquals("게시판 1", draft.name)
+        assertEquals(BoardType.Scholarship, draft.type)
+        assertEquals(BoardCollectCycle.Daily, draft.cycle)
+        assertFalse(draft.isSaving)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("없는 id"))
+        assertEquals(draft, viewModel.state.value.editDraft)
+    }
+
+    @Test
+    fun `변경 없이 저장하면 요청 없이 닫힌다`() {
+        val repository = repository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+        viewModel.onEditEvent(BoardEditEvent.NameChanged("  게시판 1  "))
+        viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+
+        assertNull(viewModel.state.value.editDraft)
+        assertTrue(repository.updates.isEmpty())
+        assertNull(viewModel.state.value.message)
+    }
+
+    @Test
+    fun `이름만 바꾸면 이름만 담아 보내고 목록을 응답으로 교체한다`() {
+        val repository = repository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+        viewModel.onEditEvent(BoardEditEvent.NameChanged(" 새 이름 "))
+        viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+
+        assertEquals(listOf(1L to BoardUpdate(name = "새 이름")), repository.updates.toList())
+        assertEquals(
+            "새 이름",
+            viewModel.state.value.boards
+                .first { it.id == 1L }
+                .name,
+        )
+        assertNull(viewModel.state.value.editDraft)
+        assertEquals(BoardListMessage.Updated, viewModel.state.value.message)
+    }
+
+    @Test
+    fun `유형과 주기를 바꾸면 그 필드만 담아 보낸다`() {
+        val repository = repository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+        viewModel.onEditEvent(BoardEditEvent.TypeSelected(BoardType.Employment))
+        viewModel.onEditEvent(BoardEditEvent.CycleSelected(BoardCollectCycle.Weekly))
+        viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+
+        assertEquals(
+            listOf(1L to BoardUpdate(type = DomainBoardType.Recruit, cycleHours = 168)),
+            repository.updates.toList(),
+        )
+        val updated =
+            viewModel.state.value.boards
+                .first { it.id == 1L }
+        assertEquals(DomainBoardType.Recruit, updated.type)
+        assertEquals(168, updated.cycleHours)
+    }
+
+    @Test
+    fun `빈 이름은 저장하지 않는다`() {
+        val repository = repository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+        viewModel.onEditEvent(BoardEditEvent.NameChanged("   "))
+        viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+
+        assertTrue(repository.updates.isEmpty())
+        assertEquals("   ", checkNotNull(viewModel.state.value.editDraft).name)
+    }
+
+    @Test
+    fun `저장 실패는 시트를 유지하고 스낵바로 알린다`() {
+        val repository =
+            repository().apply {
+                onUpdate = { _, _ -> Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", RuntimeException())) }
+            }
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+        viewModel.onEditEvent(BoardEditEvent.NameChanged("새 이름"))
+        viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+
+        val draft = checkNotNull(viewModel.state.value.editDraft)
+        assertEquals("새 이름", draft.name)
+        assertFalse(draft.isSaving)
+        assertEquals(BoardListMessage.UpdateFailed, viewModel.state.value.message)
+        assertEquals(listOf("board_update"), reporter.stages)
+        assertEquals(
+            "게시판 1",
+            viewModel.state.value.boards
+                .first { it.id == 1L }
+                .name,
+        )
+        assertFalse(viewModel.state.value.sessionEnded)
+    }
+
+    @Test
+    fun `저장 중 401 은 세션을 끝낸다`() {
+        val repository =
+            repository().apply {
+                onUpdate = { _, _ -> Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", RuntimeException())) }
+            }
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+        viewModel.onEditEvent(BoardEditEvent.CycleSelected(BoardCollectCycle.Weekly))
+        viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+
+        assertTrue(viewModel.state.value.sessionEnded)
+        assertEquals(BoardListMessage.UpdateFailed, viewModel.state.value.message)
+    }
+
+    @Test
+    fun `저장 중에는 닫기를 무시하고 응답이 오면 닫힌다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val repository =
+                repository().apply {
+                    onUpdate = { id, update ->
+                        gate.await()
+                        Result.success(board(id = id).copy(name = checkNotNull(update.name)))
+                    }
+                }
+            val viewModel = viewModel(repository)
+
+            viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+            viewModel.onEditEvent(BoardEditEvent.NameChanged("새 이름"))
+            viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+            assertTrue(checkNotNull(viewModel.state.value.editDraft).isSaving)
+
+            viewModel.onEditEvent(BoardEditEvent.DismissClicked)
+            viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+            assertTrue(checkNotNull(viewModel.state.value.editDraft).isSaving)
+
+            gate.complete(Unit)
+
+            assertNull(viewModel.state.value.editDraft)
+            assertEquals(1, repository.updates.size)
+            assertEquals(BoardListMessage.Updated, viewModel.state.value.message)
+        }
+
+    @Test
+    fun `닫기는 편집 내용을 버리고 요청을 보내지 않는다`() {
+        val repository = repository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+        viewModel.onEditEvent(BoardEditEvent.NameChanged("새 이름"))
+        viewModel.onEditEvent(BoardEditEvent.DismissClicked)
+
+        assertNull(viewModel.state.value.editDraft)
+        assertTrue(repository.updates.isEmpty())
+        assertEquals(
+            "게시판 1",
+            viewModel.state.value.boards
+                .first { it.id == 1L }
+                .name,
         )
     }
 }

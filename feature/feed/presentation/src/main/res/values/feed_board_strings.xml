@@ -63,6 +63,17 @@
     <string name="feed_board_delete_dialog_message">%1$s 게시판과 수집 설정이 함께 삭제돼요</string>
     <string name="feed_board_delete_dialog_confirm">삭제</string>
     <string name="feed_board_delete_dialog_cancel">취소</string>
+    <string name="feed_board_edit_title">게시판 수정</string>
+    <string name="feed_board_edit_close">수정 닫기</string>
+    <string name="feed_board_edit_url_title">게시판 URL</string>
+    <string name="feed_board_edit_url_readonly">URL 은 바꿀 수 없어요. 주소가 달라졌다면 게시판을 새로 등록해 주세요</string>
+    <string name="feed_board_edit_name_error_blank">게시판 이름을 입력해 주세요</string>
+    <string name="feed_board_edit_saving">변경 내용을 저장하고 있어요</string>
+    <string name="feed_board_edit_save">저장</string>
+    <string name="feed_board_edit_save_content_description">%1$s 수정 저장</string>
+    <string name="feed_board_edit_cancel">취소</string>
+    <string name="feed_board_updated">게시판을 수정했어요</string>
+    <string name="feed_board_update_failed">게시판을 수정하지 못했어요. 잠시 후 다시 시도해 주세요</string>
 
     <string name="feed_icon_sparkles" translatable="false">✨</string>
     <string name="feed_icon_detect_success" translatable="false">✅</string>
