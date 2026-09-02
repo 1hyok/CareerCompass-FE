@@ -56,10 +56,20 @@
                     android:value="androidx.startup" />
         </provider>
 
-        <!-- 카카오 OAuth redirect(kakao{NATIVE_APP_KEY}://oauth) 핸들러 — SDK 계정 로그인이 브라우저에서 돌아오는 관문. -->
+        <!--
+          카카오 OAuth redirect(kakao{NATIVE_APP_KEY}://oauth) 핸들러 — SDK 계정 로그인이 브라우저에서 돌아오는 관문.
+
+          tools:ignore="Instantiatable" 는 lint 오탐이다. Kakao SDK 2.24.0 부터 lint 가 이 클래스가
+          android.app.Activity 를 상속하지 않는다고 보고하지만 aar 안의 계층은 그대로다
+          (AuthCodeHandlerActivity -> CustomTabLauncherActivity -> androidx.appcompat.app.AppCompatActivity).
+          2.24.0 이 Gradle Module Metadata 로 aar variant 만 노출하면서 lint 의 상위 클래스 해석이 끊긴 것이고,
+          appcompat 은 런타임 클래스패스에 정상 리졸브된다. 억제는 이 컴포넌트 한 곳에만 건다 — 규칙 자체를
+          끄면 진짜 Instantiatable 회귀를 놓친다.
+        -->
         <activity
                 android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
-                android:exported="true">
+                android:exported="true"
+                tools:ignore="Instantiatable">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
