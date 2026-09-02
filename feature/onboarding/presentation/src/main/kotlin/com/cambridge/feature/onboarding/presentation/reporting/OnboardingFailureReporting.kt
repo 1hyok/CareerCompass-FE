@@ -23,6 +23,8 @@ public enum class OnboardingFailureStage(
     SaveJobPreferences("save_job_preferences"),
     LoadExperiences("load_experiences"),
     AddExperience("add_experience"),
+    UpdateExperience("update_experience"),
+    DeleteExperience("delete_experience"),
     ProceedToPastApplication("proceed_to_past_application"),
     LoadPastApplications("load_past_applications"),
     UploadPastApplication("upload_past_application"),

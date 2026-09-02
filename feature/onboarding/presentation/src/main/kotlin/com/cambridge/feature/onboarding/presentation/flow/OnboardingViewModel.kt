@@ -10,9 +10,11 @@ import com.cambridge.core.model.application.PastApplicationCategory
 import com.cambridge.core.model.application.PastApplicationFileFormat
 import com.cambridge.core.model.application.PastApplicationItem
 import com.cambridge.core.model.application.UploadFile
+import com.cambridge.core.model.experience.Experience
 import com.cambridge.core.model.experience.ExperienceDetails
 import com.cambridge.core.model.experience.ExperienceDraft
 import com.cambridge.core.model.experience.ExperienceType
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
 import com.cambridge.core.model.user.MAX_JOB_INTERESTS
 import com.cambridge.core.model.user.MAX_PROFILE_TAGS
 import com.cambridge.core.model.user.MIN_GRADUATION_YEAR
@@ -23,6 +25,7 @@ import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.domain.model.SchoolCatalog
 import com.cambridge.feature.onboarding.domain.usecase.AddExperienceUseCase
 import com.cambridge.feature.onboarding.domain.usecase.CompleteOnboardingUseCase
+import com.cambridge.feature.onboarding.domain.usecase.DeleteExperienceUseCase
 import com.cambridge.feature.onboarding.domain.usecase.DeletePastApplicationUseCase
 import com.cambridge.feature.onboarding.domain.usecase.GetOnboardingExperiencesUseCase
 import com.cambridge.feature.onboarding.domain.usecase.GetOnboardingPastApplicationsUseCase
@@ -30,6 +33,7 @@ import com.cambridge.feature.onboarding.domain.usecase.ProceedToPastApplicationU
 import com.cambridge.feature.onboarding.domain.usecase.ResolveOnboardingEntryUseCase
 import com.cambridge.feature.onboarding.domain.usecase.SaveBasicInfoUseCase
 import com.cambridge.feature.onboarding.domain.usecase.SaveJobPreferencesUseCase
+import com.cambridge.feature.onboarding.domain.usecase.UpdateExperienceUseCase
 import com.cambridge.feature.onboarding.domain.usecase.UpdatePastApplicationItemCategoryUseCase
 import com.cambridge.feature.onboarding.domain.usecase.UploadPastApplicationUseCase
 import com.cambridge.feature.onboarding.presentation.OnboardingStep1Event
@@ -41,6 +45,8 @@ import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationPickerS
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerEvent
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerState
 import com.cambridge.feature.onboarding.presentation.complete.OnboardingCompleteEvent
+import com.cambridge.feature.onboarding.presentation.experience.ExperienceDeleteEvent
+import com.cambridge.feature.onboarding.presentation.experience.ExperienceDeleteState
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditorRules
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditorState
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddEvent
@@ -58,6 +64,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
+import java.time.LocalDate
 import java.time.Year
 import javax.inject.Inject
 
@@ -77,6 +84,8 @@ public class OnboardingViewModel
         private val saveJobPreferences: SaveJobPreferencesUseCase,
         private val getOnboardingExperiences: GetOnboardingExperiencesUseCase,
         private val addExperience: AddExperienceUseCase,
+        private val updateExperience: UpdateExperienceUseCase,
+        private val deleteExperience: DeleteExperienceUseCase,
         private val proceedToPastApplication: ProceedToPastApplicationUseCase,
         private val getOnboardingPastApplications: GetOnboardingPastApplicationsUseCase,
         private val uploadPastApplication: UploadPastApplicationUseCase,
@@ -358,9 +367,12 @@ public class OnboardingViewModel
                     ExperienceType.fromWireValue(event.typeId)?.let { type -> updateStep3 { copy(selectedType = type) } }
                 }
 
-                // 편집은 경험 관리(F1-3) 화면 몫이다 — 온보딩 빠른 추가 시트는 신규 등록만 지원한다.
                 is OnboardingStep3Event.ExperienceSelected -> {
-                    Unit
+                    openExperienceEditor(event.experienceId)
+                }
+
+                is OnboardingStep3Event.ExperienceDeleteClicked -> {
+                    askExperienceDeletion(event.experienceId)
                 }
 
                 OnboardingStep3Event.AddExperienceClicked -> {
@@ -386,17 +398,77 @@ public class OnboardingViewModel
             }
         }
 
+        /** 신규 등록. 상한(F1-3, 30개)에 닿았으면 열지 않고 사유만 알린다 — 하나를 지우면 다시 열린다. */
         private fun openExperienceEditor() {
             val state = _uiState.value
             if (!state.isInputEnabled) return
+            if (state.step3.experiences.size >= MAX_EXPERIENCE_CARDS) {
+                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded) }
+                return
+            }
             _uiState.update { it.copy(experienceEditor = ExperienceEditorState(type = state.step3.selectedType)) }
+        }
+
+        /** 기존 카드 수정. 시트를 그 카드의 값으로 채우고 유형은 잠근다. */
+        private fun openExperienceEditor(experienceId: String) {
+            val state = _uiState.value
+            if (!state.isInputEnabled) return
+            val experience = state.step3.experiences.firstOrNull { it.id.toString() == experienceId } ?: return
+            _uiState.update { it.copy(experienceEditor = experience.toEditorState()) }
+        }
+
+        private fun askExperienceDeletion(experienceId: String) {
+            val state = _uiState.value
+            if (!state.isInputEnabled) return
+            val experience = state.step3.experiences.firstOrNull { it.id.toString() == experienceId } ?: return
+            _uiState.update { it.copy(experienceDelete = ExperienceDeleteState(experienceId = experience.id, title = experience.title)) }
+        }
+
+        public fun onExperienceDeleteEvent(event: ExperienceDeleteEvent) {
+            when (event) {
+                ExperienceDeleteEvent.Confirmed -> confirmExperienceDeletion()
+                ExperienceDeleteEvent.Dismissed -> _uiState.update { it.copy(experienceDelete = null) }
+            }
+        }
+
+        /**
+         * 삭제를 낙관적으로 반영한다 — 다이얼로그를 닫으면서 목록에서 먼저 뺀다.
+         *
+         * 실패하면 원래 자리에 되돌리고 사유를 알린다. 자리를 기억하는 이유는 목록이 최신 등록순이라
+         * 맨 뒤에 붙이면 순서가 흐트러지기 때문이다.
+         */
+        private fun confirmExperienceDeletion() {
+            val pending = _uiState.value.experienceDelete ?: return
+            val index =
+                _uiState.value.step3.experiences
+                    .indexOfFirst { it.id == pending.experienceId }
+            if (index < 0) {
+                _uiState.update { it.copy(experienceDelete = null) }
+                return
+            }
+            val removed = _uiState.value.step3.experiences[index]
+            _uiState.update { it.copy(experienceDelete = null) }
+            updateStep3 { copy(experiences = experiences.filterNot { it.id == removed.id }) }
+            viewModelScope.launch {
+                deleteExperience(removed.id)
+                    .onFailure { throwable ->
+                        report(OnboardingFailureStage.DeleteExperience, throwable)
+                        updateStep3 { restore(removed, index) }
+                        _uiState.update { it.copy(failure = throwable.toOnboardingFailureReason()) }
+                    }
+            }
         }
 
         public fun onExperienceEditorEvent(event: ExperienceQuickAddEvent) {
             when (event) {
                 is ExperienceQuickAddEvent.TypeSelected -> {
+                    // 수정 중에는 유형을 바꾸지 않는다 — 유형마다 필드 의미가 달라 채운 값이 다른 뜻으로 저장된다.
                     updateExperienceEditor {
-                        copy(type = event.type, startDateError = null, endDateError = null, primaryError = null, secondaryError = null)
+                        if (isEditing) {
+                            this
+                        } else {
+                            copy(type = event.type, startDateError = null, endDateError = null, primaryError = null, secondaryError = null)
+                        }
                     }
                 }
 
@@ -438,23 +510,28 @@ public class OnboardingViewModel
                 _uiState.update { it.copy(experienceEditor = validated) }
                 return
             }
-            val draft = validated.toDraft()
+            val editingId = validated.experienceId
+            val original =
+                editingId?.let { id ->
+                    _uiState.value.step3.experiences
+                        .firstOrNull { it.id == id }
+                }
+            val edited = validated.toDraft()
+            val draft = original?.let(edited::preserving) ?: edited
             _uiState.update { it.copy(experienceEditor = validated.copy(isSubmitting = true), failure = null) }
+            val stage = if (editingId == null) OnboardingFailureStage.AddExperience else OnboardingFailureStage.UpdateExperience
             viewModelScope.launch {
-                addExperience(draft)
-                    .onSuccess { created ->
+                val result = if (editingId == null) addExperience(draft) else updateExperience(editingId, draft)
+                result
+                    .onSuccess { saved ->
                         _uiState.update { state ->
                             state.copy(
-                                step3 =
-                                    state.step3.copy(
-                                        selectedType = created.type,
-                                        experiences = listOf(created) + state.step3.experiences.filterNot { it.id == created.id },
-                                    ),
+                                step3 = state.step3.upsert(saved, isNew = editingId == null),
                                 experienceEditor = null,
                             )
                         }
                     }.onFailure { throwable ->
-                        report(OnboardingFailureStage.AddExperience, throwable)
+                        report(stage, throwable)
                         _uiState.update { state ->
                             state.copy(
                                 experienceEditor = state.experienceEditor?.copy(isSubmitting = false),
@@ -863,6 +940,96 @@ private fun OnboardingStep2FormState.prefill(profile: UserProfile?): OnboardingS
     val tags = profile.tags.distinct().take(MAX_PROFILE_TAGS)
     return copy(selectedJobCodes = codes, interestTags = tags)
 }
+
+/** 새 카드는 맨 앞(최신 등록순), 수정한 카드는 있던 자리에 그대로 둔다. */
+private fun OnboardingStep3FormState.upsert(
+    saved: Experience,
+    isNew: Boolean,
+): OnboardingStep3FormState =
+    if (isNew) {
+        copy(selectedType = saved.type, experiences = listOf(saved) + experiences.filterNot { it.id == saved.id })
+    } else {
+        copy(experiences = experiences.map { if (it.id == saved.id) saved else it })
+    }
+
+/** 삭제가 실패한 카드를 원래 자리에 되돌린다. 그 사이 목록이 짧아졌으면 끝에 붙인다. */
+private fun OnboardingStep3FormState.restore(
+    experience: Experience,
+    index: Int,
+): OnboardingStep3FormState =
+    if (experiences.any { it.id == experience.id }) {
+        this
+    } else {
+        copy(experiences = experiences.toMutableList().apply { add(index.coerceAtMost(size), experience) })
+    }
+
+/**
+ * 빠른 입력 5필드로 표현되지 않는 값은 원본에서 그대로 물려받는다.
+ *
+ * 시트는 유형별 공통 5필드만 받으므로, 다른 화면에서 채운 기술 태그·링크·요약이 수정 저장에 쓸려 나가면 안 된다.
+ * 수정 중에는 유형이 잠겨 있어 원본과 상세 타입이 항상 같다.
+ */
+private fun ExperienceDraft.preserving(original: Experience): ExperienceDraft {
+    val edited = details
+    val originalDetails = original.details
+    val merged =
+        when {
+            edited is ExperienceDetails.Project && originalDetails is ExperienceDetails.Project -> {
+                edited.copy(techs = originalDetails.techs, link = originalDetails.link)
+            }
+
+            edited is ExperienceDetails.Intern && originalDetails is ExperienceDetails.Intern -> {
+                edited.copy(summary = originalDetails.summary)
+            }
+
+            edited is ExperienceDetails.Activity && originalDetails is ExperienceDetails.Activity -> {
+                edited.copy(role = originalDetails.role)
+            }
+
+            else -> {
+                edited
+            }
+        }
+    return copy(details = merged)
+}
+
+/** 등록된 카드를 빠른 입력 시트의 값으로 되돌린다 — [ExperienceEditorState.toDraft] 의 역방향이다. */
+internal fun Experience.toEditorState(): ExperienceEditorState {
+    val details = details
+    val start =
+        when (details) {
+            is ExperienceDetails.Certificate -> startDate?.toEditorYearMonth() ?: details.acquiredYearMonth?.replace('-', '.') ?: ""
+            is ExperienceDetails.Award -> startDate?.toEditorYearMonth() ?: details.year?.let { "%04d.01".format(it) } ?: ""
+            else -> startDate?.toEditorYearMonth() ?: ""
+        }
+    val primary =
+        when (details) {
+            is ExperienceDetails.Project -> details.role
+            is ExperienceDetails.Award -> details.rank
+            is ExperienceDetails.Intern -> details.company
+            is ExperienceDetails.Activity -> details.organization
+            is ExperienceDetails.Certificate -> details.issuer
+        }
+    val secondary =
+        when (details) {
+            is ExperienceDetails.Project -> details.summary
+            is ExperienceDetails.Award -> details.organizer
+            is ExperienceDetails.Intern -> details.role
+            is ExperienceDetails.Activity -> details.summary
+            is ExperienceDetails.Certificate -> null
+        }
+    return ExperienceEditorState(
+        experienceId = id,
+        type = type,
+        title = title,
+        startDate = start,
+        endDate = if (ExperienceEditorRules.hasEndDate(type)) endDate?.toEditorYearMonth().orEmpty() else "",
+        primary = primary.orEmpty(),
+        secondary = secondary.orEmpty(),
+    )
+}
+
+private fun LocalDate.toEditorYearMonth(): String = "%04d.%02d".format(year, monthValue)
 
 /** 문서를 목록에서 빼면서 펼침 상태도 함께 정리한다 — 목록에 없는 문서를 펼친 채로 두면 상태 불변식이 깨진다. */
 private fun OnboardingStep4FormState.removeDocument(documentId: String): OnboardingStep4FormState =

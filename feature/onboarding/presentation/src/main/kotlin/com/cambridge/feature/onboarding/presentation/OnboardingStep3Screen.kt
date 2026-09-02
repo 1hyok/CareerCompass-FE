@@ -3,6 +3,7 @@ package com.cambridge.feature.onboarding.presentation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -23,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -78,10 +81,13 @@ private fun OnboardingExperienceContent(
                     onClick = {
                         onEvent(OnboardingStep3Event.ExperienceSelected(experience.id))
                     },
+                    onDeleteClick = {
+                        onEvent(OnboardingStep3Event.ExperienceDeleteClicked(experience.id))
+                    },
                 )
             }
             AddExperienceButton(
-                enabled = state.isInputEnabled,
+                enabled = state.isAddEnabled,
                 onClick = { onEvent(OnboardingStep3Event.AddExperienceClicked) },
             )
         }
@@ -189,76 +195,116 @@ private fun CompactExperienceTypePill(
     }
 }
 
+/**
+ * 경험 카드. 본문을 누르면 그 카드를 수정하고, 우측에 삭제 영역을 따로 둔다(F1-3).
+ *
+ * 삭제 영역은 48dp 를 차지하고 본문은 그만큼 오른쪽 여백을 비워, 두 손잡이의 터치 영역이 겹치지 않는다
+ * (#57 에서 Step 4 문서 카드에 정한 규칙과 같다).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ExperienceCard(
     experience: OnboardingExperience,
     enabled: Boolean,
     onClick: () -> Unit,
+    onDeleteClick: () -> Unit,
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
     val shape = RoundedCornerShape(14.dp)
+    val editDescription = stringResource(R.string.onboarding_step3_experience_edit, experience.title)
+    val deleteDescription = stringResource(R.string.onboarding_step3_experience_delete, experience.title)
 
     Surface(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .clickable(
-                    enabled = enabled,
-                    role = Role.Button,
-                    onClick = onClick,
-                ).semantics(mergeDescendants = true) {
-                    role = Role.Button
-                    if (!enabled) disabled()
-                },
+        modifier = Modifier.fillMaxWidth(),
         shape = shape,
         color = colors.surface,
         contentColor = colors.onSurface,
         border = BorderStroke(1.dp, colors.surfaceVariant),
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(spacing.small),
-        ) {
-            Text(
-                text = experience.title,
-                color = colors.onSurface,
-                style =
-                    CareerCompassTheme.typography.labelMedium.copy(
-                        fontSize = 15.sp,
-                        lineHeight = 22.5.sp,
-                        letterSpacing = (-0.1).sp,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-            )
-            Text(
-                text =
-                    stringResource(
-                        R.string.onboarding_step3_experience_metadata,
-                        experience.period,
-                        experience.role,
-                    ),
-                color = colors.mutedContent,
-                style =
-                    CareerCompassTheme.typography.caption.copy(
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
-                        fontWeight = FontWeight.Normal,
-                    ),
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        // 삭제 영역을 클릭 범위 밖에 두려고 여백을 클릭 수식어보다 먼저 준다.
+                        .padding(end = DELETE_TOUCH_TARGET_SIZE)
+                        .clickable(
+                            enabled = enabled,
+                            role = Role.Button,
+                            onClick = onClick,
+                        ).semantics(mergeDescendants = true) {
+                            contentDescription = editDescription
+                            role = Role.Button
+                            if (!enabled) disabled()
+                        }.padding(start = 14.dp, top = 14.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(spacing.small),
             ) {
-                experience.tags.forEach { tag ->
-                    ExperienceSkillTag(label = tag)
+                Text(
+                    text = experience.title,
+                    color = colors.onSurface,
+                    style =
+                        CareerCompassTheme.typography.labelMedium.copy(
+                            fontSize = 15.sp,
+                            lineHeight = 22.5.sp,
+                            letterSpacing = (-0.1).sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                )
+                Text(
+                    text =
+                        stringResource(
+                            R.string.onboarding_step3_experience_metadata,
+                            experience.period,
+                            experience.role,
+                        ),
+                    color = colors.mutedContent,
+                    style =
+                        CareerCompassTheme.typography.caption.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            fontWeight = FontWeight.Normal,
+                        ),
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    experience.tags.forEach { tag ->
+                        ExperienceSkillTag(label = tag)
+                    }
                 }
+            }
+            Box(
+                modifier =
+                    Modifier
+                        .size(DELETE_TOUCH_TARGET_SIZE)
+                        .align(Alignment.TopEnd)
+                        .clip(shape)
+                        .clickable(
+                            enabled = enabled,
+                            role = Role.Button,
+                            onClick = onDeleteClick,
+                        ).semantics {
+                            contentDescription = deleteDescription
+                            role = Role.Button
+                            if (!enabled) disabled()
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.onboarding_step3_experience_delete_icon),
+                    modifier = Modifier.clearAndSetSemantics {},
+                    color = if (enabled) colors.mutedContent else colors.disabledContent,
+                    fontSize = 14.sp,
+                    lineHeight = 21.sp,
+                )
             }
         }
     }
 }
+
+private val DELETE_TOUCH_TARGET_SIZE = 48.dp
 
 @Composable
 private fun ExperienceSkillTag(label: String) {
