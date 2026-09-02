@@ -96,12 +96,19 @@ private fun OnboardingStep4Content(
         if (state.uploadedDocuments.isNotEmpty()) {
             UploadedDocuments(
                 documents = state.uploadedDocuments,
+                expandedDocumentId = state.expandedDocumentId,
                 enabled = state.isInputEnabled,
                 onMenuClick = { documentId ->
                     onEvent(OnboardingStep4Event.DocumentMenuClicked(documentId))
                 },
                 onRetryClick = { documentId ->
                     onEvent(OnboardingStep4Event.DocumentRetryClicked(documentId))
+                },
+                onExpandClick = { documentId ->
+                    onEvent(OnboardingStep4Event.DocumentExpandToggled(documentId))
+                },
+                onItemClick = { documentId, itemId ->
+                    onEvent(OnboardingStep4Event.ItemCategoryClicked(documentId, itemId))
                 },
             )
         }
@@ -304,9 +311,12 @@ private fun DirectInputAction(
 @Composable
 private fun UploadedDocuments(
     documents: List<OnboardingApplicationDocument>,
+    expandedDocumentId: String?,
     enabled: Boolean,
     onMenuClick: (String) -> Unit,
     onRetryClick: (String) -> Unit,
+    onExpandClick: (String) -> Unit,
+    onItemClick: (String, Long) -> Unit,
 ) {
     val spacing = CareerCompassTheme.spacing
 
@@ -327,12 +337,22 @@ private fun UploadedDocuments(
                 ),
         )
         documents.forEach { document ->
+            val expanded = document.isExpandable && document.id == expandedDocumentId
             UploadedDocumentItem(
                 document = document,
+                expanded = expanded,
                 enabled = enabled,
                 onMenuClick = { onMenuClick(document.id) },
                 onRetryClick = { onRetryClick(document.id) },
+                onExpandClick = { onExpandClick(document.id) },
             )
+            if (expanded) {
+                ClassifiedItems(
+                    items = document.items,
+                    enabled = enabled,
+                    onItemClick = { itemId -> onItemClick(document.id, itemId) },
+                )
+            }
         }
     }
 }
@@ -340,9 +360,11 @@ private fun UploadedDocuments(
 @Composable
 private fun UploadedDocumentItem(
     document: OnboardingApplicationDocument,
+    expanded: Boolean,
     enabled: Boolean,
     onMenuClick: () -> Unit,
     onRetryClick: () -> Unit,
+    onExpandClick: () -> Unit,
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
@@ -371,21 +393,48 @@ private fun UploadedDocumentItem(
             R.string.onboarding_step4_document_retry_description,
             document.fileName,
         )
-    val retryModifier =
-        if (document.status is OnboardingApplicationDocumentStatus.Failed) {
-            Modifier
-                .clickable(
-                    enabled = enabled,
-                    role = Role.Button,
-                    onClick = onRetryClick,
-                ).semantics(mergeDescendants = true) {
-                    contentDescription = retryDescription
-                    liveRegion = LiveRegionMode.Polite
-                    role = Role.Button
-                    if (!enabled) disabled()
-                }
-        } else {
-            Modifier
+    val expandDescription =
+        stringResource(
+            if (expanded) R.string.onboarding_step4_document_collapse else R.string.onboarding_step4_document_expand,
+            document.fileName,
+        )
+
+    /**
+     * 카드 본문의 두 번째 손잡이. 실패 문서는 재시도, 분류가 끝난 문서는 항목 목록 펼침/접기를 맡는다 —
+     * 우측 48dp 메뉴 영역 밖(#57)이라 터치 영역이 겹치지 않는다.
+     */
+    val textColumnModifier =
+        when {
+            document.status is OnboardingApplicationDocumentStatus.Failed -> {
+                Modifier
+                    .clickable(
+                        enabled = enabled,
+                        role = Role.Button,
+                        onClick = onRetryClick,
+                    ).semantics(mergeDescendants = true) {
+                        contentDescription = retryDescription
+                        liveRegion = LiveRegionMode.Polite
+                        role = Role.Button
+                        if (!enabled) disabled()
+                    }
+            }
+
+            document.isExpandable -> {
+                Modifier
+                    .clickable(
+                        enabled = enabled,
+                        role = Role.Button,
+                        onClick = onExpandClick,
+                    ).semantics(mergeDescendants = true) {
+                        contentDescription = expandDescription
+                        role = Role.Button
+                        if (!enabled) disabled()
+                    }
+            }
+
+            else -> {
+                Modifier
+            }
         }
 
     Surface(
@@ -428,7 +477,7 @@ private fun UploadedDocumentItem(
                             .weight(1f)
                             .heightIn(min = 48.dp)
                             .testTag(documentTextTag(document.id))
-                            .then(retryModifier),
+                            .then(textColumnModifier),
                     verticalArrangement =
                         Arrangement.spacedBy(
                             space = 2.dp,
@@ -450,6 +499,7 @@ private fun UploadedDocumentItem(
                     DocumentStatus(
                         status = document.status,
                         enabled = enabled,
+                        expanded = if (document.isExpandable) expanded else null,
                     )
                 }
             }
@@ -483,10 +533,12 @@ private fun UploadedDocumentItem(
     }
 }
 
+/** [expanded] 가 null 이면 펼칠 항목이 없는 문서라 펼침 표시를 그리지 않는다. */
 @Composable
 private fun DocumentStatus(
     status: OnboardingApplicationDocumentStatus,
     enabled: Boolean,
+    expanded: Boolean?,
 ) {
     val colors = CareerCompassTheme.colors
     val liveRegionModifier =
@@ -517,15 +569,35 @@ private fun DocumentStatus(
         }
 
         is OnboardingApplicationDocumentStatus.Completed -> {
-            DocumentStatusText(
-                text =
-                    stringResource(
-                        R.string.onboarding_step4_document_completed,
-                        status.classifiedItemCount,
-                    ),
-                color = if (enabled) colors.mutedContent else colors.disabledContent,
-                modifier = liveRegionModifier,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DocumentStatusText(
+                    text =
+                        stringResource(
+                            R.string.onboarding_step4_document_completed,
+                            status.classifiedItemCount,
+                        ),
+                    color = if (enabled) colors.mutedContent else colors.disabledContent,
+                    modifier = liveRegionModifier.weight(weight = 1f, fill = false),
+                )
+                if (expanded != null) {
+                    Text(
+                        text =
+                            stringResource(
+                                if (expanded) {
+                                    R.string.onboarding_step4_document_collapse_icon
+                                } else {
+                                    R.string.onboarding_step4_document_expand_icon
+                                },
+                            ),
+                        modifier = Modifier.clearAndSetSemantics {},
+                        color = if (enabled) colors.mutedContent else colors.disabledContent,
+                        style = CareerCompassTheme.typography.caption,
+                    )
+                }
+            }
         }
 
         is OnboardingApplicationDocumentStatus.Failed -> {
@@ -602,11 +674,140 @@ private fun DocumentFormatBadge(
     }
 }
 
+/**
+ * 펼친 문서의 분류 항목 목록 — 기능 스펙 F1-4 의 「분류 확인·수동 조정」이 여기서 일어난다.
+ *
+ * 카드 아래에 한 단 들여 붙여 어느 문서의 항목인지 드러낸다.
+ */
+@Composable
+private fun ClassifiedItems(
+    items: List<OnboardingApplicationItem>,
+    enabled: Boolean,
+    onItemClick: (Long) -> Unit,
+) {
+    val spacing = CareerCompassTheme.spacing
+    val useFigmaCompactSize = LocalDensity.current.fontScale <= 1f
+    val widthModifier = if (useFigmaCompactSize) Modifier.width(232.dp) else Modifier.fillMaxWidth()
+
+    Column(
+        modifier =
+            Modifier
+                .then(widthModifier)
+                .padding(start = spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items.forEach { item ->
+            ClassifiedItemRow(
+                item = item,
+                enabled = enabled,
+                onClick = { onItemClick(item.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ClassifiedItemRow(
+    item: OnboardingApplicationItem,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+    val shape = CareerCompassTheme.shapes.largeControl
+    val description = stringResource(R.string.onboarding_step4_item_change_category, item.categoryLabel)
+
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = ITEM_ROW_MIN_HEIGHT)
+                .clip(shape)
+                .clickable(
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                ).semantics(mergeDescendants = true) {
+                    contentDescription = description
+                    role = Role.Button
+                    if (!enabled) disabled()
+                }.testTag(itemRowTag(item.id)),
+        shape = shape,
+        color = colors.subtleSurface,
+        contentColor = colors.onSurface,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ItemBadge(
+                    label = item.categoryLabel,
+                    container = if (enabled) colors.surfaceVariant else colors.disabledContainer,
+                    content = if (enabled) colors.onSurfaceVariant else colors.disabledContent,
+                )
+                if (item.needsReview) {
+                    ItemBadge(
+                        label = stringResource(R.string.onboarding_step4_item_needs_review),
+                        container = if (enabled) colors.warningContainer else colors.disabledContainer,
+                        content = if (enabled) colors.onWarningContainer else colors.disabledContent,
+                    )
+                }
+            }
+            Text(
+                text = item.contentPreview,
+                maxLines = ITEM_PREVIEW_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+                color = if (enabled) colors.mutedContent else colors.disabledContent,
+                style =
+                    CareerCompassTheme.typography.caption.copy(
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ItemBadge(
+    label: String,
+    container: androidx.compose.ui.graphics.Color,
+    content: androidx.compose.ui.graphics.Color,
+) {
+    Surface(
+        shape = CareerCompassTheme.shapes.pill,
+        color = container,
+        contentColor = content,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            maxLines = 1,
+            style =
+                CareerCompassTheme.typography.caption.copy(
+                    fontSize = 11.sp,
+                    lineHeight = 16.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+        )
+    }
+}
+
 private fun documentCardTag(documentId: String): String = "onboarding_step4_document_$documentId"
+
+private fun itemRowTag(itemId: Long): String = "onboarding_step4_item_$itemId"
 
 private fun documentTextTag(documentId: String): String = "onboarding_step4_document_text_$documentId"
 
 private fun documentFormatBadgeTag(documentId: String): String = "onboarding_step4_document_format_$documentId"
+
+private val ITEM_ROW_MIN_HEIGHT = 48.dp
+
+private const val ITEM_PREVIEW_MAX_LINES = 2
 
 private const val UPLOAD_ICON_SLOT_TAG: String = "onboarding_step4_upload_icon_slot"
 

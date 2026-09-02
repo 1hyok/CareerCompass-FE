@@ -91,6 +91,22 @@ public fun OnboardingStep4FailurePreview() {
     }
 }
 
+@PreviewTest
+@Preview(name = "Onboarding Step 4 expanded items", widthDp = 360, heightDp = 800)
+@Composable
+public fun OnboardingStep4ExpandedItemsPreview() {
+    CareerCompassTheme {
+        OnboardingStep4Screen(
+            state =
+                OnboardingStep4UiState(
+                    uploadedDocuments = listOf(sampleClassifiedDocument),
+                    expandedDocumentId = sampleClassifiedDocument.id,
+                ),
+            onEvent = {},
+        )
+    }
+}
+
 private val sampleApplicationDocument =
     OnboardingApplicationDocument(
         id = "application-1",
@@ -98,4 +114,24 @@ private val sampleApplicationDocument =
         format = OnboardingApplicationDocumentFormat.PDF,
         fileSizeBytes = 512L * 1024L,
         status = OnboardingApplicationDocumentStatus.Completed(classifiedItemCount = 4),
+    )
+
+private val sampleClassifiedDocument =
+    sampleApplicationDocument.copy(
+        status = OnboardingApplicationDocumentStatus.Completed(classifiedItemCount = 2),
+        items =
+            listOf(
+                OnboardingApplicationItem(
+                    id = 1L,
+                    categoryLabel = "지원 동기",
+                    contentPreview = "사용자에게 닿는 제품을 만들고 싶어 지원했습니다.",
+                    needsReview = false,
+                ),
+                OnboardingApplicationItem(
+                    id = 2L,
+                    categoryLabel = "기타",
+                    contentPreview = "동아리에서 팀장을 맡아 6명과 함께 서비스를 만들며 협업하는 법을 배웠습니다.",
+                    needsReview = true,
+                ),
+            ),
     )

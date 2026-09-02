@@ -2,6 +2,7 @@ package com.cambridge.feature.onboarding.presentation.flow
 
 import androidx.compose.runtime.Immutable
 import com.cambridge.core.model.application.MAX_PAST_APPLICATIONS
+import com.cambridge.core.model.application.PastApplicationItem
 import com.cambridge.core.model.application.UploadFile
 import com.cambridge.core.model.experience.Experience
 import com.cambridge.core.model.experience.ExperienceType
@@ -13,6 +14,7 @@ import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationPickerS
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerState
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditorState
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputState
+import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryState
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 
 /** 온보딩 흐름의 실패 사유. 문구는 Entry 가 리소스로 만든다. */
@@ -93,13 +95,17 @@ public data class OnboardingStep3FormState(
 public sealed interface OnboardingUploadStatus {
     public data object Processing : OnboardingUploadStatus
 
+    /** 분류가 끝났다. [items] 는 사용자가 분류를 조정할 수 있는 항목 목록(F1-4)이다. */
     @Immutable
     public data class Completed(
-        val classifiedItemCount: Int,
+        val items: List<PastApplicationItem>,
     ) : OnboardingUploadStatus {
         init {
-            require(classifiedItemCount >= 0) { "classifiedItemCount must not be negative" }
+            require(items.map(PastApplicationItem::id).distinct().size == items.size) { "item ids must be unique" }
         }
+
+        val classifiedItemCount: Int
+            get() = items.size
     }
 
     @Immutable
@@ -133,15 +139,23 @@ public data class OnboardingUploadDocument(
     }
 }
 
-/** Step 4 목록 상태. */
+/**
+ * Step 4 목록 상태.
+ *
+ * @property expandedDocumentId 항목 목록을 펼친 문서. 한 번에 하나만 펼친다 — 목록이 길어지면 아래 액션이 밀린다.
+ */
 @Immutable
 public data class OnboardingStep4FormState(
     val documents: List<OnboardingUploadDocument> = emptyList(),
     val isLoaded: Boolean = false,
+    val expandedDocumentId: String? = null,
 ) {
     init {
         require(documents.map(OnboardingUploadDocument::id).distinct().size == documents.size) { "document ids must be unique" }
         require(documents.size <= MAX_PAST_APPLICATIONS) { "documents must not exceed $MAX_PAST_APPLICATIONS" }
+        require(expandedDocumentId == null || documents.any { it.id == expandedDocumentId }) {
+            "expandedDocumentId must refer to a listed document"
+        }
     }
 }
 
@@ -165,6 +179,7 @@ public data class OnboardingFlowState(
     val graduationPicker: GraduationPickerState? = null,
     val experienceEditor: ExperienceEditorState? = null,
     val directInput: DirectInputState? = null,
+    val itemCategoryPicker: PastApplicationItemCategoryState? = null,
 ) {
     init {
         require(userName == null || userName.isNotBlank()) { "userName must be null or non-blank" }
