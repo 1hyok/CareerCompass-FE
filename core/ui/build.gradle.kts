@@ -15,6 +15,7 @@ android {
 
 dependencies {
     implementation(projects.core.common)
+    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 

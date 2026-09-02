@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="core_ui_bottom_tab_feed">피드</string>
+    <string name="core_ui_bottom_tab_analysis">분석</string>
+    <string name="core_ui_bottom_tab_applications">지원서</string>
+    <string name="core_ui_bottom_tab_my">마이</string>
+    <string name="core_ui_back">뒤로가기</string>
+    <string name="core_ui_back_icon" translatable="false">←</string>
+</resources>
