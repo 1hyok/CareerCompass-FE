@@ -27,17 +27,18 @@ public class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
 
         // 시작 목적지가 확정될 때까지(세션·프로필 확인) 시스템 스플래시를 유지한다.
-        splashScreen.setKeepOnScreenCondition { viewModel.startDestination.value == null }
+        splashScreen.setKeepOnScreenCondition { viewModel.launch.value == null }
 
         setContent {
             CareerCompassTheme {
-                val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
-                startDestination?.let { destination ->
-                    // 시작 목적지가 바뀌면(로그아웃·세션 만료) NavHost 를 새로 만든다 — 같은 컨트롤러의
-                    // startDestination 만 바꾸면 이전 백스택이 남는다.
-                    key(destination) {
+                val launch by viewModel.launch.collectAsStateWithLifecycle()
+                launch?.let { current ->
+                    // 세션 종료(로그아웃·만료)마다 revision 이 올라 NavHost 를 새로 만든다 — 같은 컨트롤러의
+                    // startDestination 만 바꾸면 이전 백스택이 남고, 목적지 값만 키로 쓰면 같은 값일 때 아무
+                    // 일도 일어나지 않는다. 프로세스 재생성 시에는 시작 목적지부터 다시 시작한다(백스택 미복원).
+                    key(current.revision) {
                         AppNavigation(
-                            startDestination = destination,
+                            startDestination = current.destination,
                             onSessionEnded = viewModel::refresh,
                             onExitRequest = ::finish,
                         )

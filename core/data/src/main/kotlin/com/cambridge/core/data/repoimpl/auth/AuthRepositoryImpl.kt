@@ -6,6 +6,7 @@ import com.cambridge.core.data.failure.mapDataFailure
 import com.cambridge.core.data.mapper.AuthMapper
 import com.cambridge.core.datastore.DeviceDataSource
 import com.cambridge.core.datastore.LocalStoreRegistry
+import com.cambridge.core.datastore.ProfileDataSource
 import com.cambridge.core.datastore.StoreScope
 import com.cambridge.core.datastore.TokenDataSource
 import com.cambridge.core.domain.error.SessionEndedException
@@ -38,6 +39,8 @@ internal class AuthRepositoryImpl
         private val expiryTracker: AccessTokenExpiryTracker,
         // 로그아웃 시 SESSION 스코프 로컬 저장소 일괄 정리.
         private val localStoreRegistry: LocalStoreRegistry,
+        // 로그인 응답의 isNewUser 를 온보딩 완료 힌트로 남긴다 — 프로필을 받기 전 오프라인 시작 판정 근거.
+        private val profileDataSource: ProfileDataSource,
     ) : AuthRepository {
         /**
          * 세션 세대 — [clearLocalSession] 마다 오른다. 회전은 시작 시 세대를 기억하고 저장 직전에 다시 비교해,
@@ -74,6 +77,8 @@ internal class AuthRepositoryImpl
         override suspend fun saveSession(session: Session): Result<Unit> =
             runCatchingCancellable {
                 tokenDataSource.saveTokens(accessToken = session.accessToken, refreshToken = session.refreshToken)
+                // 로그인 흐름도 같은 값으로 온보딩/피드를 가른다 — 기존 사용자는 온보딩 완료로 본다.
+                profileDataSource.setOnboardingDoneHint(done = !session.isNewUser)
                 recordIssuedExpiresIn(session.expiresInSeconds)
             }
 

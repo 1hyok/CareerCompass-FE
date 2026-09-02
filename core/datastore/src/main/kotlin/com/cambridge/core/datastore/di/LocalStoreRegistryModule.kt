@@ -32,5 +32,11 @@ internal abstract class LocalStoreRegistryModule {
         @DeviceDataStore
         fun provideDeviceDataStore(registry: LocalStoreRegistry): DataStore<Preferences> =
             registry.store(name = "Device", scope = StoreScope.DEVICE)
+
+        @Provides
+        @Singleton
+        @ProfileDataStore
+        fun provideProfileDataStore(registry: LocalStoreRegistry): DataStore<Preferences> =
+            registry.store(name = "Profile", scope = StoreScope.SESSION)
     }
 }
