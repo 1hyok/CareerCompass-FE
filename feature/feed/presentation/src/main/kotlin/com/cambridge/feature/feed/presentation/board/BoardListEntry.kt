@@ -9,14 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -37,7 +42,12 @@ import com.cambridge.feature.feed.presentation.shared.util.toBoardUiModel
 import kotlinx.coroutines.launch
 import java.time.Clock
 
-/** 내 게시판 진입점 — 삭제는 확인 다이얼로그를 거치고, 화면에 돌아올 때마다 목록을 다시 읽는다. */
+/**
+ * 내 게시판 진입점 — 삭제는 확인 다이얼로그를, 수정은 바텀시트를 거치고, 화면에 돌아올 때마다 목록을 다시 읽는다.
+ *
+ * 수정 실패 스낵바는 시트 안에 띄운다 — 시트가 별도 창이라 화면 스낵바는 시트 뒤에 가려진다.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 public fun BoardListEntry(
     onBackClick: () -> Unit,
@@ -49,6 +59,7 @@ public fun BoardListEntry(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val sheetSnackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
 
     LifecycleResumeEffect(Unit) {
@@ -75,7 +86,8 @@ public fun BoardListEntry(
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
         viewModel.onMessageConsumed()
-        snackbarScope.launch { snackbarHostState.showSnackbar(resources.getString(message.messageRes())) }
+        val host = if (state.editDraft != null) sheetSnackbarHostState else snackbarHostState
+        snackbarScope.launch { host.showSnackbar(resources.getString(message.messageRes())) }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -141,6 +153,32 @@ public fun BoardListEntry(
             textContentColor = CareerCompassTheme.colors.onSurfaceVariant,
         )
     }
+
+    val editDraft = state.editDraft
+    if (editDraft != null) {
+        // 저장 중에는 스와이프·스크림·뒤로가기로 시트가 숨겨지지 않게 한다 — 숨긴 뒤 닫기를 무시하면 빈 창만 남는다.
+        val isSaving by rememberUpdatedState(editDraft.isSaving)
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.onEditEvent(BoardEditEvent.DismissClicked) },
+            sheetState =
+                rememberModalBottomSheetState(
+                    skipPartiallyExpanded = true,
+                    confirmValueChange = { value -> value != SheetValue.Hidden || !isSaving },
+                ),
+            containerColor = CareerCompassTheme.colors.surface,
+        ) {
+            Box {
+                BoardEditSheetContent(
+                    state = remember(editDraft, resources) { editDraft.toUiState(resources) },
+                    onEvent = viewModel::onEditEvent,
+                )
+                SnackbarHost(
+                    hostState = sheetSnackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -188,10 +226,25 @@ internal fun BoardListLoadState.toUiState(
         maxBoardCount = MAX_BOARDS,
     )
 
+/** 이름 오류는 비어 있을 때만이다 — 원본 이름은 비어 있지 않으므로 사용자가 지운 뒤에만 나타난다. */
+internal fun BoardEditDraft.toUiState(resources: Resources): BoardEditUiState =
+    BoardEditUiState(
+        boardName = board.name,
+        url = board.url,
+        name = name,
+        nameError = if (name.isBlank()) resources.getString(R.string.feed_board_edit_name_error_blank) else null,
+        type = type,
+        cycle = cycle,
+        isSaving = isSaving,
+        hasChanges = !toUpdate().isEmpty,
+    )
+
 private fun BoardListMessage.messageRes(): Int =
     when (this) {
         BoardListMessage.ToggleFailed -> R.string.feed_board_toggle_failed
         BoardListMessage.RetryFailed -> R.string.feed_board_retry_failed
         BoardListMessage.RetryRequested -> R.string.feed_board_retry_requested
         BoardListMessage.DeleteFailed -> R.string.feed_board_delete_failed
+        BoardListMessage.Updated -> R.string.feed_board_updated
+        BoardListMessage.UpdateFailed -> R.string.feed_board_update_failed
     }
