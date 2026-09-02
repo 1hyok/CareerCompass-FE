@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -332,16 +333,9 @@ class ApiWireContractSmokeTest {
             assertEquals(true, pastApplicationService.delete(7).ok)
 
             val upload = recordedRequests("POST", "/api/v1/past-applications/upload").single().jsonObject
-            val contentType =
-                upload
-                    .getValue(
-                        "headers",
-                    ).jsonObject.entries
-                    .first { it.key.equals("Content-Type", ignoreCase = true) }
-                    .value
-                    .toString()
+            val contentType = upload.headerValues("Content-Type").joinToString()
             assertTrue("multipart content type expected but was $contentType", contentType.contains("multipart/form-data"))
-            val body = upload.getValue("body").toString()
+            val body = upload.recordedBodyText()
             assertTrue("file part missing: $body", body.contains("name=\"file\"") && body.contains("filename=\"resume.pdf\""))
             assertTrue("label part missing: $body", body.contains("name=\"label\""))
         }
@@ -606,6 +600,58 @@ class ApiWireContractSmokeTest {
                 controlPut("/mockserver/retrieve?type=REQUESTS", matcher.toString()),
             ).jsonArray
     }
+
+    /** MockServer 는 헤더를 `{"headers": {"Name": ["v"]}}` 또는 `[{"name","values"}]` 로 돌려준다 — 둘 다 받는다. */
+    private fun JsonObject.headerValues(name: String): List<String> {
+        val headers = this["headers"] ?: return emptyList()
+        return when (headers) {
+            is JsonObject -> {
+                headers.entries
+                    .filter { it.key.equals(name, ignoreCase = true) }
+                    .flatMap { entry -> (entry.value as? JsonArray)?.map { it.jsonPrimitive.content } ?: listOf(entry.value.toString()) }
+            }
+
+            is JsonArray -> {
+                headers
+                    .map { it.jsonObject }
+                    .filter { it["name"]?.jsonPrimitive?.content.equals(name, ignoreCase = true) }
+                    .flatMap { header -> (header["values"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty() }
+            }
+
+            else -> {
+                emptyList()
+            }
+        }
+    }
+
+    /** 기록된 본문은 문자열이거나 `{"type":"BINARY","base64Bytes":...}` / `{"type":"STRING","string":...}` 객체다. */
+    private fun JsonObject.recordedBodyText(): String =
+        when (val body = this["body"]) {
+            null -> {
+                ""
+            }
+
+            is JsonPrimitive -> {
+                body.content
+            }
+
+            is JsonObject -> {
+                body["base64Bytes"]?.jsonPrimitive?.content?.let {
+                    String(
+                        java.util.Base64
+                            .getDecoder()
+                            .decode(it),
+                        Charsets.ISO_8859_1,
+                    )
+                }
+                    ?: body["string"]?.jsonPrimitive?.content
+                    ?: body.toString()
+            }
+
+            else -> {
+                body.toString()
+            }
+        }
 
     private fun controlPut(
         path: String,
