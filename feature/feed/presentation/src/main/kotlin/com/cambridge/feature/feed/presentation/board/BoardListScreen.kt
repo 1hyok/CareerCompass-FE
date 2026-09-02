@@ -198,11 +198,13 @@ private fun BoardCard(
                 color = colors.onSurfaceVariant,
                 style = CareerCompassTheme.typography.caption,
             )
-            Text(
-                text = stringResource(R.string.feed_board_posting_count, board.postingCount),
-                color = colors.onSurfaceVariant,
-                style = CareerCompassTheme.typography.caption,
-            )
+            board.postingCount?.let { postingCount ->
+                Text(
+                    text = stringResource(R.string.feed_board_posting_count, postingCount),
+                    color = colors.onSurfaceVariant,
+                    style = CareerCompassTheme.typography.caption,
+                )
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
             if (board.status == BoardStatus.Failing) {

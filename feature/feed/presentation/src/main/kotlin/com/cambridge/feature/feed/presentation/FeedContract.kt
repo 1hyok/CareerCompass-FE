@@ -1,12 +1,13 @@
 package com.cambridge.feature.feed.presentation
 
-/** Stable identifiers for the listing categories rendered by the feed. */
+/** Stable identifiers for the listing categories rendered by the feed (spec F2-3 「공고 유형」). */
 public enum class FeedListingCategory {
     All,
     Employment,
     Scholarship,
     Contest,
     ExternalActivity,
+    Other,
 }
 
 /** A localized filter option displayed above the feed results. */
@@ -30,14 +31,19 @@ public data class FeedSortUiModel(
     }
 }
 
-/** Display-only data for one listing card. */
+/**
+ * Display-only data for one listing card.
+ *
+ * [suitabilityScore] is `null` while the posting is still being parsed or the profile is too thin to
+ * score it (spec F2-3 「적합도 점수 표시 조건」·F3-1); the card then shows an "analyzing" chip instead.
+ */
 public data class FeedListingUiModel(
     val id: String,
     val title: String,
     val category: FeedListingCategory,
     val categoryLabel: String,
     val sourceLabel: String,
-    val suitabilityScore: Int,
+    val suitabilityScore: Int?,
     val deadlineLabel: String,
     val isDeadlineUrgent: Boolean,
     val isNew: Boolean,
@@ -49,8 +55,8 @@ public data class FeedListingUiModel(
         requireNonBlank("categoryLabel", categoryLabel)
         requireNonBlank("sourceLabel", sourceLabel)
         requireNonBlank("deadlineLabel", deadlineLabel)
-        require(suitabilityScore in 0..100) {
-            "suitabilityScore must be between 0 and 100: $suitabilityScore"
+        require(suitabilityScore == null || suitabilityScore in 0..100) {
+            "suitabilityScore must be null or between 0 and 100: $suitabilityScore"
         }
     }
 }
@@ -75,7 +81,12 @@ public sealed interface FeedContentState {
     }
 }
 
-/** Complete, display-ready state for [FeedScreen]. */
+/**
+ * Complete, display-ready state for [FeedScreen].
+ *
+ * [activeFilterCount] is the number of filter-sheet conditions (board, deadline, score, unread) that
+ * differ from their defaults; the category chip row is not counted because it is visible on its own.
+ */
 public data class FeedUiState(
     val userName: String,
     val newListingCount: Int,
@@ -85,11 +96,13 @@ public data class FeedUiState(
     val selectedSort: FeedSortUiModel,
     val totalListingCount: Int,
     val content: FeedContentState,
+    val activeFilterCount: Int = 0,
 ) {
     init {
         requireNonBlank("userName", userName)
         require(newListingCount >= 0) { "newListingCount must not be negative" }
         require(totalListingCount >= 0) { "totalListingCount must not be negative" }
+        require(activeFilterCount >= 0) { "activeFilterCount must not be negative" }
         require(filters.map(FeedFilterUiModel::category).distinct().size == filters.size) {
             "filter categories must be unique"
         }
@@ -108,6 +121,9 @@ public sealed interface FeedUiEvent {
     public data class FilterSelected(
         val category: FeedListingCategory,
     ) : FeedUiEvent
+
+    /** The filter button in the header was pressed; the host opens the filter sheet. */
+    public data object FilterRequested : FeedUiEvent
 
     public data object SortMenuRequested : FeedUiEvent
 

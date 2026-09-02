@@ -9,17 +9,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.component.CareerCompassBadge
 import com.cambridge.core.ui.component.CareerCompassBadgeTone
-import com.cambridge.core.ui.component.CareerCompassScoreChip
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
-import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedCard
+import com.cambridge.feature.feed.presentation.shared.component.FeedSuitabilityChip
 
 /**
  * Compact, single-action listing card for the "similar postings" section.
@@ -56,16 +54,7 @@ internal fun SimilarPostingCard(
                 )
             }
             Spacer(modifier = Modifier.width(CareerCompassTheme.spacing.xSmall))
-            CareerCompassScoreChip(
-                label = stringResource(R.string.feed_suitability_label),
-                score = listing.suitabilityScore,
-                level = listing.suitabilityScore.suitabilityLevel(),
-                contentDescription =
-                    stringResource(
-                        R.string.feed_suitability_content_description,
-                        listing.suitabilityScore,
-                    ),
-            )
+            FeedSuitabilityChip(score = listing.suitabilityScore)
         }
         Text(
             text = listing.title,

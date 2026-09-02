@@ -18,11 +18,24 @@
     <string name="feed_loading">공고를 불러오는 중이에요</string>
     <string name="feed_empty_title">조건에 맞는 공고가 없어요</string>
     <string name="feed_empty_description">검색어나 필터를 바꿔 보세요</string>
+    <string name="feed_filter_content_description">필터</string>
+    <string name="feed_filter_active_count_state">%1$d개 적용</string>
+    <string name="feed_user_name_fallback">회원</string>
+    <string name="feed_suitability_analyzing">분석 중</string>
+    <string name="feed_suitability_analyzing_content_description">적합도 분석 중</string>
+    <string name="feed_loading_more">공고를 더 불러오는 중이에요</string>
+    <string name="feed_error_title">공고를 불러오지 못했어요</string>
+    <string name="feed_error_description">잠시 후 다시 시도해 주세요</string>
+    <string name="feed_error_retry">다시 시도</string>
+    <string name="feed_bookmark_failed">북마크를 저장하지 못했어요</string>
+    <string name="feed_load_more_failed">공고를 더 불러오지 못했어요</string>
+    <string name="feed_refresh_failed">공고를 새로고침하지 못했어요</string>
 
     <string name="feed_icon_wave" translatable="false">👋</string>
     <string name="feed_icon_notification" translatable="false">🔔</string>
     <string name="feed_icon_search" translatable="false">🔍</string>
     <string name="feed_icon_sort" translatable="false">⌄</string>
+    <string name="feed_icon_filter" translatable="false">▽</string>
     <string name="feed_icon_bookmark" translatable="false">♡</string>
     <string name="feed_icon_bookmark_selected" translatable="false">♥</string>
 </resources>

@@ -2,4 +2,19 @@
 <resources>
     <string name="feed_back">뒤로가기</string>
     <string name="feed_icon_back" translatable="false">←</string>
+    <string name="feed_category_all">전체</string>
+    <string name="feed_category_employment">채용</string>
+    <string name="feed_category_scholarship">장학금</string>
+    <string name="feed_category_contest">공모전</string>
+    <string name="feed_category_external_activity">대외활동</string>
+    <string name="feed_category_other">기타</string>
+    <string name="feed_deadline_days">D-%1$d</string>
+    <string name="feed_deadline_today">오늘 마감</string>
+    <string name="feed_deadline_expired">마감</string>
+    <string name="feed_deadline_none">마감 미정</string>
+    <string name="feed_relative_time_just_now">방금</string>
+    <string name="feed_relative_time_minutes_ago">%1$d분 전</string>
+    <string name="feed_relative_time_hours_ago">%1$d시간 전</string>
+    <string name="feed_relative_time_days_ago">%1$d일 전</string>
+    <string name="feed_open_url_failed">링크를 열 수 있는 앱이 없어요</string>
 </resources>

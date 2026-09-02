@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,7 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
@@ -30,6 +33,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -50,16 +58,42 @@ import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.component.CareerCompassScoreChip
-import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.core.ui.component.CareerCompassTag
 import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.cambridge.feature.feed.presentation.shared.component.FeedSuitabilityChip
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 /** Stateless main feed matching the CareerCompass feed design. */
 @Composable
 public fun FeedScreen(
     state: FeedUiState,
     onEvent: (FeedUiEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FeedScreen(
+        state = state,
+        onEvent = onEvent,
+        listState = rememberLazyListState(),
+        onLoadMore = null,
+        isLoadingMore = false,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless main feed with infinite-scroll hooks.
+ *
+ * [onLoadMore] is invoked when the last items of [listState] come into view; pass `null` when the
+ * host has no further pages to offer. [isLoadingMore] appends a progress row below the listings.
+ */
+@Composable
+public fun FeedScreen(
+    state: FeedUiState,
+    onEvent: (FeedUiEvent) -> Unit,
+    listState: LazyListState,
+    onLoadMore: (() -> Unit)?,
+    isLoadingMore: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -84,6 +118,9 @@ public fun FeedScreen(
                 FeedListingList(
                     listings = content.listings,
                     onEvent = onEvent,
+                    listState = listState,
+                    onLoadMore = onLoadMore,
+                    isLoadingMore = isLoadingMore,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -155,10 +192,21 @@ private fun FeedHeader(
             )
         }
 
-        FeedSearchField(
-            value = state.searchQuery,
-            onValueChange = { onEvent(FeedUiEvent.SearchQueryChanged(it)) },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FeedSearchField(
+                value = state.searchQuery,
+                onValueChange = { onEvent(FeedUiEvent.SearchQueryChanged(it)) },
+                modifier = Modifier.weight(1f),
+            )
+            FeedFilterButton(
+                activeFilterCount = state.activeFilterCount,
+                onClick = { onEvent(FeedUiEvent.FilterRequested) },
+            )
+        }
 
         Row(
             modifier =
@@ -193,6 +241,7 @@ private fun FeedHeader(
 private fun FeedSearchField(
     value: String,
     onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = CareerCompassTheme.colors
     val shape = CareerCompassTheme.shapes.largeControl
@@ -203,7 +252,7 @@ private fun FeedSearchField(
         value = value,
         onValueChange = onValueChange,
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .height(48.dp)
                 .clip(shape)
@@ -254,6 +303,72 @@ private fun FeedSearchField(
     )
 }
 
+/** 48dp filter trigger. The badge shows how many sheet conditions are active (spec F2-3 「필터 조건」). */
+@Composable
+private fun FeedFilterButton(
+    activeFilterCount: Int,
+    onClick: () -> Unit,
+) {
+    val colors = CareerCompassTheme.colors
+    val shape = CareerCompassTheme.shapes.largeControl
+    val filterDescription = stringResource(R.string.feed_filter_content_description)
+    val activeStateDescription =
+        if (activeFilterCount > 0) {
+            stringResource(R.string.feed_filter_active_count_state, activeFilterCount)
+        } else {
+            null
+        }
+
+    Box(
+        modifier =
+            Modifier
+                .size(48.dp)
+                .clip(shape)
+                .background(colors.surface)
+                .border(width = 1.dp, color = colors.interactiveOutline, shape = shape)
+                .clickable(role = Role.Button, onClick = onClick)
+                .semantics {
+                    contentDescription = filterDescription
+                    role = Role.Button
+                    if (activeStateDescription != null) {
+                        stateDescription = activeStateDescription
+                    }
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.feed_icon_filter),
+            modifier = Modifier.clearAndSetSemantics {},
+            color = if (activeFilterCount > 0) colors.primaryEmphasis else colors.onSurface,
+            style = CareerCompassTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 24.sp),
+        )
+        if (activeFilterCount > 0) {
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 6.dp, end = 6.dp)
+                        .size(16.dp)
+                        .background(colors.primary, CareerCompassTheme.shapes.pill),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = activeFilterCount.toString(),
+                    modifier = Modifier.clearAndSetSemantics {},
+                    color = colors.onPrimary,
+                    maxLines = 1,
+                    style =
+                        CareerCompassTheme.typography.caption.copy(
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun FeedSortRow(
     state: FeedUiState,
@@ -298,12 +413,29 @@ private fun FeedSortRow(
 private fun FeedListingList(
     listings: List<FeedListingUiModel>,
     onEvent: (FeedUiEvent) -> Unit,
+    listState: LazyListState,
+    onLoadMore: (() -> Unit)?,
+    isLoadingMore: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    if (onLoadMore != null) {
+        val currentOnLoadMore by rememberUpdatedState(onLoadMore)
+        LaunchedEffect(listState, listings.size) {
+            snapshotFlow {
+                val layoutInfo = listState.layoutInfo
+                val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                lastVisibleIndex >= layoutInfo.totalItemsCount - LOAD_MORE_THRESHOLD
+            }.distinctUntilChanged()
+                .filter { it }
+                .collect { currentOnLoadMore() }
+        }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
+        state = listState,
         contentPadding =
-            androidx.compose.foundation.layout.PaddingValues(
+            PaddingValues(
                 start = CareerCompassTheme.spacing.large,
                 end = CareerCompassTheme.spacing.large,
                 bottom = CareerCompassTheme.spacing.large,
@@ -317,6 +449,35 @@ private fun FeedListingList(
                 onBookmarkToggled = { onEvent(FeedUiEvent.BookmarkToggled(listing.id)) },
             )
         }
+        if (isLoadingMore) {
+            item(key = "loading-more") {
+                FeedLoadingMoreRow()
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedLoadingMoreRow() {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = CareerCompassTheme.spacing.medium),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(20.dp),
+            color = CareerCompassTheme.colors.primaryEmphasis,
+            strokeWidth = 2.dp,
+        )
+        Spacer(modifier = Modifier.width(CareerCompassTheme.spacing.small))
+        Text(
+            text = stringResource(R.string.feed_loading_more),
+            color = CareerCompassTheme.colors.onSurfaceVariant,
+            style = CareerCompassTheme.typography.caption,
+        )
     }
 }
 
@@ -379,16 +540,7 @@ public fun FeedListingCard(
                     }
                 }
                 Spacer(modifier = Modifier.width(6.dp))
-                CareerCompassScoreChip(
-                    label = stringResource(R.string.feed_suitability_label),
-                    score = listing.suitabilityScore,
-                    level = listing.suitabilityScore.scoreLevel(),
-                    contentDescription =
-                        stringResource(
-                            R.string.feed_suitability_content_description,
-                            listing.suitabilityScore,
-                        ),
-                )
+                FeedSuitabilityChip(score = listing.suitabilityScore)
             }
 
             Text(
@@ -532,12 +684,10 @@ private fun FeedListingCategory.badgeTone(): CareerCompassBadgeTone =
 
         FeedListingCategory.Contest -> CareerCompassBadgeTone.Warning
 
-        FeedListingCategory.ExternalActivity -> CareerCompassBadgeTone.Neutral
+        FeedListingCategory.ExternalActivity,
+        FeedListingCategory.Other,
+        -> CareerCompassBadgeTone.Neutral
     }
 
-private fun Int.scoreLevel(): CareerCompassScoreLevel =
-    when {
-        this >= 80 -> CareerCompassScoreLevel.High
-        this >= 60 -> CareerCompassScoreLevel.Mid
-        else -> CareerCompassScoreLevel.Low
-    }
+/** Trigger the next page when this many items (or fewer) remain below the viewport. */
+private const val LOAD_MORE_THRESHOLD = 3
