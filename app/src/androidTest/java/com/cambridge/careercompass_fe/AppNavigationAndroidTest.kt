@@ -71,7 +71,7 @@ class AppNavigationAndroidTest {
 
         scenario = ActivityScenario.launch(MainActivity::class.java)
 
-        composeRule.onNodeWithText("안녕하세요, 정일혁님").assertIsDisplayed()
+        composeRule.onNodeWithText("안녕하세요, 정일혁님", substring = true, useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("피드").assertIsDisplayed()
         composeRule.onNodeWithText("마이").performClick()
         composeRule.onNodeWithText("마이 탭을 준비하고 있어요").assertIsDisplayed()

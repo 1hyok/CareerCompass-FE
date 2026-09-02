@@ -135,12 +135,12 @@ private fun AppStartDestination.toOnboardingStart(): OnboardingRoute =
         AppStartDestination.Onboarding -> OnboardingRoute.Step1
     }
 
-private val TAB_ROUTES =
+private val TAB_ROUTES: Map<CareerCompassBottomTab, Any> =
     mapOf(
-        CareerCompassBottomTab.Feed to FeedGraphRoute::class,
-        CareerCompassBottomTab.Analysis to Route.AnalysisTab::class,
-        CareerCompassBottomTab.Applications to Route.ApplicationsTab::class,
-        CareerCompassBottomTab.My to Route.MyTab::class,
+        CareerCompassBottomTab.Feed to FeedGraphRoute,
+        CareerCompassBottomTab.Analysis to Route.AnalysisTab,
+        CareerCompassBottomTab.Applications to Route.ApplicationsTab,
+        CareerCompassBottomTab.My to Route.MyTab,
     )
 
 /** 하단 탭을 그리는 화면 — 피드 홈과 자리표시자 탭. 피드 상세·원문·게시판 화면은 탭을 숨긴다. */
