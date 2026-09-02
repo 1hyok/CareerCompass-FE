@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_login_tagline">AI가 분석하는 나만의 진로 나침반</string>
+    <string name="onboarding_login_kakao">카카오로 시작하기</string>
+    <string name="onboarding_login_kakao_icon" translatable="false">💬</string>
+    <string name="onboarding_login_google">Google로 시작하기</string>
+    <string name="onboarding_login_google_icon" translatable="false">G</string>
+    <string name="onboarding_login_loading">로그인하는 중이에요</string>
+    <string name="onboarding_login_terms_notice">계속하면 서비스 이용약관과 개인정보 처리방침에 동의하는 것으로 간주돼요</string>
+</resources>
