@@ -22,4 +22,5 @@ dependencies {
 
     testImplementation(libs.coroutines.test)
     testImplementation(libs.testcontainers.mockserver)
+    testImplementation(testFixtures(projects.core.domain))
 }

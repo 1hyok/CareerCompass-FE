@@ -1,0 +1,58 @@
+package com.cambridge.core.data.repoimpl.board
+
+import com.cambridge.core.common.result.runCatchingCancellable
+import com.cambridge.core.data.failure.mapDataFailure
+import com.cambridge.core.data.mapper.BoardMapper
+import com.cambridge.core.domain.repository.BoardRepository
+import com.cambridge.core.model.board.Board
+import com.cambridge.core.model.board.BoardDetection
+import com.cambridge.core.model.board.BoardRegistration
+import com.cambridge.core.model.board.BoardUpdate
+import com.cambridge.core.network.dto.BoardDetectRequestDto
+import com.cambridge.core.network.model.requireData
+import com.cambridge.core.network.model.requireOk
+import com.cambridge.core.network.service.BoardApiService
+import javax.inject.Inject
+
+internal class BoardRepositoryImpl
+    @Inject
+    constructor(
+        private val boardApiService: BoardApiService,
+    ) : BoardRepository {
+        override suspend fun detect(url: String): Result<BoardDetection> {
+            require(url.isNotBlank()) { "url must not be blank" }
+            return runCatchingCancellable {
+                BoardMapper.toDetection(boardApiService.detect(BoardDetectRequestDto(url.trim())).requireData())
+            }.mapDataFailure()
+        }
+
+        override suspend fun register(registration: BoardRegistration): Result<Board> =
+            runCatchingCancellable {
+                BoardMapper.toBoard(boardApiService.register(BoardMapper.toRegisterRequest(registration)).requireData())
+            }.mapDataFailure()
+
+        override suspend fun getBoards(): Result<List<Board>> =
+            runCatchingCancellable {
+                boardApiService
+                    .getBoards()
+                    .requireData()
+                    .boards
+                    .map(BoardMapper::toBoard)
+            }.mapDataFailure()
+
+        override suspend fun update(
+            id: Long,
+            update: BoardUpdate,
+        ): Result<Board> {
+            require(!update.isEmpty) { "update must change at least one field" }
+            return runCatchingCancellable {
+                BoardMapper.toBoard(boardApiService.update(id, BoardMapper.toUpdateRequest(update)).requireData())
+            }.mapDataFailure()
+        }
+
+        override suspend fun delete(id: Long): Result<Unit> =
+            runCatchingCancellable { boardApiService.delete(id).requireOk() }.mapDataFailure()
+
+        override suspend fun retry(id: Long): Result<Unit> =
+            runCatchingCancellable { boardApiService.retry(id).requireOk() }.mapDataFailure()
+    }
