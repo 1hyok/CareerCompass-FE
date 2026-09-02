@@ -38,6 +38,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
         composable<OnboardingRoute.BiometricLogin> {
             BiometricLoginEntry(
                 onLoginSuccess = actions.replaceAuthWithFeed,
+                onOnboardingRequired = actions.replaceAuthWithOnboarding,
                 onOtherMethodLogin = actions.navigateToLoginFromBiometric,
             )
         }

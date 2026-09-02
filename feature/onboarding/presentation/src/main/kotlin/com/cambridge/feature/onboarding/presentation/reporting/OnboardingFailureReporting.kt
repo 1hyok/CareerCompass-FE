@@ -17,6 +17,7 @@ public enum class OnboardingFailureStage(
     SocialTokenRequest("social_token_request"),
     SocialLogin("social_login"),
     BiometricAuth("biometric_auth"),
+    BiometricSessionVerify("biometric_session_verify"),
     ResolveEntry("resolve_entry"),
     SaveBasicInfo("save_basic_info"),
     SaveJobPreferences("save_job_preferences"),

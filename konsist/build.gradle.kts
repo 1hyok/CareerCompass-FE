@@ -1,7 +1,7 @@
 plugins {
     id("java-library")
     alias(libs.plugins.jetbrains.kotlin.jvm)
-    // 아래 Java 11 고정 때문에 careercompass.jvm.library(17) 를 탈 수 없어 ktlint 만 빠져 있었다 (#1419).
+    // 아래 Java 11 고정 때문에 careercompass.jvm.library(17) 를 탈 수 없어 ktlint 만 따로 붙인다.
     id("careercompass.jvm.lint")
 }
 

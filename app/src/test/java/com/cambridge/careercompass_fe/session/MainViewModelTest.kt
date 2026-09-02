@@ -4,6 +4,7 @@ import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
+import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
 import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.network.model.ApiException
 import kotlinx.coroutines.CompletableDeferred
@@ -14,7 +15,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -68,30 +68,22 @@ class MainViewModelTest {
             CoreDataFailure.Unauthorized("AUTH_INVALID", ApiException("AUTH_INVALID", null, "만료", status = 401)),
         )
 
-    /**
-     * 서버 조회를 [gate] 가 열릴 때까지 잡아 두는 fake. 성공 결과는 실제 리포지토리처럼 캐시([FakeUserProfileRepository.profileState])에도
-     * 반영한다 — 다시 계산이 그 캐시를 읽는다.
-     */
-    private class GatedProfiles(
-        initialProfile: UserProfile?,
-        onboardingDoneHint: Boolean? = null,
-    ) {
-        val gate = CompletableDeferred<Result<UserProfile>>()
-        var refreshCalls = 0
-        val repository =
-            FakeUserProfileRepository(initialProfile = initialProfile, onboardingDoneHint = onboardingDoneHint).apply {
-                onRefreshProfile = {
-                    refreshCalls += 1
-                    gate.await().also { result -> result.getOrNull()?.let { fresh -> profileState.value = fresh } }
-                }
-            }
-    }
-
     private val MainViewModel.destination: AppStartDestination? get() = launch.value?.destination
+
+    /** 실제 배선과 같게 — 세션 진입 판정은 두 리포지토리를 받는 use case 가 한다. */
+    private fun mainViewModel(
+        authRepository: FakeAuthRepository,
+        userProfileRepository: FakeUserProfileRepository,
+    ) = MainViewModel(
+        authRepository,
+        userProfileRepository,
+        ResolveSessionEntryUseCase(authRepository, userProfileRepository),
+        reporter,
+    )
 
     @Test
     fun `세션이 없으면 로그인으로 시작한다`() {
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict(), reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
     }
@@ -99,160 +91,149 @@ class MainViewModelTest {
     @Test
     fun `세션이 있고 지문 로그인을 켰으면 지문 화면으로 시작한다`() {
         val viewModel =
-            MainViewModel(FakeAuthRepository(loggedIn = true, biometricEnabled = true), FakeUserProfileRepository.strict(), reporter)
+            mainViewModel(FakeAuthRepository(loggedIn = true, biometricEnabled = true), FakeUserProfileRepository.strict())
 
         assertEquals(AppStartDestination.BiometricLogin, viewModel.destination)
     }
 
     @Test
-    fun `캐시 프로필이 온보딩 완료면 서버 조회를 기다리지 않고 메인으로 시작한다`() {
-        val profiles = GatedProfiles(profile(true))
+    fun `온보딩을 마치지 않은 세션은 온보딩으로, 마친 세션은 메인으로 간다`() {
+        val notDone = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)))
+        val done = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(true)))
 
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles.repository, reporter)
+        assertEquals(AppStartDestination.Onboarding, notDone.destination)
+        assertEquals(AppStartDestination.Main, done.destination)
+    }
 
-        // 조회는 백그라운드로 한 번 나갔지만 아직 응답이 없다 — 목적지는 이미 확정됐다.
+    // ── 시작 경로에서 네트워크를 빼는 부분 (#74) ────────────────────────────────
+
+    @Test
+    fun `캐시가 완료면 프로필 조회를 기다리지 않고 메인으로 확정한다`() {
+        // 스플래시가 이 값까지만 붙잡히므로, 서버 응답을 기다리면 그만큼 콜드 스타트가 늘어난다.
+        val gate = CompletableDeferred<Result<UserProfile>>()
+        val profiles = FakeUserProfileRepository(profile(true)).apply { onRefreshProfile = { gate.await() } }
+
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
+
         assertEquals(AppStartDestination.Main, viewModel.destination)
-        assertEquals(1, profiles.refreshCalls)
-        assertFalse(profiles.gate.isCompleted)
+        gate.complete(Result.success(profile(true)))
     }
 
     @Test
-    fun `로그인 힌트만으로도 완료를 알면 메인으로 시작한다`() {
-        val profiles = GatedProfiles(initialProfile = null, onboardingDoneHint = true)
+    fun `캐시가 미완료면 프로필 조회 없이 온보딩으로 보낸다`() {
+        // 온보딩 진입 판정이 서버를 다시 확인하므로 그 사이 완료된 사용자는 거기서 피드로 간다.
+        var refreshCalls = 0
+        val profiles =
+            FakeUserProfileRepository(profile(false)).apply {
+                onRefreshProfile = {
+                    refreshCalls += 1
+                    Result.success(profile(false))
+                }
+            }
 
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles.repository, reporter)
-
-        assertEquals(AppStartDestination.Main, viewModel.destination)
-        assertEquals(1, profiles.refreshCalls)
-    }
-
-    @Test
-    fun `캐시 프로필이 온보딩 미완료면 서버 조회 없이 온보딩으로 시작한다`() {
-        // strict — refreshProfile 이 불리면 실패한다. 캐시 읽기만 연다.
-        val profiles = FakeUserProfileRepository.strict(profile(false)).apply { onLastKnownOnboardingDone = null }
-
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles, reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
 
         assertEquals(AppStartDestination.Onboarding, viewModel.destination)
+        assertEquals(0, refreshCalls)
     }
 
     @Test
-    fun `캐시도 힌트도 없으면 서버 조회를 기다려 완료 여부로 가른다`() {
-        val done = GatedProfiles(initialProfile = null)
-        val notDone = GatedProfiles(initialProfile = null)
-        val doneViewModel = MainViewModel(FakeAuthRepository(loggedIn = true), done.repository, reporter)
-        val notDoneViewModel = MainViewModel(FakeAuthRepository(loggedIn = true), notDone.repository, reporter)
-        assertNull(doneViewModel.launch.value)
-        assertNull(notDoneViewModel.launch.value)
+    fun `캐시로 메인에 들어간 뒤 서버가 미완료라고 하면 온보딩으로 다시 계산한다`() {
+        // 캐시(profile(true))는 그대로 두고 서버만 미완료를 돌려준다 — 실제로 캐시 쓰기가 실패한 상황과 같다.
+        // 확인이 한 번으로 끝나지 않으면 재계산이 또 메인으로 가서 또 확인을 걸어 영원히 돈다.
+        var refreshCalls = 0
+        val profiles =
+            FakeUserProfileRepository(profile(true)).apply {
+                onRefreshProfile = {
+                    refreshCalls += 1
+                    Result.success(profile(false))
+                }
+            }
 
-        done.gate.complete(Result.success(profile(true)))
-        notDone.gate.complete(Result.success(profile(false)))
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
 
-        assertEquals(AppStartDestination.Main, doneViewModel.destination)
-        assertEquals(AppStartDestination.Onboarding, notDoneViewModel.destination)
-        // 서버로 확정한 목적지는 백그라운드 재확인이 없다.
-        assertEquals(1, done.refreshCalls)
+        // 백그라운드 확인이 캐시를 뒤집었다 — 서버가 확정한 답이라 화면을 옮긴다.
+        assertEquals(AppStartDestination.Onboarding, viewModel.destination)
+        // 회귀 가드: 확인은 정확히 한 번이다. 0903 에 여기서 무한 재귀가 나 테스트 워커가 코루틴
+        // 1억 4천만 개를 만들며 CPU 를 태웠고, 빌드가 끝나지 않았다.
+        assertEquals(1, refreshCalls)
     }
 
     @Test
-    fun `캐시가 없고 프로필 조회가 401 이면 로그인으로 보낸다`() {
+    fun `캐시로 메인에 들어간 뒤 세션이 만료됐으면 세션을 정리하고 로그인으로 간다`() {
+        val auth = FakeAuthRepository(loggedIn = true)
+        val profiles = FakeUserProfileRepository(profile(true)).apply { onRefreshProfile = { unauthorized() } }
+
+        val viewModel = mainViewModel(auth, profiles)
+
+        assertEquals(AppStartDestination.Login, viewModel.destination)
+        assertTrue(auth.clearSessionCalls > 0)
+    }
+
+    @Test
+    fun `캐시로 메인에 들어간 뒤 서버 확인이 실패하면 목적지를 유지하고 기록만 남긴다`() {
+        // 오프라인 시작 — 이미 캐시로 들어와 있으므로 화면을 흔들 이유가 없다.
+        val profiles = FakeUserProfileRepository(profile(true)).apply { onRefreshProfile = { networkFailure() } }
+
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
+
+        assertEquals(AppStartDestination.Main, viewModel.destination)
+        assertEquals(1, reporter.recorded.size)
+        assertEquals("start_profile", reporter.recorded.single()["app_stage"])
+    }
+
+    // ── 프로필도 힌트도 없을 때만 서버를 기다린다 ──────────────────────────────
+
+    @Test
+    fun `아무것도 모르면 프로필 조회를 기다린다`() {
+        val gate = CompletableDeferred<Result<UserProfile>>()
+        val profiles = FakeUserProfileRepository().apply { onRefreshProfile = { gate.await() } }
+
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
+
+        assertNull(viewModel.launch.value)
+        gate.complete(Result.success(profile(true)))
+        assertEquals(AppStartDestination.Main, viewModel.destination)
+    }
+
+    @Test
+    fun `프로필 조회가 401 이면 로그인으로 보낸다`() {
         val profiles = FakeUserProfileRepository().apply { onRefreshProfile = { unauthorized() } }
 
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles, reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
     }
 
     @Test
-    fun `캐시가 없고 프로필 조회가 네트워크로 실패하면 온보딩으로 보내고 기록한다`() {
+    fun `완료 여부를 전혀 모르는데 조회도 실패하면 메인이 아니라 온보딩으로 보낸다`() {
         // 신규 사용자의 첫 프로필 조회가 네트워크로 실패한 경우 — 메인으로 추정하면 온보딩을 영영 건너뛴다.
-        val profiles = FakeUserProfileRepository().apply { onRefreshProfile = { networkFailure() } }
+        val unknown = FakeUserProfileRepository().apply { onRefreshProfile = { networkFailure() } }
 
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles, reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), unknown)
 
         assertEquals(AppStartDestination.Onboarding, viewModel.destination)
-        assertEquals(1, reporter.recorded.size)
         assertEquals("start_profile", reporter.recorded.single()["app_stage"])
     }
 
     @Test
-    fun `백그라운드 확인이 401 이면 세션을 지우고 로그인으로 다시 계산한다`() {
-        val auth = FakeAuthRepository(loggedIn = true)
-        val profiles = GatedProfiles(profile(true))
-        val viewModel = MainViewModel(auth, profiles.repository, reporter)
-        val first = requireNotNull(viewModel.launch.value)
+    fun `로그인 힌트만 있어도 기다리지 않고 메인으로 간다`() {
+        val hintDone =
+            FakeUserProfileRepository().apply {
+                onboardingDoneHint = true
+                onRefreshProfile = { networkFailure() }
+            }
 
-        profiles.gate.complete(unauthorized())
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), hintDone)
 
-        val second = requireNotNull(viewModel.launch.value)
-        assertEquals(AppStartDestination.Login, second.destination)
-        assertTrue(second.revision > first.revision)
-        assertEquals(1, auth.clearSessionCalls)
-        assertTrue(reporter.recorded.isEmpty())
-    }
-
-    @Test
-    fun `백그라운드 확인 결과가 온보딩 미완료면 온보딩으로 다시 계산한다`() {
-        val profiles = GatedProfiles(profile(true))
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles.repository, reporter)
-        val first = requireNotNull(viewModel.launch.value)
-
-        profiles.gate.complete(Result.success(profile(false)))
-
-        val second = requireNotNull(viewModel.launch.value)
-        assertEquals(AppStartDestination.Onboarding, second.destination)
-        assertTrue(second.revision > first.revision)
-        // 온보딩으로 간 뒤에는 다시 확인하지 않는다 — 온보딩 그래프가 서버를 본다.
-        assertEquals(1, profiles.refreshCalls)
-    }
-
-    @Test
-    fun `백그라운드 확인이 네트워크로 실패하면 메인을 유지하고 한 번만 기록한다`() {
-        val profiles = GatedProfiles(profile(true))
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles.repository, reporter)
-        val first = requireNotNull(viewModel.launch.value)
-
-        profiles.gate.complete(networkFailure())
-
-        assertEquals(first, viewModel.launch.value)
-        assertEquals(1, reporter.recorded.size)
-        assertEquals("start_profile", reporter.recorded.single()["app_stage"])
-    }
-
-    @Test
-    fun `백그라운드 확인이 완료 프로필을 돌려주면 목적지와 revision 을 유지한다`() {
-        val profiles = GatedProfiles(profile(true))
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles.repository, reporter)
-        val first = requireNotNull(viewModel.launch.value)
-
-        profiles.gate.complete(Result.success(profile(true)))
-
-        assertEquals(first, viewModel.launch.value)
-        assertEquals(1, profiles.refreshCalls)
-        assertTrue(reporter.recorded.isEmpty())
-    }
-
-    @Test
-    fun `다시 계산이 시작되면 이전 백그라운드 확인 결과는 버린다`() {
-        val auth = FakeAuthRepository(loggedIn = true)
-        val profiles = GatedProfiles(profile(true))
-        val viewModel = MainViewModel(auth, profiles.repository, reporter)
         assertEquals(AppStartDestination.Main, viewModel.destination)
-
-        // 로그아웃 → 다시 계산. 그 뒤 옛 세션의 401 이 도착해도 세션 정리·재계산을 다시 하지 않는다.
-        auth.loggedIn = false
-        viewModel.refresh()
-        val afterLogout = requireNotNull(viewModel.launch.value)
-        profiles.gate.complete(unauthorized())
-
-        assertEquals(AppStartDestination.Login, afterLogout.destination)
-        assertEquals(afterLogout, viewModel.launch.value)
-        assertEquals(0, auth.clearSessionCalls)
     }
+
+    // ── 재계산 ────────────────────────────────────────────────────────────────
 
     @Test
     fun `다시 계산하면 목적지가 같아도 revision 이 올라 NavHost 가 새로 만들어진다`() {
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict(), reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
         val first = requireNotNull(viewModel.launch.value)
 
         viewModel.refresh()
@@ -265,15 +246,23 @@ class MainViewModelTest {
 
     @Test
     fun `계산이 진행 중이면 다시 계산 요청은 합류해 한 번만 계산한다`() {
-        val profiles = GatedProfiles(initialProfile = null)
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles.repository, reporter)
+        val gate = CompletableDeferred<Result<UserProfile>>()
+        var refreshCalls = 0
+        val profiles =
+            FakeUserProfileRepository().apply {
+                onRefreshProfile = {
+                    refreshCalls += 1
+                    gate.await()
+                }
+            }
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
         assertNull(viewModel.launch.value)
 
         viewModel.refresh()
         viewModel.refresh()
-        profiles.gate.complete(Result.success(profile(true)))
+        gate.complete(Result.success(profile(true)))
 
-        assertEquals(1, profiles.refreshCalls)
+        assertEquals(1, refreshCalls)
         assertEquals(AppStartDestination.Main, viewModel.destination)
     }
 }

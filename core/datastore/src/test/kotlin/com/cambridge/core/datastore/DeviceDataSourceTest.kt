@@ -3,8 +3,7 @@ package com.cambridge.core.datastore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.UUID
 
@@ -22,12 +21,32 @@ class DeviceDataSourceTest {
         }
 
     @Test
-    fun `지문 로그인 사용 여부를 저장한다`() =
+    fun `지문 로그인은 등록한 사용자 id 로 남긴다`() =
         runTest {
-            assertFalse(dataSource.isBiometricEnabled.first())
+            assertNull(dataSource.biometricUserId.first())
 
-            dataSource.setBiometricEnabled(true)
+            dataSource.enableBiometric(userId = 7L)
 
-            assertTrue(dataSource.isBiometricEnabled.first())
+            assertEquals(7L, dataSource.biometricUserId.first())
+        }
+
+    @Test
+    fun `다른 사용자가 등록하면 이전 등록을 덮어쓴다`() =
+        runTest {
+            dataSource.enableBiometric(userId = 7L)
+
+            dataSource.enableBiometric(userId = 8L)
+
+            assertEquals(8L, dataSource.biometricUserId.first())
+        }
+
+    @Test
+    fun `지문 로그인을 끄면 등록 사용자 id 가 지워진다`() =
+        runTest {
+            dataSource.enableBiometric(userId = 7L)
+
+            dataSource.disableBiometric()
+
+            assertNull(dataSource.biometricUserId.first())
         }
 }
