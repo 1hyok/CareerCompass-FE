@@ -23,6 +23,7 @@ import com.cambridge.core.model.user.UserProfile
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -88,6 +89,30 @@ class AppNavigationAndroidTest {
         composeRule.onNodeWithText("피드").assertIsDisplayed()
         composeRule.onNodeWithText("마이").performClick()
         composeRule.onNodeWithText("마이 탭을 준비하고 있어요").assertIsDisplayed()
+    }
+
+    /** 마이 탭 자리표시자의 로그아웃 — 확인 다이얼로그를 거쳐 세션이 끝나고 셸이 로그인 화면으로 되돌린다. */
+    @Test
+    fun myTabLogout_returnsToLoginScreen() {
+        fakeAuthRepository.loggedIn = true
+        fakeUserProfileRepository.profileState.value = profile(onboardingDone = true)
+
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+
+        composeRule.onNodeWithText("마이").performClick()
+        composeRule.onNodeWithText("정일혁").assertIsDisplayed()
+        composeRule.onNodeWithText("로그아웃").performClick()
+        composeRule.onNodeWithText("네, 로그아웃").performClick()
+
+        // 로그아웃 → 시작 목적지 재계산 → NavHost 재생성까지가 비동기다.
+        composeRule.waitUntil(timeoutMillis = LOGOUT_TIMEOUT_MILLIS) {
+            composeRule
+                .onAllNodesWithText("카카오로 시작하기")
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .isNotEmpty()
+        }
+        composeRule.onNodeWithText("카카오로 시작하기").assertIsDisplayed()
+        assertEquals(1, fakeAuthRepository.logoutCalls)
     }
 
     @Test
@@ -172,5 +197,6 @@ class AppNavigationAndroidTest {
         const val DEEP_LINK_POSTING_ID = 101L
         const val DEEP_LINK_POSTING_TITLE = "딥링크로 연 2026 하반기 공채"
         const val DEEP_LINK_TIMEOUT_MILLIS = 10_000L
+        const val LOGOUT_TIMEOUT_MILLIS = 10_000L
     }
 }
