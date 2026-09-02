@@ -73,6 +73,21 @@ class FeedQueryTest {
     }
 
     @Test
+    fun `isDefault 는 아무 조건도 걸리지 않은 조회만 참이다`() {
+        assertTrue(FeedQuery().isDefault)
+        assertTrue(FeedQuery(searchQuery = "   ").isDefault)
+
+        assertFalse(FeedQuery(types = setOf(PostingType.Recruit)).isDefault)
+        assertFalse(FeedQuery(boardIds = setOf(1L)).isDefault)
+        assertFalse(FeedQuery(deadline = FeedDeadlineFilter.WithinWeek).isDefault)
+        assertFalse(FeedQuery(minScore = 60).isDefault)
+        assertFalse(FeedQuery(unreadOnly = true).isDefault)
+        assertFalse(FeedQuery(sort = PostingSort.DueAsc).isDefault)
+        assertFalse(FeedQuery(searchQuery = "카카오").isDefault)
+        assertTrue(FeedQuery(searchQuery = "카카오").copy(searchQuery = "").isDefault)
+    }
+
+    @Test
     fun `copy 는 바꾼 필드만 반영한다`() {
         val base = FeedQuery(types = setOf(PostingType.Scholarship), minScore = 60)
 

@@ -104,6 +104,7 @@ public fun FeedScreen(
                 .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         FeedHeader(state = state, onEvent = onEvent)
+        state.offlineNotice?.let { notice -> FeedOfflineBanner(notice = notice) }
         FeedSortRow(state = state, onEvent = onEvent)
         when (val content = state.content) {
             FeedContentState.Loading -> {
@@ -650,6 +651,39 @@ private fun FeedLoading(modifier: Modifier = Modifier) {
                 style = CareerCompassTheme.typography.bodyMedium,
             )
         }
+    }
+}
+
+/**
+ * 저장해 둔 스냅샷을 보여 주는 중이라는 표시 — 목록의 값이 지금 서버 상태가 아니라는 것을 화면에 남긴다.
+ *
+ * 아이콘은 장식이라 스크린 리더에서 지우고([clearAndSetSemantics]), 문구 하나만 읽히게 둔다.
+ */
+@Composable
+private fun FeedOfflineBanner(notice: String) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.large, vertical = spacing.xSmall)
+                .background(color = colors.warningContainer, shape = CareerCompassTheme.shapes.control)
+                .padding(horizontal = spacing.medium, vertical = spacing.small),
+        horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.feed_icon_offline),
+            modifier = Modifier.clearAndSetSemantics {},
+            style = CareerCompassTheme.typography.bodyMedium,
+        )
+        Text(
+            text = notice,
+            color = colors.onWarningContainer,
+            style = CareerCompassTheme.typography.caption,
+        )
     }
 }
 

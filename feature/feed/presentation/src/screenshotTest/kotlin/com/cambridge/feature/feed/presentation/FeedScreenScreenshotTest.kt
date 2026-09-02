@@ -35,6 +35,16 @@ public fun LoadingFeedScreenPreview() {
     )
 }
 
+@PreviewTest
+@Preview(name = "Offline feed", widthDp = 360, heightDp = 772)
+@Composable
+public fun OfflineFeedScreenPreview() {
+    // 오프라인 배너 — 목록이 지금 서버 상태가 아니라는 표시. 저장 시각이 문구에 들어간다.
+    FeedPreviewSurface(
+        state = feedPreviewState().copy(offlineNotice = "오프라인 · 9월 3일 14:20 기준 목록"),
+    )
+}
+
 @Composable
 private fun FeedPreviewSurface(state: FeedUiState) {
     CareerCompassTheme {

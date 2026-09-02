@@ -12,6 +12,8 @@ public enum class FeedFailureStage(
     FeedLoad("feed_load"),
     FeedRefresh("feed_refresh"),
     FeedLoadMore("feed_load_more"),
+    FeedSnapshotSave("feed_snapshot_save"),
+    FeedSnapshotLoad("feed_snapshot_load"),
     TodayCount("today_count"),
     FilterBoards("filter_boards"),
     Bookmark("bookmark"),
