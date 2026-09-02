@@ -15,7 +15,8 @@ import javax.inject.Inject
  * 401 응답을 받았을 때 토큰을 회전하고 같은 요청을 새 토큰으로 한 번 더 보낸다.
  *
  * 회전은 선제 갱신 경로와 공유하는 [TokenReissuer] 락 경유 — 앞선 다른 경로가 이미 회전했으면 새 토큰만 받아
- * 재시도한다. 인증 거절의 세션 정리는 락 안에서 끝난다.
+ * 재시도한다. 인증 거절의 세션 정리는 락 안에서 끝난다. 요청의 세션이 이미 끝났거나 교체됐으면 재시도하지
+ * 않고 401 을 그대로 흘린다 — 다른 계정의 토큰으로 재전송하면 안 된다.
  */
 public class TokenAuthenticator
     @Inject
@@ -41,9 +42,18 @@ public class TokenAuthenticator
                 return null
             }
 
-            return when (val outcome = tokenReissuer.reissue(expectedAccessToken = oldAccessToken)) {
+            val outcome =
+                tokenReissuer.reissue(
+                    expectedAccessToken = oldAccessToken,
+                    trigger = TokenReissuer.Trigger.Unauthorized,
+                )
+            return when (outcome) {
                 is TokenReissuer.Outcome.TokenAlreadyChanged -> {
                     originalRequest.withBearer(outcome.accessToken)
+                }
+
+                is TokenReissuer.Outcome.SessionChanged -> {
+                    null
                 }
 
                 is TokenReissuer.Outcome.Rotated -> {

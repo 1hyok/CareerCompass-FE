@@ -9,6 +9,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.Dispatcher
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -68,22 +69,34 @@ public object NetworkModule {
 
     /**
      * 모든 클라이언트의 공통 뿌리. 파생은 [OkHttpClient.newBuilder] 로 — 설정값만이 아니라 ConnectionPool ·
-     * Dispatcher · 스레드풀을 실제로 공유한다. 인터셉터는 여기 두지 않는다: 로깅은 각 클라이언트가 마지막에 달아야
-     * 최종 요청·응답을 관찰한다.
+     * Dispatcher · 스레드풀을 실제로 공유한다(재발급 클라이언트만 Dispatcher 를 분리한다). 인터셉터는 여기 두지
+     * 않는다: 로깅은 각 클라이언트가 마지막에 달아야 최종 요청·응답을 관찰한다.
      */
     @Provides
     @Singleton
     @Named(NetworkQualifiers.BASE_CLIENT)
     public fun provideBaseOkHttpClient(): OkHttpClient = OkHttpClient.Builder().withApiTimeouts().build()
 
-    /** 재발급 전용 — 액세스 토큰을 붙이지 않는다. 일반 클라이언트로 재발급하면 만료 토큰이 헤더에 실려 401 이 반복된다. */
+    /**
+     * 재발급 전용 — 액세스 토큰을 붙이지 않고, [Dispatcher] 도 따로 쓴다.
+     *
+     * 일반 클라이언트로 재발급하면 만료 토큰이 헤더에 실려 401 이 반복된다. Dispatcher 를 메인과 공유하면 같은
+     * 호스트의 비동기 호출이 호스트 동시 한도(기본 5)만큼 재발급을 기다리는 동안 재발급 호출 자체가 그 한도에
+     * 걸려 대기열에 갇힌다 — 원 요청은 `runBlocking` 으로 재발급을 기다리므로 영구 교착이다. ConnectionPool 은
+     * 계속 공유한다.
+     */
     @Provides
     @Singleton
     @Named(NetworkQualifiers.REFRESH_CLIENT)
     public fun provideRefreshOkHttpClient(
         @Named(NetworkQualifiers.BASE_CLIENT) baseClient: OkHttpClient,
         loggingInterceptor: HttpLoggingInterceptor,
-    ): OkHttpClient = baseClient.newBuilder().addInterceptor(loggingInterceptor).build()
+    ): OkHttpClient =
+        baseClient
+            .newBuilder()
+            .dispatcher(Dispatcher())
+            .addInterceptor(loggingInterceptor)
+            .build()
 
     @Provides
     @Singleton
