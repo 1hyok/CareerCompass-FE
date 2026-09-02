@@ -2,6 +2,7 @@ package com.cambridge.careercompass_fe.session
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cambridge.careercompass_fe.navigation.AppDeepLink
 import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
@@ -60,8 +61,29 @@ public class MainViewModel
                 viewModelScope.launch {
                     val destination = resolve()
                     revision += 1
+                    // 세션 종료 뒤 재계산 — 소비되지 않은 딥링크는 버린다(다른 계정으로 로그인해 남의 알림 공고가 열리지 않게).
+                    // 첫 계산(_launch 가 아직 null)은 앱이 뜨기 전에 받은 딥링크를 지켜야 하므로 버리지 않는다.
+                    if (_launch.value != null) _pendingDeepLink.value = null
                     _launch.value = AppShellLaunch(revision = revision, destination = destination)
                 }
+        }
+
+        private val _pendingDeepLink = MutableStateFlow<AppDeepLink?>(null)
+
+        /**
+         * 아직 적용하지 않은 딥링크(`careercompass://postings/{id}`) — `MainActivity` 가 intent 에서 파싱해 싣고,
+         * `AppNavigation` 이 피드 그래프 안에서 이동한 뒤 [consumeDeepLink] 로 비운다. 로그인·온보딩 중에 들어온 것은
+         * 인증을 마칠 때까지 여기 머문다.
+         */
+        public val pendingDeepLink: StateFlow<AppDeepLink?> = _pendingDeepLink.asStateFlow()
+
+        /** intent 의 딥링크를 보관한다. 계약에 맞지 않아 파싱이 null 이면 무시한다 — 보관 중인 것도 지우지 않는다. */
+        public fun onDeepLink(link: AppDeepLink?) {
+            if (link != null) _pendingDeepLink.value = link
+        }
+
+        public fun consumeDeepLink() {
+            _pendingDeepLink.value = null
         }
 
         private suspend fun resolve(): AppStartDestination {
