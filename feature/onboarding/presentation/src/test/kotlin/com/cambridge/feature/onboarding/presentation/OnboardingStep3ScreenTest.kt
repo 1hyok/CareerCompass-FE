@@ -83,14 +83,17 @@ public class OnboardingStep3ScreenTest {
     }
 
     @Test
-    public fun experiencePresence_controlsNextAction() {
-        assertFalse(completeState.copy(experiences = emptyList()).isNextEnabled)
+    public fun emptyExperiences_keepNextEnabledAndShowOptionalHint() {
+        assertTrue(completeState.copy(experiences = emptyList()).isNextEnabled)
         assertFalse(completeState.copy(isInputEnabled = false).isNextEnabled)
         assertTrue(completeState.isNextEnabled)
 
         setScreen(state = completeState.copy(experiences = emptyList()))
 
-        nextButton().assertIsNotEnabled()
+        composeRule
+            .onNodeWithText("경험을 1개 이상 입력하면 분석 정확도가 높아져요")
+            .assertIsDisplayed()
+        nextButton().assertIsEnabled()
     }
 
     @Test

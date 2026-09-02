@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="onboarding_app_name" translatable="false">CareerCompass</string>
+    <string name="onboarding_brand_mark" translatable="false">CC</string>
+    <string name="onboarding_error_dismiss">닫기</string>
+    <string name="onboarding_error_dismiss_description">오류 안내 닫기</string>
     <string name="onboarding_back">뒤로가기</string>
     <string name="onboarding_back_icon" translatable="false">←</string>
     <string name="onboarding_progress_description">%1$d단계 중 %2$d단계</string>
