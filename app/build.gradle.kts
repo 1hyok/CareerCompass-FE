@@ -184,7 +184,7 @@ android {
         debug {
             // 설치된 앱이 어느 커밋으로 빌드됐는지 `adb shell dumpsys package` 한 줄로 읽히게 한다.
             // 실기 QA 증거는 전체 커밋 sha 로 대장에 남으므로(`docs/qa/evidence/<full-head-sha>.json`),
-            // 앱이 스스로 커밋을 들고 있지 않으면 검증한 코드를 특정할 수 없다(build-logic 의 BuildFingerprint).
+            // 앱이 스스로 커밋을 들고 있지 않으면 검증한 코드를 특정할 수 없다 — #1135.
             // release `versionName` 은 사용자에게 보이므로 건드리지 않는다.
             versionNameSuffix = resolveDebugVersionNameSuffix()
         }
@@ -223,8 +223,7 @@ dependencies {
 
     // App Startup — 기동 초기화는 app 매니페스트에 등록한 Initializer 로 실행한다.
     implementation(libs.androidx.startup.runtime)
-    // WorkManager 는 아직 쓰는 곳이 없다 — 알림 수집 주기 작업(notification 모듈)이 붙을 때 App Startup
-    // Initializer 의 선행 의존으로 쓰려고 미리 둔다.
+    // DailyNotificationInitializer 가 WorkManagerInitializer 를 선행 의존으로 지정한다.
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.profileinstaller)
 
@@ -247,8 +246,8 @@ dependencies {
     implementation(projects.core.ui)
     implementation(projects.core.model)
     implementation(projects.core.data)
-    // 로컬 저장소 창구는 core:datastore 의 LocalStoreRegistry 이고, 스키마(타입드 접근자)는 각 모듈이 갖는다.
-    // app 은 계측 테스트의 fake 주입과 레지스트리 초기화 때문에 직접 의존한다.
+    // 알림 권한을 물어본 사실을 기기 수명 저장소에 남긴다 (#1454).
+    // 저장소 창구는 core:datastore 의 LocalStoreRegistry 이고, 스키마(타입드 접근자)는 각 모듈이 갖는다.
     implementation(projects.core.datastore)
     implementation(libs.androidx.datastore.preferences)
     implementation(projects.core.domain)
