@@ -11,8 +11,11 @@ import com.cambridge.core.ui.component.CareerCompassEmptyState
 import com.cambridge.core.ui.component.CareerCompassTopAppBar
 
 /**
- * 다른 담당 모듈(foryou·editor·profile)이 진입점을 제공하기 전까지 탭이 비어 보이지 않게 하는 자리표시자.
+ * 다른 담당 모듈(foryou·editor)이 진입점을 제공하기 전까지 탭이 비어 보이지 않게 하는 자리표시자.
  * 모듈이 붙으면 이 컴포저블과 [Route] 의 해당 항목을 지운다.
+ *
+ * 마이 탭은 [MyTabPlaceholderScreen] 이 따로 그린다 — 세션 카드와 로그아웃이 붙어 있다. [CareerCompassBottomTab]
+ * 이 enum 이라 여기 분기는 남겨 두지만 셸이 쓰지는 않는다(피드도 같다 — 피드 그래프가 그린다).
  */
 @Composable
 internal fun PlaceholderTabScreen(

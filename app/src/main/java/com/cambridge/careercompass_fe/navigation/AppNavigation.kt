@@ -40,7 +40,8 @@ internal const val APP_START_SEMANTICS_TAG = "careercompass_app_start"
  *
  * 시작 목적지가 인증 계열(로그인·지문·온보딩)이면 온보딩 그래프에서, 메인이면 피드 그래프에서 시작한다.
  * 하단 탭은 피드 홈과 자리표시자 탭에서만 보이고 상세·원문·게시판 화면에서는 숨긴다.
- * 다른 담당 모듈(foryou·editor·profile·notification)의 화면은 진입점이 생길 때까지 자리표시자다.
+ * 다른 담당 모듈(foryou·editor·profile·notification)의 화면은 진입점이 생길 때까지 자리표시자다 — 마이 탭만
+ * 예외적으로 세션 카드와 로그아웃을 그린다([MyTabPlaceholderEntry]). 로그아웃 말고는 세션을 끝낼 방법이 없어서다.
  *
  * @param pendingDeepLink 아직 적용하지 않은 딥링크. 피드 그래프 안에 있을 때만 이동하고 [onDeepLinkConsumed] 로 비운다 —
  *   로그인·온보딩 중에 받은 것은 인증을 마치고 피드 그래프에 들어온 순간 적용된다.
@@ -135,7 +136,7 @@ public fun AppNavigation(
                 feedNavGraph(actions = feedNavActions)
                 composable<Route.AnalysisTab> { PlaceholderTabScreen(tab = CareerCompassBottomTab.Analysis) }
                 composable<Route.ApplicationsTab> { PlaceholderTabScreen(tab = CareerCompassBottomTab.Applications) }
-                composable<Route.MyTab> { PlaceholderTabScreen(tab = CareerCompassBottomTab.My) }
+                composable<Route.MyTab> { MyTabPlaceholderEntry(onSessionEnded = onSessionEnded) }
                 composable<Route.NotificationsPlaceholder> {
                     PlaceholderScreen(
                         title = stringResource(R.string.placeholder_notifications_title),
