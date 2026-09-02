@@ -1,9 +1,12 @@
 package com.cambridge.feature.onboarding.presentation.biometric
 
+import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
+import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
 import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -16,12 +19,15 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.net.UnknownHostException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BiometricLoginViewModelTest {
-    private val authRepository = FakeAuthRepository(loggedIn = true, biometricEnabled = true)
-    private val userProfileRepository = FakeUserProfileRepository(initialProfile = profile(name = "정일혁"))
+    private val authRepository =
+        FakeAuthRepository(loggedIn = true, biometricEnabled = true, accessToken = "access", refreshToken = "refresh")
+    private val userProfileRepository = FakeUserProfileRepository(initialProfile = profile(name = "정일혁", onboardingDone = true))
     private val reporter = RecordingErrorReporter()
+    private var refreshCalls = 0
 
     @Before
     fun setUp() {
@@ -33,7 +39,21 @@ class BiometricLoginViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel() = BiometricLoginViewModel(authRepository, userProfileRepository, reporter)
+    private fun createViewModel() =
+        BiometricLoginViewModel(
+            authRepository,
+            userProfileRepository,
+            ResolveSessionEntryUseCase(authRepository, userProfileRepository),
+            reporter,
+        )
+
+    /** 서버 응답을 [result] 로 고정하고 호출 횟수를 센다. */
+    private fun stubRefresh(result: () -> Result<UserProfile>) {
+        userProfileRepository.onRefreshProfile = {
+            refreshCalls += 1
+            result()
+        }
+    }
 
     @Test
     fun `지문 활성 여부와 사용자 이름을 상태로 흘린다`() {
@@ -43,25 +63,96 @@ class BiometricLoginViewModelTest {
         assertEquals("정일혁", viewModel.uiState.value.userName)
 
         authRepository.biometricEnabledState.value = false
-        userProfileRepository.profileState.value = profile(name = null)
+        userProfileRepository.profileState.value = profile(name = null, onboardingDone = true)
 
         assertFalse(viewModel.uiState.value.isBiometricEnabled)
         assertNull(viewModel.uiState.value.userName)
     }
 
     @Test
-    fun `인증 성공은 서버 호출 없이 피드로 보낸다`() {
+    fun `인증 성공은 프로필을 한 번 갱신해 세션을 검증하고 완료 사용자를 피드로 보낸다`() {
+        stubRefresh { Result.success(profile(name = "정일혁", onboardingDone = true)) }
         val viewModel = createViewModel()
         viewModel.onAuthenticationStarted()
-        assertTrue(viewModel.uiState.value.isAuthenticating)
 
         viewModel.onAuthenticationSucceeded()
 
         val state = viewModel.uiState.value
         assertEquals(BiometricDestination.Feed, state.pendingNavigation)
         assertFalse(state.isAuthenticating)
+        assertEquals(1, refreshCalls)
         assertEquals(0, authRepository.rotateTokenCalls)
         assertTrue(authRepository.socialLoginCalls.isEmpty())
+        assertTrue(reporter.failures.isEmpty())
+    }
+
+    @Test
+    fun `인증 성공 뒤 온보딩 미완료로 확인되면 온보딩으로 보낸다`() {
+        stubRefresh { Result.success(profile(name = "정일혁", onboardingDone = false)) }
+        val viewModel = createViewModel()
+
+        viewModel.onAuthenticationSucceeded()
+
+        assertEquals(BiometricDestination.Onboarding, viewModel.uiState.value.pendingNavigation)
+        assertEquals(1, refreshCalls)
+    }
+
+    @Test
+    fun `세션 검증 중에는 인증 중 표시를 유지한다`() {
+        val gate = CompletableDeferred<Result<UserProfile>>()
+        userProfileRepository.onRefreshProfile = {
+            refreshCalls += 1
+            gate.await()
+        }
+        val viewModel = createViewModel()
+
+        viewModel.onAuthenticationSucceeded()
+        assertTrue(viewModel.uiState.value.isAuthenticating)
+        assertNull(viewModel.uiState.value.pendingNavigation)
+
+        // 검증이 끝나기 전에 다시 성공이 와도 합류한다 — 갱신은 한 번.
+        viewModel.onAuthenticationSucceeded()
+        gate.complete(Result.success(profile(name = "정일혁", onboardingDone = true)))
+
+        assertFalse(viewModel.uiState.value.isAuthenticating)
+        assertEquals(BiometricDestination.Feed, viewModel.uiState.value.pendingNavigation)
+        assertEquals(1, refreshCalls)
+    }
+
+    @Test
+    fun `세션이 만료됐으면(401) 로컬 세션을 정리하고 로그인으로 보낸다`() {
+        stubRefresh { Result.failure(CoreDataFailure.Unauthorized("AUTH_INVALID", IllegalStateException("만료"))) }
+        val viewModel = createViewModel()
+
+        viewModel.onAuthenticationSucceeded()
+
+        val state = viewModel.uiState.value
+        assertEquals(BiometricDestination.Login, state.pendingNavigation)
+        assertFalse(state.isAuthenticating)
+        assertEquals(1, authRepository.clearSessionCalls)
+        assertFalse(authRepository.loggedIn)
+        assertTrue(reporter.failures.isEmpty())
+    }
+
+    @Test
+    fun `네트워크 실패는 기록하고 마지막으로 알려진 완료 여부로 판단한다`() {
+        stubRefresh { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException("offline"))) }
+        val done = createViewModel()
+
+        done.onAuthenticationSucceeded()
+
+        assertEquals(BiometricDestination.Feed, done.uiState.value.pendingNavigation)
+        assertEquals(listOf("biometric_session_verify"), reporter.stages())
+        assertEquals(0, authRepository.clearSessionCalls)
+
+        userProfileRepository.profileState.value = null
+        userProfileRepository.onboardingDoneHint = false
+        val notDone = createViewModel()
+
+        notDone.onAuthenticationSucceeded()
+
+        assertEquals(BiometricDestination.Onboarding, notDone.uiState.value.pendingNavigation)
+        assertEquals(2, reporter.failures.size)
     }
 
     @Test
@@ -104,17 +195,19 @@ class BiometricLoginViewModelTest {
         assertNull(viewModel.uiState.value.pendingNavigation)
     }
 
-    private fun profile(name: String?) =
-        UserProfile(
-            id = 1L,
-            name = name,
-            school = null,
-            department = null,
-            gpa = null,
-            gradYear = null,
-            jobInterests = emptyList(),
-            tags = emptyList(),
-            onboardingDone = true,
-            completion = 10,
-        )
+    private fun profile(
+        name: String?,
+        onboardingDone: Boolean,
+    ) = UserProfile(
+        id = 1L,
+        name = name,
+        school = null,
+        department = null,
+        gpa = null,
+        gradYear = null,
+        jobInterests = emptyList(),
+        tags = emptyList(),
+        onboardingDone = onboardingDone,
+        completion = 10,
+    )
 }

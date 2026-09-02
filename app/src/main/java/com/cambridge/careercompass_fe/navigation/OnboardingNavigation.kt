@@ -37,6 +37,13 @@ internal fun rememberOnboardingNavActions(
                 }
             },
             replaceAuthWithFeed = { navigateToMainState() },
+            replaceAuthWithOnboarding = {
+                // 지문 확인 뒤 온보딩 미완료 — 지문 화면을 걷어내고 Step 1 로. 뒤로가기로 지문 화면에 돌아가지 않는다.
+                navController.navigate(OnboardingRoute.Step1) {
+                    popUpTo<OnboardingRoute.BiometricLogin> { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
             navigateToLoginFromBiometric = {
                 navController.navigate(OnboardingRoute.Login) {
                     popUpTo<OnboardingRoute.BiometricLogin> { inclusive = true }

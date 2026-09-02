@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation
 
+import android.content.res.Configuration
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
@@ -21,6 +22,16 @@ import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityUiModel
 public fun PostingDetailEmploymentPreview() {
     PostingDetailPreviewSurface(
         state = PostingDetailUiState(PostingDetailContentState.Loaded(employmentPostingPreview())),
+    )
+}
+
+@PreviewTest
+@Preview(name = "Posting detail employment - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun PostingDetailEmploymentDarkPreview() {
+    PostingDetailPreviewSurface(
+        state = PostingDetailUiState(PostingDetailContentState.Loaded(employmentPostingPreview())),
+        darkTheme = true,
     )
 }
 
@@ -85,8 +96,11 @@ public fun PostingDetailErrorPreview() {
 }
 
 @Composable
-private fun PostingDetailPreviewSurface(state: PostingDetailUiState) {
-    CareerCompassTheme {
+private fun PostingDetailPreviewSurface(
+    state: PostingDetailUiState,
+    darkTheme: Boolean = false,
+) {
+    CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
             PostingDetailScreen(state = state, onEvent = {})
         }

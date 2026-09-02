@@ -2,10 +2,11 @@ package com.cambridge.careercompass_fe.session
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cambridge.careercompass_fe.navigation.AppDeepLink
 import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.repository.AuthRepository
-import com.cambridge.core.domain.repository.UserProfileRepository
+import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
+import com.cambridge.core.domain.usecase.auth.SessionEntryDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,11 +20,10 @@ import javax.inject.Inject
  * 시작 목적지 결정 — 기능 스펙 F1-1.
  *
  * - 세션 없음 → [AppStartDestination.Login]
- * - 세션 있음 + 지문 로그인 켬 → [AppStartDestination.BiometricLogin] (지문 확인 뒤 온보딩/메인 분기는 지문 화면이 한다)
- * - 세션 있음 → `GET /users/me` 의 `onboardingDone` 으로 온보딩/메인 분기. 세션 만료(401)는 로그인으로 보낸다.
- *   조회가 그 밖의 이유로 실패하면 마지막으로 알려진 완료 여부(영속 프로필 → 로그인 힌트)로 판단하고, 그것도
- *   모르면 온보딩이다 — 온보딩 진입 판정이 서버를 다시 확인하므로 완료 사용자는 네트워크가 돌아오면 피드로 간다.
- *   반대로 모를 때 메인으로 보내면 신규 사용자가 온보딩 없이 들어가고 아무도 되돌리지 않는다.
+ * - 세션 있음 + 이 계정이 이 기기에서 지문 로그인을 켬 → [AppStartDestination.BiometricLogin] (지문 확인 뒤 세션 검증과
+ *   온보딩/메인 분기는 지문 화면이 같은 [ResolveSessionEntryUseCase] 로 한다)
+ * - 세션 있음 → [ResolveSessionEntryUseCase] 가 `GET /users/me` 로 온보딩/메인을 가른다. 세션 만료(401)는 로그인으로
+ *   보낸다. 서버 확인에 실패해 마지막으로 알려진 완료 여부로 판단했으면 그 실패를 기록만 한다.
  *
  * 결과는 [AppShellLaunch] 로 흘린다 — 세션 종료 뒤 같은 목적지가 나와도 [AppShellLaunch.revision] 이 올라 NavHost 가
  * 새로 만들어진다.
@@ -33,7 +33,7 @@ public class MainViewModel
     @Inject
     constructor(
         private val authRepository: AuthRepository,
-        private val userProfileRepository: UserProfileRepository,
+        private val resolveSessionEntry: ResolveSessionEntryUseCase,
         private val errorReporter: ErrorReporter,
     ) : ViewModel() {
         private val _launch = MutableStateFlow<AppShellLaunch?>(null)
@@ -61,31 +61,42 @@ public class MainViewModel
                 viewModelScope.launch {
                     val destination = resolve()
                     revision += 1
+                    // 세션 종료 뒤 재계산 — 소비되지 않은 딥링크는 버린다(다른 계정으로 로그인해 남의 알림 공고가 열리지 않게).
+                    // 첫 계산(_launch 가 아직 null)은 앱이 뜨기 전에 받은 딥링크를 지켜야 하므로 버리지 않는다.
+                    if (_launch.value != null) _pendingDeepLink.value = null
                     _launch.value = AppShellLaunch(revision = revision, destination = destination)
                 }
+        }
+
+        private val _pendingDeepLink = MutableStateFlow<AppDeepLink?>(null)
+
+        /**
+         * 아직 적용하지 않은 딥링크(`careercompass://postings/{id}`) — `MainActivity` 가 intent 에서 파싱해 싣고,
+         * `AppNavigation` 이 피드 그래프 안에서 이동한 뒤 [consumeDeepLink] 로 비운다. 로그인·온보딩 중에 들어온 것은
+         * 인증을 마칠 때까지 여기 머문다.
+         */
+        public val pendingDeepLink: StateFlow<AppDeepLink?> = _pendingDeepLink.asStateFlow()
+
+        /** intent 의 딥링크를 보관한다. 계약에 맞지 않아 파싱이 null 이면 무시한다 — 보관 중인 것도 지우지 않는다. */
+        public fun onDeepLink(link: AppDeepLink?) {
+            if (link != null) _pendingDeepLink.value = link
+        }
+
+        public fun consumeDeepLink() {
+            _pendingDeepLink.value = null
         }
 
         private suspend fun resolve(): AppStartDestination {
             if (!authRepository.isLoggedIn.first()) return AppStartDestination.Login
             if (authRepository.isBiometricEnabled.first()) return AppStartDestination.BiometricLogin
-            return resolveAfterSession()
-        }
-
-        internal suspend fun resolveAfterSession(): AppStartDestination {
-            val refreshed = userProfileRepository.refreshProfile()
-            refreshed.onSuccess { profile -> return profile.toDestination() }
-            val failure = checkNotNull(refreshed.exceptionOrNull())
-            if (failure is CoreDataFailure.Unauthorized) return AppStartDestination.Login
-            errorReporter.recordFailure(failure, attributes = mapOf(KEY_STAGE to STAGE_START_PROFILE))
-            return if (userProfileRepository.lastKnownOnboardingDone() == true) {
-                AppStartDestination.Main
-            } else {
-                AppStartDestination.Onboarding
+            val entry = resolveSessionEntry()
+            entry.fallbackCause?.let { errorReporter.recordFailure(it, attributes = mapOf(KEY_STAGE to STAGE_START_PROFILE)) }
+            return when (entry.destination) {
+                SessionEntryDestination.Login -> AppStartDestination.Login
+                SessionEntryDestination.Onboarding -> AppStartDestination.Onboarding
+                SessionEntryDestination.Feed -> AppStartDestination.Main
             }
         }
-
-        private fun com.cambridge.core.model.user.UserProfile.toDestination(): AppStartDestination =
-            if (onboardingDone) AppStartDestination.Main else AppStartDestination.Onboarding
 
         private companion object {
             const val KEY_STAGE = "app_stage"

@@ -19,9 +19,8 @@ import org.junit.Test
  *    새어 나온 것이 그 실사례다.
  *
  * ### 검사 대상 — [GUARDED_MODULE_PREFIXES]
- * 삭제를 마친 담당 area 만 본다. 그 밖(timeletter · setting · mindrecord · home)에는 110건이
- * 남아 있고 **모듈 담당자 몫**이라 이 가드가 강제하지 않는다. 각 모듈이 청소를 마치면 접두어를
- * 여기에 더한다.
+ * 접두어 목록에 오른 모듈만 본다. 새 feature 모듈은 첫 화면을 넣을 때 접두어를 여기에 더해 처음부터
+ * 가드 아래에서 시작한다.
  *
  * 프리뷰가 필요하면 `src/screenshotTest` 에 `@PreviewTest` + `@Preview` 로 둔다 — 골든이 붙어
  * CI 가 렌더를 지킨다.

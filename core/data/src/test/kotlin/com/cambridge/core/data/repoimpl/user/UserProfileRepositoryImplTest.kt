@@ -62,13 +62,16 @@ class UserProfileRepositoryImplTest {
     fun `조회 성공은 프로필을 영속하고 세션 정리 때 함께 비운다`() =
         runTest {
             assertNull(repository.profile.first())
+            assertNull(profileDataSource.userId.first())
 
             repository.refreshProfile().getOrThrow()
 
             assertEquals("정일혁", repository.profile.first()?.name)
+            assertEquals(1L, profileDataSource.userId.first())
             assertEquals(true, repository.lastKnownOnboardingDone())
             registry.clearScope(StoreScope.SESSION)
             assertNull(repository.profile.first())
+            assertNull(profileDataSource.userId.first())
         }
 
     @Test
@@ -123,7 +126,7 @@ class UserProfileRepositoryImplTest {
     @Test
     fun `해석할 수 없는 저장 프로필은 캐시 없음으로 본다`() =
         runTest {
-            profileDataSource.saveProfileJson("""{"id":"not-a-number"}""")
+            profileDataSource.saveProfile("""{"id":"not-a-number"}""", userId = 1L)
 
             assertNull(repository.profile.first())
             assertNull(repository.lastKnownOnboardingDone())

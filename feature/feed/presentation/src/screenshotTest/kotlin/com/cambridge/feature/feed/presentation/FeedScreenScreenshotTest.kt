@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation
 
+import android.content.res.Configuration
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
@@ -11,6 +12,13 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 @Composable
 public fun FeedScreenPreview() {
     FeedPreviewSurface(state = feedPreviewState())
+}
+
+@PreviewTest
+@Preview(name = "Main feed - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun FeedScreenDarkPreview() {
+    FeedPreviewSurface(state = feedPreviewState(), darkTheme = true)
 }
 
 @PreviewTest
@@ -46,8 +54,11 @@ public fun OfflineFeedScreenPreview() {
 }
 
 @Composable
-private fun FeedPreviewSurface(state: FeedUiState) {
-    CareerCompassTheme {
+private fun FeedPreviewSurface(
+    state: FeedUiState,
+    darkTheme: Boolean = false,
+) {
+    CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
             FeedScreen(state = state, onEvent = {})
         }
