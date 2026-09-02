@@ -45,6 +45,41 @@
           현재 화면은 폰 세로 레이아웃만 지원한다. Android 16 대화면에서는 시스템이
           이 제한을 무시하므로 대화면 대응을 대신하는 선언은 아니다.
         -->
+        <!-- App Startup — 기동 초기화는 Initializer 단위로 등록한다(Application.onCreate 비움). -->
+        <provider
+                android:name="androidx.startup.InitializationProvider"
+                android:authorities="${applicationId}.androidx-startup"
+                android:exported="false"
+                tools:node="merge">
+            <meta-data
+                    android:name="com.cambridge.careercompass_fe.startup.KakaoInitializer"
+                    android:value="androidx.startup" />
+        </provider>
+
+        <!--
+          카카오 OAuth redirect(kakao{NATIVE_APP_KEY}://oauth) 핸들러 — SDK 계정 로그인이 브라우저에서 돌아오는 관문.
+
+          tools:ignore="Instantiatable" 는 lint 오탐이다. Kakao SDK 2.24.0 부터 lint 가 이 클래스가
+          android.app.Activity 를 상속하지 않는다고 보고하지만 aar 안의 계층은 그대로다
+          (AuthCodeHandlerActivity -> CustomTabLauncherActivity -> androidx.appcompat.app.AppCompatActivity).
+          2.24.0 이 Gradle Module Metadata 로 aar variant 만 노출하면서 lint 의 상위 클래스 해석이 끊긴 것이고,
+          appcompat 은 런타임 클래스패스에 정상 리졸브된다. 억제는 이 컴포넌트 한 곳에만 건다 — 규칙 자체를
+          끄면 진짜 Instantiatable 회귀를 놓친다.
+        -->
+        <activity
+                android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+                android:exported="true"
+                tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                        android:host="oauth"
+                        android:scheme="kakao${KAKAO_NATIVE_APP_KEY}" />
+            </intent-filter>
+        </activity>
+
         <activity
                 android:name=".MainActivity"
                 android:exported="true"
