@@ -1,0 +1,280 @@
+package com.cambridge.feature.feed.presentation.board
+
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasStateDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.Density
+import com.cambridge.core.ui.theme.CareerCompassTheme
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class BoardRegisterScreenTest {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun idleWithBlankUrl_disablesDetectAndHidesForm() {
+        composeRule.setRegisterContent(state = sampleState(url = ""))
+
+        composeRule.onNodeWithText("AI가 사이트 구조를 자동 분석").assertIsDisplayed()
+        detectButton().assertIsNotEnabled()
+        composeRule.onAllNodesWithText("등록하기").assertCountEquals(0)
+        composeRule.onAllNodesWithText("게시판 이름 *").assertCountEquals(0)
+    }
+
+    @Test
+    fun urlInput_emitsUrlChangedAndEnablesDetect() {
+        val events = mutableListOf<BoardRegisterEvent>()
+        composeRule.setRegisterContent(state = sampleState(), onEvent = events::add)
+
+        composeRule.onNodeWithContentDescription("게시판 URL *").performTextReplacement(TYPED_URL)
+        detectButton().assertIsEnabled().performClick()
+        composeRule.onNodeWithContentDescription("뒤로가기").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    BoardRegisterEvent.UrlChanged(TYPED_URL),
+                    BoardRegisterEvent.DetectClicked,
+                    BoardRegisterEvent.BackClicked,
+                ),
+                events,
+            )
+        }
+    }
+
+    @Test
+    fun urlError_isShownInline() {
+        composeRule.setRegisterContent(state = sampleState(urlError = "올바른 URL 형식이 아니에요"))
+
+        composeRule.onNodeWithText("올바른 URL 형식이 아니에요").assertIsDisplayed()
+    }
+
+    @Test
+    fun detecting_showsProgressAndDisablesDetect() {
+        composeRule.setRegisterContent(state = sampleState(detection = BoardDetectionState.Detecting))
+
+        composeRule.onNodeWithText("게시글 구조를 분석하고 있어요").assertIsDisplayed()
+        detectButton().assertIsNotEnabled()
+    }
+
+    @Test
+    fun failed_showsReasonAndRetryReEmitsDetect() {
+        val events = mutableListOf<BoardRegisterEvent>()
+        composeRule.setRegisterContent(
+            state = sampleState(detection = BoardDetectionState.Failed(BoardDetectionFailure.LoginRequired)),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("로그인이 필요한 게시판은 지원하지 않습니다").assertIsDisplayed()
+        composeRule.onNode(hasText("다시 시도") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(BoardRegisterEvent.DetectClicked), events)
+        }
+    }
+
+    @Test
+    fun success_showsPreviewAndFormWithRegisterDisabledUntilComplete() {
+        composeRule.setRegisterContent(state = sampleState(detection = sampleSuccess()))
+
+        composeRule.onNodeWithText("감지 성공 · 최근 게시글 2개").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("2026 SW 인턴 모집 안내").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("2026-05-10").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("게시판 이름 *").performScrollTo().assertIsDisplayed()
+        composeRule
+            .onNode(hasText("1일 1회") and hasStateDescription("선택됨"))
+            .performScrollTo()
+            .assertIsOn()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        registerButton().assertIsNotEnabled()
+    }
+
+    @Test
+    fun successWithoutDate_showsParsingWarning() {
+        composeRule.setRegisterContent(
+            state =
+                sampleState(
+                    detection =
+                        BoardDetectionState.Success(
+                            preview = listOf(samplePreviewItem(dateLabel = null)),
+                            dateDetected = false,
+                        ),
+                ),
+        )
+
+        composeRule
+            .onNodeWithText("날짜를 찾지 못해 마감일 파싱 정확도가 낮을 수 있어요")
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun completedForm_enablesRegisterAndEmitsFormIntents() {
+        val events = mutableListOf<BoardRegisterEvent>()
+        composeRule.setRegisterContent(
+            state =
+                sampleState(
+                    detection = sampleSuccess(),
+                    name = "건국대 공지사항",
+                    type = BoardType.Employment,
+                ),
+            onEvent = events::add,
+        )
+
+        composeRule
+            .onNodeWithContentDescription("게시판 이름 *")
+            .performScrollTo()
+            .performTextReplacement("건국대 학교 공지")
+        composeRule
+            .onNode(hasText("장학금") and hasStateDescription("선택 안 됨"))
+            .performScrollTo()
+            .performClick()
+        composeRule
+            .onNode(hasText("주 1회") and hasStateDescription("선택 안 됨"))
+            .performScrollTo()
+            .performClick()
+        registerButton().assertIsEnabled().performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    BoardRegisterEvent.NameChanged("건국대 학교 공지"),
+                    BoardRegisterEvent.TypeSelected(BoardType.Scholarship),
+                    BoardRegisterEvent.CycleSelected(BoardCollectCycle.Weekly),
+                    BoardRegisterEvent.RegisterClicked,
+                ),
+                events,
+            )
+        }
+    }
+
+    @Test
+    fun submitting_disablesEveryAction() {
+        val events = mutableListOf<BoardRegisterEvent>()
+        composeRule.setRegisterContent(
+            state =
+                sampleState(
+                    detection = sampleSuccess(),
+                    name = "건국대 공지사항",
+                    type = BoardType.Employment,
+                    isSubmitting = true,
+                ),
+            onEvent = events::add,
+        )
+
+        detectButton().assertIsNotEnabled().performClick()
+        registerButton().assertIsNotEnabled().performClick()
+        composeRule
+            .onNode(hasText("장학금") and hasStateDescription("선택 안 됨"))
+            .performScrollTo()
+            .assertIsNotEnabled()
+            .performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(emptyList<BoardRegisterEvent>(), events)
+        }
+    }
+
+    @Test
+    fun largeFontScale_keepsRegisterButtonVisible() {
+        composeRule.setRegisterContent(
+            state =
+                sampleState(
+                    detection = sampleSuccess(),
+                    name = "건국대 공지사항",
+                    type = BoardType.Employment,
+                ),
+            fontScale = 2f,
+        )
+
+        registerButton().assertIsDisplayed()
+    }
+
+    private fun detectButton() = composeRule.onNode(hasText("구조 분석하기") and hasClickAction())
+
+    private fun registerButton() = composeRule.onNode(hasText("등록하기") and hasClickAction())
+}
+
+private fun ComposeContentTestRule.setRegisterContent(
+    state: BoardRegisterUiState,
+    onEvent: (BoardRegisterEvent) -> Unit = {},
+    fontScale: Float = 1f,
+) {
+    setContent {
+        val currentDensity = LocalDensity.current
+        CompositionLocalProvider(
+            LocalDensity provides Density(currentDensity.density, fontScale),
+        ) {
+            CareerCompassTheme {
+                BoardRegisterScreen(state = state, onEvent = onEvent)
+            }
+        }
+    }
+}
+
+private fun sampleState(
+    url: String = SAMPLE_URL,
+    urlError: String? = null,
+    detection: BoardDetectionState = BoardDetectionState.Idle,
+    name: String = "",
+    type: BoardType? = null,
+    isSubmitting: Boolean = false,
+): BoardRegisterUiState =
+    BoardRegisterUiState(
+        url = url,
+        urlError = urlError,
+        detection = detection,
+        name = name,
+        type = type,
+        cycle = BoardCollectCycle.Daily,
+        isSubmitting = isSubmitting,
+    )
+
+private fun sampleSuccess(): BoardDetectionState.Success =
+    BoardDetectionState.Success(
+        preview =
+            listOf(
+                samplePreviewItem(),
+                samplePreviewItem(title = "1학기 우수학생 장학금 추가 모집", dateLabel = "2026-05-08"),
+            ),
+        dateDetected = true,
+    )
+
+private fun samplePreviewItem(
+    title: String = "2026 SW 인턴 모집 안내",
+    dateLabel: String? = "2026-05-10",
+): BoardPreviewItemUiModel =
+    BoardPreviewItemUiModel(
+        title = title,
+        url = "$SAMPLE_URL/1",
+        dateLabel = dateLabel,
+    )
+
+private const val SAMPLE_URL = "https://konkuk.ac.kr/board/notice"
+private const val TYPED_URL = "https://konkuk.ac.kr/board/scholarship"

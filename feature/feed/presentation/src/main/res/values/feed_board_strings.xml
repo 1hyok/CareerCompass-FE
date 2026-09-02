@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_board_register_title">게시판 등록</string>
+    <string name="feed_board_register_info_title">AI가 사이트 구조를 자동 분석</string>
+    <string name="feed_board_register_info_description">게시판 목록 URL 만 입력하면 제목·링크·날짜 규칙을 찾아 미리 보여줘요</string>
+    <string name="feed_board_register_url_label">게시판 URL *</string>
+    <string name="feed_board_register_url_placeholder" translatable="false">https://...</string>
+    <string name="feed_board_register_detect">구조 분석하기</string>
+    <string name="feed_board_register_detecting">게시글 구조를 분석하고 있어요</string>
+    <string name="feed_board_register_detect_success">감지 성공 · 최근 게시글 %1$d개</string>
+    <string name="feed_board_register_date_missing_warning">날짜를 찾지 못해 마감일 파싱 정확도가 낮을 수 있어요</string>
+    <string name="feed_board_register_name_label">게시판 이름 *</string>
+    <string name="feed_board_register_name_placeholder">예: 학교 장학금 게시판</string>
+    <string name="feed_board_register_type_title">공고 유형 *</string>
+    <string name="feed_board_register_cycle_title">수집 주기</string>
+    <string name="feed_board_register_submit">등록하기</string>
+    <string name="feed_board_register_retry">다시 시도</string>
+    <string name="feed_board_type_scholarship">장학금</string>
+    <string name="feed_board_type_employment">채용</string>
+    <string name="feed_board_type_contest">공모전</string>
+    <string name="feed_board_type_external_activity">대외활동</string>
+    <string name="feed_board_type_other">기타</string>
+    <string name="feed_board_cycle_daily">1일 1회</string>
+    <string name="feed_board_cycle_twice_daily">1일 2회</string>
+    <string name="feed_board_cycle_weekly">주 1회</string>
+    <string name="feed_board_failure_login_required">로그인이 필요한 게시판은 지원하지 않습니다</string>
+    <string name="feed_board_failure_spa">JavaScript 로 그려지는 게시판이라 자동 감지에 실패했어요. 수동 등록을 문의해 주세요</string>
+    <string name="feed_board_failure_blocked">해당 사이트는 자동 수집이 허용되지 않습니다</string>
+    <string name="feed_board_failure_failed">게시글 구조를 찾지 못했어요. 목록 페이지 주소인지 확인해 주세요</string>
+    <string name="feed_board_list_title">내 게시판</string>
+    <string name="feed_board_list_add">+ 추가</string>
+    <string name="feed_board_list_add_content_description">게시판 추가</string>
+    <string name="feed_board_list_count">%1$d/%2$d개 등록</string>
+    <string name="feed_board_list_loading">게시판을 불러오는 중이에요</string>
+    <string name="feed_board_list_empty_title">등록된 게시판이 없어요</string>
+    <string name="feed_board_list_empty_description">학교 공지·채용 사이트 URL 을 등록하면 자동으로 공고를 모아요</string>
+    <string name="feed_board_list_empty_action">게시판 등록하기</string>
+    <string name="feed_board_status_active">수집 중</string>
+    <string name="feed_board_status_paused">일시중지</string>
+    <string name="feed_board_status_failing">수집 실패 %1$d회</string>
+    <string name="feed_board_last_collected">마지막 수집 %1$s</string>
+    <string name="feed_board_never_collected">아직 수집 전</string>
+    <string name="feed_board_posting_count">공고 %1$d건</string>
+    <string name="feed_board_toggle_content_description">%1$s 수집 활성화</string>
+    <string name="feed_board_retry">재시도</string>
+    <string name="feed_board_retry_content_description">%1$s 재시도</string>
+    <string name="feed_board_delete">삭제</string>
+    <string name="feed_board_delete_content_description">%1$s 삭제</string>
+
+    <string name="feed_icon_sparkles" translatable="false">✨</string>
+    <string name="feed_icon_detect_success" translatable="false">✅</string>
+    <string name="feed_icon_board_empty" translatable="false">🗂</string>
+</resources>
