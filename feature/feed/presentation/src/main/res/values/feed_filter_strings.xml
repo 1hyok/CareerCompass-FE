@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_filter_title">필터</string>
+    <string name="feed_filter_close">닫기</string>
+    <string name="feed_filter_category_title">공고 유형</string>
+    <string name="feed_filter_board_title">출처 게시판</string>
+    <string name="feed_filter_board_empty">등록된 게시판이 없어요</string>
+    <string name="feed_filter_deadline_title">마감일</string>
+    <string name="feed_filter_deadline_all">전체</string>
+    <string name="feed_filter_deadline_within_week">7일 이내</string>
+    <string name="feed_filter_deadline_within_month">30일 이내</string>
+    <string name="feed_filter_deadline_include_expired">마감 지난 공고 포함</string>
+    <string name="feed_filter_min_score_title">적합도</string>
+    <string name="feed_filter_min_score_all">전체</string>
+    <string name="feed_filter_min_score_60">60점 이상</string>
+    <string name="feed_filter_min_score_70">70점 이상</string>
+    <string name="feed_filter_min_score_80">80점 이상</string>
+    <string name="feed_filter_unread_only">읽지 않은 공고만 보기</string>
+    <string name="feed_filter_reset">초기화</string>
+    <string name="feed_filter_apply_with_count">%1$d개 공고 보기</string>
+    <string name="feed_filter_apply">적용</string>
+    <string name="feed_sort_title">정렬</string>
+    <string name="feed_sort_close">닫기</string>
+    <string name="feed_sort_collected_desc">수집 최신순</string>
+    <string name="feed_sort_due_asc">마감 임박순</string>
+    <string name="feed_sort_score_desc">적합도 높은순</string>
+
+    <string name="feed_icon_close" translatable="false">✕</string>
+    <string name="feed_icon_check" translatable="false">✓</string>
+</resources>
