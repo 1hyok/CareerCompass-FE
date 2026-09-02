@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation
 
+import android.content.res.Configuration
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
@@ -13,6 +14,13 @@ import com.cambridge.feature.onboarding.presentation.login.LoginUiState
 @Composable
 public fun LoginDefaultPreview() {
     LoginPreviewHost(state = LoginUiState())
+}
+
+@PreviewTest
+@Preview(name = "Login default - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 800)
+@Composable
+public fun LoginDefaultDarkPreview() {
+    LoginPreviewHost(state = LoginUiState(), darkTheme = true)
 }
 
 @PreviewTest
@@ -30,8 +38,11 @@ public fun LoginErrorPreview() {
 }
 
 @Composable
-private fun LoginPreviewHost(state: LoginUiState) {
-    CareerCompassTheme {
+private fun LoginPreviewHost(
+    state: LoginUiState,
+    darkTheme: Boolean = false,
+) {
+    CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
             LoginScreen(state = state, onEvent = {})
         }

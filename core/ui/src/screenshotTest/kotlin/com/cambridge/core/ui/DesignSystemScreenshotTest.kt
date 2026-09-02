@@ -1,5 +1,6 @@
 package com.cambridge.core.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,7 +27,19 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 @Preview(name = "Button matrix", widthDp = 360, heightDp = 460)
 @Composable
 public fun CareerCompassButtonMatrixPreview() {
-    DesignSystemPreviewSurface {
+    ButtonMatrixPreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "Button matrix - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 460)
+@Composable
+public fun CareerCompassButtonMatrixDarkPreview() {
+    ButtonMatrixPreview(darkTheme = true)
+}
+
+@Composable
+private fun ButtonMatrixPreview(darkTheme: Boolean) {
+    DesignSystemPreviewSurface(darkTheme = darkTheme) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             CareerCompassButtonVariant.entries.forEach { variant ->
                 CareerCompassButton(
@@ -68,7 +81,19 @@ public fun CareerCompassButtonMatrixPreview() {
 @Preview(name = "Badge, tag and score matrix", widthDp = 360, heightDp = 310)
 @Composable
 public fun CareerCompassIndicatorMatrixPreview() {
-    DesignSystemPreviewSurface {
+    IndicatorMatrixPreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "Badge, tag and score matrix - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 310)
+@Composable
+public fun CareerCompassIndicatorMatrixDarkPreview() {
+    IndicatorMatrixPreview(darkTheme = true)
+}
+
+@Composable
+private fun IndicatorMatrixPreview(darkTheme: Boolean) {
+    DesignSystemPreviewSurface(darkTheme = darkTheme) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -117,7 +142,19 @@ public fun CareerCompassIndicatorMatrixPreview() {
 @Preview(name = "Text field matrix", widthDp = 360, heightDp = 460)
 @Composable
 public fun CareerCompassTextFieldMatrixPreview() {
-    DesignSystemPreviewSurface {
+    TextFieldMatrixPreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "Text field matrix - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 460)
+@Composable
+public fun CareerCompassTextFieldMatrixDarkPreview() {
+    TextFieldMatrixPreview(darkTheme = true)
+}
+
+@Composable
+private fun TextFieldMatrixPreview(darkTheme: Boolean) {
+    DesignSystemPreviewSurface(darkTheme = darkTheme) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             CareerCompassTextField(
                 value = "",
@@ -149,8 +186,11 @@ public fun CareerCompassTextFieldMatrixPreview() {
 }
 
 @Composable
-private fun DesignSystemPreviewSurface(content: @Composable () -> Unit) {
-    CareerCompassTheme {
+private fun DesignSystemPreviewSurface(
+    darkTheme: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
             Column(
                 modifier =
