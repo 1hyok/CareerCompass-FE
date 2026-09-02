@@ -41,6 +41,7 @@ import javax.inject.Inject
  * - 검색어는 입력 즉시 상태에 반영하고 [SEARCH_DEBOUNCE_MS] 뒤에 재조회한다.
  * - 페이지가 비어도 `nextCursor` 가 남아 있으면 끝이 아니다([FeedPage]) — 항목이 나올 때까지 몇 페이지를 이어 읽는다.
  * - 북마크는 먼저 뒤집고 실패하면 되돌린다.
+ * - 프로필 캐시는 인사말뿐 아니라 적합도 표시 판정에도 쓴다([FeedViewState.isProfileNoticeVisible]).
  * - `401` 은 [FeedViewState.sessionEnded] 로 올리고, 네트워크 단절은 [FeedLoadState.Failed] 로 구분한다.
  */
 @HiltViewModel
@@ -67,7 +68,7 @@ public class FeedViewModel
         init {
             viewModelScope.launch {
                 userProfileRepository.profile.collect { profile ->
-                    _state.update { it.copy(userName = profile?.name) }
+                    _state.update { it.copy(profile = profile) }
                 }
             }
             loadBoards()
@@ -104,6 +105,10 @@ public class FeedViewModel
 
                 FeedUiEvent.NotificationsSelected -> {
                     _state.update { it.copy(pendingNavigation = FeedDestination.Notifications) }
+                }
+
+                FeedUiEvent.CompleteProfileSelected -> {
+                    _state.update { it.copy(pendingNavigation = FeedDestination.Profile) }
                 }
             }
         }

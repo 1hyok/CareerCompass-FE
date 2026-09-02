@@ -18,6 +18,7 @@ public fun NavGraphBuilder.feedNavGraph(actions: FeedNavActions) {
                 onNotificationsClick = actions::navigateToNotifications,
                 onBoardRegisterClick = actions::navigateToBoardRegister,
                 onBoardListClick = actions::navigateToBoardList,
+                onProfileClick = actions::navigateToProfileTab,
                 onSessionEnded = actions::onSessionEnded,
             )
         }

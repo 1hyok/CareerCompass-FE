@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -105,6 +106,9 @@ public fun FeedScreen(
     ) {
         FeedHeader(state = state, onEvent = onEvent)
         state.offlineNotice?.let { notice -> FeedOfflineBanner(notice = notice) }
+        if (state.isProfileNoticeVisible) {
+            FeedProfileNoticeBanner(onClick = { onEvent(FeedUiEvent.CompleteProfileSelected) })
+        }
         FeedSortRow(state = state, onEvent = onEvent)
         when (val content = state.content) {
             FeedContentState.Loading -> {
@@ -541,7 +545,7 @@ public fun FeedListingCard(
                     }
                 }
                 Spacer(modifier = Modifier.width(6.dp))
-                FeedSuitabilityChip(score = listing.suitabilityScore)
+                FeedSuitabilityChip(state = listing.suitability)
             }
 
             Text(
@@ -683,6 +687,55 @@ private fun FeedOfflineBanner(notice: String) {
             text = notice,
             color = colors.onWarningContainer,
             style = CareerCompassTheme.typography.caption,
+        )
+    }
+}
+
+/**
+ * 프로필이 비어 적합도를 못 내는 항목이 목록에 있을 때의 안내 — 누르면 마이 탭(프로필 입력)으로 간다.
+ *
+ * 카드마다 같은 말을 되풀이하지 않고 목록 위에 한 번만 얹는다. 행 전체가 버튼이라 아이콘·문구는
+ * 스크린 리더에서 하나로 합치고([semantics] `mergeDescendants`), 터치 높이는 48dp 아래로 내려가지 않게 잡는다.
+ */
+@Composable
+private fun FeedProfileNoticeBanner(onClick: () -> Unit) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+    val shape = CareerCompassTheme.shapes.control
+    val noticeDescription = stringResource(R.string.feed_profile_notice_content_description)
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.large, vertical = spacing.xSmall)
+                .clip(shape)
+                .background(color = colors.primaryContainer, shape = shape)
+                .clickable(role = Role.Button, onClick = onClick)
+                .heightIn(min = 48.dp)
+                .padding(horizontal = spacing.medium, vertical = spacing.small)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = noticeDescription
+                },
+        horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.feed_icon_profile_notice),
+            modifier = Modifier.clearAndSetSemantics {},
+            style = CareerCompassTheme.typography.bodyMedium,
+        )
+        Text(
+            text = stringResource(R.string.feed_profile_notice),
+            modifier = Modifier.weight(1f),
+            color = colors.onPrimaryContainer,
+            style = CareerCompassTheme.typography.caption,
+        )
+        Text(
+            text = stringResource(R.string.feed_profile_notice_action),
+            color = colors.primaryEmphasis,
+            maxLines = 1,
+            style = CareerCompassTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
         )
     }
 }

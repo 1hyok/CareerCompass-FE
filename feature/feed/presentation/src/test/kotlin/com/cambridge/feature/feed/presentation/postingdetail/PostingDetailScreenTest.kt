@@ -24,6 +24,7 @@ import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
+import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -291,7 +292,7 @@ private fun samplePosting(
                     category = FeedListingCategory.Employment,
                     categoryLabel = "채용",
                     sourceLabel = "네이버 채용",
-                    suitabilityScore = 76,
+                    suitability = FeedSuitabilityState.Scored(76),
                     deadlineLabel = "D-14",
                     isDeadlineUrgent = false,
                     isNew = false,

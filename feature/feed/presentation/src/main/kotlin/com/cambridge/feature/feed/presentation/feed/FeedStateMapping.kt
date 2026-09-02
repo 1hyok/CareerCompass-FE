@@ -36,10 +36,11 @@ internal fun FeedViewState.toFeedUiState(
             when {
                 loadState == FeedLoadState.Loading -> FeedContentState.Loading
                 postings.isEmpty() -> FeedContentState.Empty
-                else -> FeedContentState.Loaded(postings.map { it.toListingUiModel(resources, clock) })
+                else -> FeedContentState.Loaded(postings.map { it.toListingUiModel(resources, clock, profile) })
             },
         activeFilterCount = activeFilterCount,
         offlineNotice = offlineSavedAt?.let { savedAt -> resources.getString(R.string.feed_offline_notice, savedAt.toNoticeLabel(clock)) },
+        isProfileNoticeVisible = isProfileNoticeVisible,
     )
 
 /** 시트 초안 → 시트 계약. 목록에 없는 게시판 선택은 버린다(계약 불변식). 건수 미리 계산은 없어 `null`. */

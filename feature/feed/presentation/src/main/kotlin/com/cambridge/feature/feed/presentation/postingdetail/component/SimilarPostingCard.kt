@@ -54,7 +54,7 @@ internal fun SimilarPostingCard(
                 )
             }
             Spacer(modifier = Modifier.width(CareerCompassTheme.spacing.xSmall))
-            FeedSuitabilityChip(score = listing.suitabilityScore)
+            FeedSuitabilityChip(state = listing.suitability)
         }
         Text(
             text = listing.title,

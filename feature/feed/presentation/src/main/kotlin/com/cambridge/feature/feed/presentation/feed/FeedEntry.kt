@@ -37,7 +37,8 @@ import kotlinx.coroutines.launch
  * 피드 홈 진입점 — [FeedViewModel] 상태를 [FeedScreen] 계약으로 옮기고 단발 신호를 소비한다.
  *
  * 네트워크 단절은 `CareerCompassNetworkErrorState`, 그 밖의 실패는 재시도 안내로 그린다. 필터·정렬은
- * `ModalBottomSheet` 로 띄운다.
+ * `ModalBottomSheet` 로 띄운다. 프로필 입력 안내는 [onProfileClick] 으로 앱 셸(마이 탭)에 맡긴다 —
+ * 공고 상세의 같은 안내와 목적지를 맞춘다.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +47,7 @@ public fun FeedEntry(
     onNotificationsClick: () -> Unit,
     onBoardRegisterClick: () -> Unit,
     onBoardListClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onSessionEnded: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FeedViewModel = hiltViewModel(),
@@ -64,6 +66,7 @@ public fun FeedEntry(
             FeedDestination.Notifications -> onNotificationsClick()
             FeedDestination.BoardRegister -> onBoardRegisterClick()
             FeedDestination.BoardList -> onBoardListClick()
+            FeedDestination.Profile -> onProfileClick()
         }
     }
     val sessionEnded = state.sessionEnded

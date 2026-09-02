@@ -15,6 +15,7 @@ import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.FeedListingCategory
+import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.NOON_TODAY
 import com.cambridge.feature.feed.presentation.TODAY
 import com.cambridge.feature.feed.presentation.board
@@ -24,6 +25,7 @@ import com.cambridge.feature.feed.presentation.board.BoardType
 import com.cambridge.feature.feed.presentation.posting
 import com.cambridge.feature.feed.presentation.postingDetail
 import com.cambridge.feature.feed.presentation.postingdetail.PostingSuitabilityState
+import com.cambridge.feature.feed.presentation.profile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -71,16 +73,26 @@ class FeedUiMappersTest {
     fun `목록 카드는 라벨·출처·D-day·신규·점수 없음을 옮긴다`() {
         val listing =
             posting(id = 5, title = "카카오 인턴", type = PostingType.Contest, dueDate = TODAY.plusDays(2), score = null)
-                .toListingUiModel(resources, FIXED_CLOCK)
+                .toListingUiModel(resources, FIXED_CLOCK, profile())
 
         assertEquals("5", listing.id)
         assertEquals(FeedListingCategory.Contest, listing.category)
         assertEquals("공모전", listing.categoryLabel)
         assertEquals("게시판 1", listing.sourceLabel)
-        assertNull(listing.suitabilityScore)
+        assertEquals(FeedSuitabilityState.Analyzing, listing.suitability)
         assertEquals("D-2", listing.deadlineLabel)
         assertTrue(listing.isDeadlineUrgent)
         assertTrue(listing.isNew)
+    }
+
+    @Test
+    fun `점수 자리는 점수·프로필 미입력·분석 중을 가른다`() {
+        val emptyProfile = profile(jobInterests = emptyList(), tags = emptyList())
+
+        assertEquals(FeedSuitabilityState.Scored(88), posting(id = 1, score = 88).toSuitabilityState(emptyProfile))
+        assertEquals(FeedSuitabilityState.ProfileIncomplete, posting(id = 2).toSuitabilityState(emptyProfile))
+        assertEquals(FeedSuitabilityState.Analyzing, posting(id = 3).toSuitabilityState(profile()))
+        assertEquals(FeedSuitabilityState.Analyzing, posting(id = 4).toSuitabilityState(null))
     }
 
     @Test
@@ -121,7 +133,7 @@ class FeedUiMappersTest {
             )
 
         val ready = PostingSuitabilityState.Ready(requireNotNull(detail.suitability).toSuitabilityUiModel(resources))
-        val model = detail.toDetailUiModel(resources, FIXED_CLOCK, ready)
+        val model = detail.toDetailUiModel(resources, FIXED_CLOCK, ready, profile())
 
         assertEquals("7", model.id)
         assertEquals(FeedListingCategory.Scholarship, model.category)
@@ -153,7 +165,7 @@ class FeedUiMappersTest {
             postingDetail(
                 id = 8,
                 type = PostingType.Contest,
-            ).toDetailUiModel(resources, FIXED_CLOCK, PostingSuitabilityState.Analyzing)
+            ).toDetailUiModel(resources, FIXED_CLOCK, PostingSuitabilityState.Analyzing, profile())
 
         assertEquals("미정", model.deadlineLabel)
         assertFalse(model.canCreateDraft)

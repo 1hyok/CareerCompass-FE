@@ -3,6 +3,7 @@ package com.cambridge.feature.feed.presentation.postingdetail
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
+import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -159,7 +160,7 @@ private fun sampleListing(id: String): FeedListingUiModel =
         category = FeedListingCategory.Employment,
         categoryLabel = "채용",
         sourceLabel = "공식 채용",
-        suitabilityScore = 70,
+        suitability = FeedSuitabilityState.Scored(70),
         deadlineLabel = "D-10",
         isDeadlineUrgent = false,
         isNew = false,

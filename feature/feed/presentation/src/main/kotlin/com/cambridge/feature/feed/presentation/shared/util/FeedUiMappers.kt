@@ -12,11 +12,13 @@ import com.cambridge.core.model.posting.PostingType
 import com.cambridge.core.model.posting.Suitability
 import com.cambridge.core.model.posting.SuitabilityAxisKind
 import com.cambridge.core.model.posting.SuitabilityLabel
+import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedFilterUiModel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.FeedSortUiModel
+import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.board.BOARD_MAX_PREVIEW_COUNT
 import com.cambridge.feature.feed.presentation.board.BoardCollectCycle
@@ -38,6 +40,8 @@ import com.cambridge.feature.feed.presentation.postingdetail.PostingFormQuestion
 import com.cambridge.feature.feed.presentation.postingdetail.PostingSuitabilityState
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityAxisUiModel
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityUiModel
+import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
+import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
 import java.text.NumberFormat
 import java.time.Clock
 import java.time.LocalDate
@@ -191,9 +195,22 @@ private fun daysUntil(
 /** 「신규」 = 시계의 시간대 기준 오늘 수집. */
 public fun Posting.isCollectedToday(clock: Clock): Boolean = collectedAt.atZone(clock.zone).toLocalDate() == LocalDate.now(clock)
 
+/**
+ * 카드의 점수 자리 — 판정([judgeSuitability])을 화면 계약으로 옮긴다.
+ *
+ * 「준비됨」인데 점수가 없는 모순은 「분석 중」으로 접는다(상세 화면과 같은 처분).
+ */
+public fun Posting.toSuitabilityState(profile: UserProfile?): FeedSuitabilityState =
+    when (judgeSuitability(hasScore = score != null, profile = profile)) {
+        SuitabilityJudgement.ProfileIncomplete -> FeedSuitabilityState.ProfileIncomplete
+        SuitabilityJudgement.Analyzing -> FeedSuitabilityState.Analyzing
+        SuitabilityJudgement.Ready -> score?.let(FeedSuitabilityState::Scored) ?: FeedSuitabilityState.Analyzing
+    }
+
 public fun Posting.toListingUiModel(
     resources: Resources,
     clock: Clock,
+    profile: UserProfile?,
 ): FeedListingUiModel {
     val today = LocalDate.now(clock)
     return FeedListingUiModel(
@@ -202,7 +219,7 @@ public fun Posting.toListingUiModel(
         category = type.toListingCategory(),
         categoryLabel = resources.getString(type.toListingCategory().labelRes()),
         sourceLabel = board.name,
-        suitabilityScore = score,
+        suitability = toSuitabilityState(profile),
         deadlineLabel = deadlineLabel(resources, dueDate, today),
         isDeadlineUrgent = isDeadlineUrgent(dueDate, today),
         isNew = isCollectedToday(clock),
@@ -216,6 +233,7 @@ public fun PostingDetail.toDetailUiModel(
     resources: Resources,
     clock: Clock,
     suitability: PostingSuitabilityState,
+    profile: UserProfile?,
 ): PostingDetailUiModel {
     val today = LocalDate.now(clock)
     val category = type.toListingCategory()
@@ -253,7 +271,7 @@ public fun PostingDetail.toDetailUiModel(
             similar
                 .distinctBy(Posting::id)
                 .take(POSTING_DETAIL_MAX_SIMILAR_POSTING_COUNT)
-                .map { it.toListingUiModel(resources, clock) },
+                .map { it.toListingUiModel(resources, clock, profile) },
         canCreateDraft = type.supportsApplicationDraft,
     )
 }

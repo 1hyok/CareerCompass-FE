@@ -14,45 +14,68 @@ import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.component.CareerCompassScoreChip
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.R
 
 /**
- * Suitability readout of a listing card: the score chip when a score exists, otherwise an
- * "analyzing" pill of the same height so cards with and without a score line up (spec F2-3·F3-1).
+ * Suitability readout of a listing card: the score chip when a score exists, otherwise a pill of the
+ * same height so cards with and without a score line up (spec F2-3·F3-1).
+ *
+ * 점수가 없을 때의 문구는 사유를 그대로 말한다 — 프로필이 비어 산출을 못 하는 카드에 「분석 중」이라고
+ * 적으면 기다리면 나올 것처럼 읽힌다.
  */
 @Composable
 internal fun FeedSuitabilityChip(
-    score: Int?,
+    state: FeedSuitabilityState,
     modifier: Modifier = Modifier,
 ) {
-    if (score == null) {
-        FeedAnalyzingChip(modifier = modifier)
-    } else {
-        CareerCompassScoreChip(
-            label = stringResource(R.string.feed_suitability_label),
-            score = score,
-            level = score.suitabilityLevel(),
-            modifier = modifier,
-            contentDescription = stringResource(R.string.feed_suitability_content_description, score),
-        )
+    when (state) {
+        is FeedSuitabilityState.Scored -> {
+            CareerCompassScoreChip(
+                label = stringResource(R.string.feed_suitability_label),
+                score = state.score,
+                level = state.score.suitabilityLevel(),
+                modifier = modifier,
+                contentDescription = stringResource(R.string.feed_suitability_content_description, state.score),
+            )
+        }
+
+        FeedSuitabilityState.Analyzing -> {
+            FeedSuitabilityPlaceholderChip(
+                label = stringResource(R.string.feed_suitability_analyzing),
+                contentDescription = stringResource(R.string.feed_suitability_analyzing_content_description),
+                modifier = modifier,
+            )
+        }
+
+        FeedSuitabilityState.ProfileIncomplete -> {
+            FeedSuitabilityPlaceholderChip(
+                label = stringResource(R.string.feed_suitability_profile_incomplete),
+                contentDescription = stringResource(R.string.feed_suitability_profile_incomplete_content_description),
+                modifier = modifier,
+            )
+        }
     }
 }
 
 @Composable
-private fun FeedAnalyzingChip(modifier: Modifier = Modifier) {
+private fun FeedSuitabilityPlaceholderChip(
+    label: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+) {
     val colors = CareerCompassTheme.colors
-    val analyzingDescription = stringResource(R.string.feed_suitability_analyzing_content_description)
 
     Surface(
         modifier =
             modifier.semantics(mergeDescendants = true) {
-                contentDescription = analyzingDescription
+                this.contentDescription = contentDescription
             },
         shape = CareerCompassTheme.shapes.pill,
         color = colors.subtleSurface,
     ) {
         Text(
-            text = stringResource(R.string.feed_suitability_analyzing),
+            text = label,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             maxLines = 1,
             color = colors.mutedContent,

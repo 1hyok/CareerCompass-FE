@@ -16,6 +16,7 @@ import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.cambridge.feature.feed.presentation.postingDetail
 import com.cambridge.feature.feed.presentation.profile
+import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
