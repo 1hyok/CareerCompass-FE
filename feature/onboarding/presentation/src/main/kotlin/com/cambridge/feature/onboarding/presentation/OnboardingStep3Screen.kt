@@ -66,7 +66,10 @@ private fun OnboardingExperienceContent(
     val spacing = CareerCompassTheme.spacing
 
     Column(verticalArrangement = Arrangement.spacedBy(spacing.xxLarge)) {
-        ExperienceTypeFilters(state = state, onEvent = onEvent)
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+            OptionalExperienceHint()
+            ExperienceTypeFilters(state = state, onEvent = onEvent)
+        }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             state.visibleExperiences.forEach { experience ->
                 ExperienceCard(
@@ -83,6 +86,21 @@ private fun OnboardingExperienceContent(
             )
         }
     }
+}
+
+/** Experiences are optional; this caption explains why adding one is still worthwhile. */
+@Composable
+private fun OptionalExperienceHint() {
+    Text(
+        text = stringResource(R.string.onboarding_step3_optional_hint),
+        color = CareerCompassTheme.colors.mutedContent,
+        style =
+            CareerCompassTheme.typography.caption.copy(
+                fontSize = 12.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.Normal,
+            ),
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_biometric_greeting">%1$s님, 안녕하세요</string>
+    <string name="onboarding_biometric_action_description">지문으로 로그인</string>
+    <string name="onboarding_biometric_action_icon" translatable="false">👆</string>
+    <string name="onboarding_biometric_authenticating_state">지문 확인 중</string>
+    <string name="onboarding_biometric_title">지문으로 빠른 로그인</string>
+    <string name="onboarding_biometric_description">등록된 지문을 사용해 바로 로그인해요</string>
+    <string name="onboarding_biometric_other_method">다른 방법으로 로그인</string>
+</resources>
