@@ -33,6 +33,8 @@ import com.cambridge.feature.onboarding.presentation.OnboardingStep3Screen
 import com.cambridge.feature.onboarding.presentation.OnboardingStep3UiState
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4Screen
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4UiState
+import com.cambridge.feature.onboarding.presentation.login.LoginScreen
+import com.cambridge.feature.onboarding.presentation.login.LoginUiState
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -55,6 +57,14 @@ class AccessibilitySmokeAndroidTest {
     @Before
     fun enableChecks() {
         composeRule.enableAccessibilityChecks()
+    }
+
+    /** 앱 시작 화면(세션 없음) — 저장소 정책 테스트의 selected 계획 픽스처가 이 이름을 참조한다. */
+    @Test
+    fun welcomeAndLogin_haveNoAutomatedAccessibilityErrors() {
+        renderAndCheck {
+            LoginScreen(state = LoginUiState(), onEvent = {})
+        }
     }
 
     @Test
