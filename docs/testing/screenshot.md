@@ -29,19 +29,18 @@ Action 은 그 테스트 전체를 실행한다. 새 화면·새 상태를 추�
 docker build --platform linux/amd64 -t careercompass-screenshot:latest -f Dockerfile.screenshot .
 docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace careercompass-screenshot:latest \
   ./gradlew :core:ui:updateScreenshotTest \
-            :feature:home:presentation:updateScreenshotTest \
-            :feature:receiver:presentation:updateScreenshotTest \
-            :feature:onboarding:presentation:updateScreenshotTest \
-            :feature:careercompass:presentation:updateScreenshotTest \
-            :feature:mindrecord:presentation:updateScreenshotTest \
-            :feature:setting:presentation:updateScreenshotTest \
-            :feature:timeletter:presentation:updateScreenshotTest \
+          :feature:onboarding:presentation:updateScreenshotTest \
+          :feature:feed:presentation:updateScreenshotTest \
+          :feature:editor:presentation:updateScreenshotTest \
+          :feature:profile:presentation:updateScreenshotTest \
+          :feature:foryou:presentation:updateScreenshotTest \
+          :feature:notification:presentation:updateScreenshotTest \
             --rerun
 ```
 
 → 변경된 PNG 가 각 모듈 `src/screenshotTestDebug/reference/...` 에 갱신. `git add` 후 commit.
 
-> 실패한 모듈만 갱신하려면 그 모듈 태스크만 지정한다 — 예: `./gradlew :feature:home:presentation:updateScreenshotTest`
+> 실패한 모듈만 갱신하려면 그 모듈 태스크만 지정한다 — 예: `./gradlew :feature:feed:presentation:updateScreenshotTest`
 >
 > 대상 모듈 목록은 [검증](../../.github/workflows/screenshot.yml)·[생성](../../.github/workflows/screenshot-baseline-generate.yml) workflow와 [적용 workflow의 허용 경로](../../.github/workflows/screenshot-baseline-apply.yml)에 함께 들어 있다. 모듈을 추가·이전했다면 세 workflow와 `Dockerfile.screenshot`, 이 문서를 함께 갱신한다.
 
@@ -50,13 +49,12 @@ docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace career
 ```bash
 docker run --rm --platform linux/amd64 -v "$PWD":/workspace -w /workspace careercompass-screenshot:latest \
   ./gradlew :core:ui:validateScreenshotTest \
-            :feature:home:presentation:validateScreenshotTest \
-            :feature:receiver:presentation:validateScreenshotTest \
-            :feature:onboarding:presentation:validateScreenshotTest \
-            :feature:careercompass:presentation:validateScreenshotTest \
-            :feature:mindrecord:presentation:validateScreenshotTest \
-            :feature:setting:presentation:validateScreenshotTest \
-            :feature:timeletter:presentation:validateScreenshotTest
+          :feature:onboarding:presentation:validateScreenshotTest \
+          :feature:feed:presentation:validateScreenshotTest \
+          :feature:editor:presentation:validateScreenshotTest \
+          :feature:profile:presentation:validateScreenshotTest \
+          :feature:foryou:presentation:validateScreenshotTest \
+          :feature:notification:presentation:validateScreenshotTest
 ```
 
 → baseline 과 docker 환경에서 새로 그린 PNG 비교. 실패 시 `build/outputs/screenshotTest-results/preview/debug/diffs/` 에서 diff PNG 확인.
