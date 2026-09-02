@@ -45,6 +45,31 @@
           현재 화면은 폰 세로 레이아웃만 지원한다. Android 16 대화면에서는 시스템이
           이 제한을 무시하므로 대화면 대응을 대신하는 선언은 아니다.
         -->
+        <!-- App Startup — 기동 초기화는 Initializer 단위로 등록한다(Application.onCreate 비움). -->
+        <provider
+                android:name="androidx.startup.InitializationProvider"
+                android:authorities="${applicationId}.androidx-startup"
+                android:exported="false"
+                tools:node="merge">
+            <meta-data
+                    android:name="com.cambridge.careercompass_fe.startup.KakaoInitializer"
+                    android:value="androidx.startup" />
+        </provider>
+
+        <!-- 카카오 OAuth redirect(kakao{NATIVE_APP_KEY}://oauth) 핸들러 — SDK 계정 로그인이 브라우저에서 돌아오는 관문. -->
+        <activity
+                android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+                android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                        android:host="oauth"
+                        android:scheme="kakao${KAKAO_NATIVE_APP_KEY}" />
+            </intent-filter>
+        </activity>
+
         <activity
                 android:name=".MainActivity"
                 android:exported="true"
