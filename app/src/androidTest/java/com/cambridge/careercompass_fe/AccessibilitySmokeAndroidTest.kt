@@ -11,6 +11,7 @@ import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import com.cambridge.careercompass_fe.navigation.AppNavigation
+import com.cambridge.careercompass_fe.session.AppStartDestination
 import com.cambridge.careercompass_fe.test.FailureArtifactRule
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedContentState
@@ -59,9 +60,9 @@ class AccessibilitySmokeAndroidTest {
     }
 
     @Test
-    fun welcomeAndLogin_haveNoAutomatedAccessibilityErrors() {
+    fun appShellMain_hasNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            AppNavigation()
+            AppNavigation(startDestination = AppStartDestination.Main, onSessionEnded = {})
         }
     }
 
