@@ -6,6 +6,7 @@ import com.cambridge.core.datastore.DeviceDataSource
 import com.cambridge.core.datastore.StoreScope
 import com.cambridge.core.datastore.TokenDataSource
 import com.cambridge.core.domain.error.CoreAuthFailure
+import com.cambridge.core.domain.error.SessionEndedException
 import com.cambridge.core.model.auth.Session
 import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.core.network.dto.BiometricRegisterRequestDto
@@ -21,7 +22,10 @@ import com.cambridge.core.network.service.AuthApiService
 import com.cambridge.core.network.service.SocialLoginProvider
 import com.cambridge.core.network.service.TokenApiService
 import com.cambridge.core.network.token.AccessTokenExpiryTracker
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -61,7 +65,7 @@ class AuthRepositoryImplTest {
     }
 
     private class FakeTokenApi : TokenApiService {
-        var response: () -> BaseResponse<RefreshDto> = { BaseResponse(ok = true, data = RefreshDto("access-2", "refresh-2", 1800)) }
+        var response: suspend () -> BaseResponse<RefreshDto> = { BaseResponse(ok = true, data = RefreshDto("access-2", "refresh-2", 1800)) }
 
         override suspend fun refresh(body: RefreshRequestDto): BaseResponse<RefreshDto> = response()
     }
@@ -150,6 +154,47 @@ class AuthRepositoryImplTest {
             assertEquals(listOf(StoreScope.SESSION), registry.clearedScopes)
             assertFalse(repository.isLoggedIn.first())
             assertFalse(tracker.isExpiringSoon())
+        }
+
+    @Test
+    fun `회전 도중 로그아웃이 끝나면 회전 결과를 버리고 세션 종료로 실패한다`() =
+        runTest {
+            tokenDataSource.saveTokens("access", "refresh")
+            val gate = CompletableDeferred<Unit>()
+            tokenApi.response = {
+                gate.await()
+                BaseResponse(ok = true, data = RefreshDto("access-2", "refresh-2", 1800))
+            }
+            val rotation = async { repository.rotateToken() }
+            runCurrent()
+
+            repository.logout().getOrThrow()
+            gate.complete(Unit)
+            val result = rotation.await()
+
+            assertTrue(result.exceptionOrNull() is SessionEndedException)
+            assertNull(tokenDataSource.getAccessToken())
+            assertNull(tokenDataSource.getRefreshToken())
+            assertFalse(repository.isLoggedIn.first())
+        }
+
+    @Test
+    fun `회전 도중 세션 정리가 끝나도 회전 결과를 버린다`() =
+        runTest {
+            tokenDataSource.saveTokens("access", "refresh")
+            val gate = CompletableDeferred<Unit>()
+            tokenApi.response = {
+                gate.await()
+                BaseResponse(ok = true, data = RefreshDto("access-2", "refresh-2", 1800))
+            }
+            val rotation = async { repository.rotateToken() }
+            runCurrent()
+
+            repository.clearSession().getOrThrow()
+            gate.complete(Unit)
+
+            assertTrue(rotation.await().exceptionOrNull() is SessionEndedException)
+            assertNull(tokenDataSource.getAccessToken())
         }
 
     @Test

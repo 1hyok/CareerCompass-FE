@@ -1,6 +1,7 @@
 package com.cambridge.core.network.interceptor
 
 import com.cambridge.core.common.reporting.ErrorReporter
+import com.cambridge.core.domain.error.SessionEndedException
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.model.auth.TokenBundle
 import com.cambridge.core.network.model.ApiException
@@ -99,6 +100,27 @@ class TokenAuthenticatorTest {
         assertThrows(TokenReissueFailureException::class.java) {
             authenticator(repository).authenticate(null, unauthorized("old"))
         }
+        assertEquals(0, repository.clearSessionCalls)
+    }
+
+    @Test
+    fun `세션이 교체된 요청은 재시도하지 않고 세션도 지우지 않는다`() {
+        // 로그아웃 뒤 다른 계정으로 로그인한 사이 이전 세션의 요청이 401 을 받았다.
+        val repository = FakeAuthRepository(accessToken = "other-account", refreshToken = "refresh")
+
+        assertNull(authenticator(repository).authenticate(null, unauthorized("old")))
+        assertEquals(0, repository.rotateTokenCalls)
+        assertEquals(0, repository.clearSessionCalls)
+    }
+
+    @Test
+    fun `회전 도중 세션이 끝나면 재시도하지 않고 세션도 다시 지우지 않는다`() {
+        val repository =
+            FakeAuthRepository(accessToken = "old", refreshToken = "refresh").apply {
+                onRotateToken = { Result.failure(SessionEndedException("로그아웃")) }
+            }
+
+        assertNull(authenticator(repository).authenticate(null, unauthorized("old")))
         assertEquals(0, repository.clearSessionCalls)
     }
 }

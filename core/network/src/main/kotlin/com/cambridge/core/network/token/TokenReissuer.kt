@@ -1,6 +1,7 @@
 package com.cambridge.core.network.token
 
 import com.cambridge.core.common.reporting.ErrorReporter
+import com.cambridge.core.domain.error.SessionEndedException
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.network.model.ApiException
 import kotlinx.coroutines.runBlocking
@@ -13,9 +14,13 @@ import javax.inject.Singleton
  * 선제 갱신(`AuthInterceptor`)과 401 대응(`TokenAuthenticator`)이 공유하는 토큰 재발급 single-flight.
  *
  * 락 안에서 호출자가 본 토큰과 현재 저장 토큰을 다시 비교해 다른 경로가 이미 갱신했다면 중복 재발급을
- * 건너뛴다. 확정 거절([Outcome.AuthenticationRejected])은 락 안에서 세션 정리까지 끝내고 그 결과를 액세스
- * 토큰에 묶어 공유한다 — 같은 토큰으로 들어온 대기자는 재발급을 치지 않고 같은 결과를 받는다. 일시 실패는
- * 공유하지 않는다(재시도가 성립하는 실패라 캐시하면 복구를 막는다).
+ * 건너뛴다. "이미 갱신됨" 은 이 객체가 직전에 수행한 회전 쌍(옛 토큰 → 새 토큰)과 맞을 때만 인정한다 — 회전이
+ * 아닌 경로(로그아웃 뒤 새 로그인)로 바뀐 토큰에 이전 세션의 요청을 다시 붙이면 다른 계정으로 전송된다
+ * ([Outcome.SessionChanged]).
+ *
+ * 확정 거절([Outcome.AuthenticationRejected])은 락 안에서 세션 정리까지 끝내고 그 결과를 액세스 토큰에 묶어
+ * 공유한다 — 같은 토큰으로 들어온 대기자는 재발급을 치지 않고 같은 결과를 받는다. 일시 실패는 공유하지
+ * 않는다(재시도가 성립하는 실패라 캐시하면 복구를 막는다).
  */
 @Singleton
 public class TokenReissuer
@@ -25,8 +30,20 @@ public class TokenReissuer
         private val expiryTracker: AccessTokenExpiryTracker,
         private val errorReporter: ErrorReporter,
     ) {
+        /** 재발급을 요청한 경로. 선제 경로는 락 안에서 만료 임박을 다시 확인해 방금 끝난 회전 뒤의 이중 회전을 막는다. */
+        public enum class Trigger {
+            /** 만료 임박 판단에 따른 선제 갱신 — 만료 시각이 이미 갱신돼 있으면 회전하지 않는다. */
+            Preemptive,
+
+            /** 서버가 401 을 돌려줌 — 저장 토큰이 호출자의 것과 같다면 반드시 회전한다. */
+            Unauthorized,
+        }
+
         public sealed interface Outcome {
-            /** 다른 경로가 먼저 토큰을 갱신해 재발급을 생략함. */
+            /**
+             * 다른 경로가 먼저 토큰을 갱신해 재발급을 생략함. 선제 경로에서는 직전 회전이 만료 시각까지 갱신해 둔
+             * 경우도 포함한다 — 호출자가 새 토큰과 옛 만료 시각을 따로 읽은 것이라 회전할 이유가 없다.
+             */
             public data class TokenAlreadyChanged(
                 val accessToken: String,
             ) : Outcome
@@ -34,6 +51,14 @@ public class TokenReissuer
             /** 현재 호출이 새 토큰 발급을 완료함. */
             public data class Rotated(
                 val accessToken: String,
+            ) : Outcome
+
+            /**
+             * 호출자의 토큰이 속한 세션이 더 이상 현재 세션이 아님 — 로그아웃으로 끝났거나 새 로그인으로 교체됐다.
+             * 이 요청은 포기해야 하고, 세션 정리는 여기서 하지 않는다(새 세션을 지우게 된다).
+             */
+            public data class SessionChanged(
+                val exception: Throwable,
             ) : Outcome
 
             public sealed interface Failure : Outcome {
@@ -61,19 +86,43 @@ public class TokenReissuer
         private var rejectedAccessToken: String? = null
         private var rejection: Outcome.AuthenticationRejected? = null
 
-        /** @param expectedAccessToken 호출자가 교체하려는 기존 액세스 토큰. */
-        public fun reissue(expectedAccessToken: String): Outcome {
+        /** 직전 회전의 (옛 토큰, 새 토큰). 세션이 끝나거나 거절되면 비운다. */
+        private var lastRotation: Pair<String, String>? = null
+
+        /**
+         * @param expectedAccessToken 호출자가 교체하려는 기존 액세스 토큰.
+         * @param trigger 호출 경로 — 선제 경로만 락 안에서 만료 임박을 다시 확인한다.
+         */
+        public fun reissue(
+            expectedAccessToken: String,
+            trigger: Trigger,
+        ): Outcome {
             synchronized(this) {
                 // 저장 토큰 비교보다 먼저다 — 세션 정리 뒤엔 저장 토큰이 비어 있어 아래 가드를 그냥 통과한다.
                 rejection?.let { if (expectedAccessToken == rejectedAccessToken) return it }
 
                 val currentToken = runBlocking { authRepository.get().getAccessToken() }.getOrNull()
-                if (!currentToken.isNullOrEmpty() && currentToken != expectedAccessToken) {
+                if (currentToken.isNullOrEmpty()) {
+                    lastRotation = null
+                    return Outcome.SessionChanged(SessionEndedException("재발급할 세션이 없습니다."))
+                }
+                if (currentToken != expectedAccessToken) {
+                    return if (lastRotation == expectedAccessToken to currentToken) {
+                        Outcome.TokenAlreadyChanged(currentToken)
+                    } else {
+                        Outcome.SessionChanged(SessionEndedException("액세스 토큰이 회전 밖에서 교체됐습니다."))
+                    }
+                }
+                if (trigger == Trigger.Preemptive && !expiryTracker.isExpiringSoon()) {
                     return Outcome.TokenAlreadyChanged(currentToken)
                 }
 
                 val rotationResult = runBlocking { authRepository.get().rotateToken() }
                 val rotationException = rotationResult.exceptionOrNull()
+                if (rotationException is SessionEndedException) {
+                    lastRotation = null
+                    return Outcome.SessionChanged(rotationException)
+                }
                 if (rotationException != null) {
                     // 실패한 토큰의 deadline 을 지워 선제 재시도 반복을 막는다.
                     expiryTracker.clear()
@@ -87,6 +136,7 @@ public class TokenReissuer
                 bundle.expiresInSeconds?.let(expiryTracker::record) ?: expiryTracker.clear()
                 rejectedAccessToken = null
                 rejection = null
+                lastRotation = expectedAccessToken to bundle.accessToken
                 return Outcome.Rotated(bundle.accessToken)
             }
         }
@@ -128,9 +178,16 @@ public class TokenReissuer
             failure: Outcome.Failure,
         ) {
             if (failure !is Outcome.AuthenticationRejected) return
-            runBlocking { authRepository.get().clearSession() }
+            // 정리가 실패해도 거절은 캐시한다 — 이 refresh 로는 더 못 간다. 다만 토큰이 남은 상태는 계측에 남긴다.
+            runBlocking { authRepository.get().clearSession() }.onFailure { clearFailure ->
+                errorReporter.recordFailure(
+                    throwable = clearFailure,
+                    attributes = mapOf("auth_stage" to "session_clear", "failure_kind" to "unexpected"),
+                )
+            }
             rejectedAccessToken = expectedAccessToken
             rejection = failure
+            lastRotation = null
         }
 
         private fun reportObservableFailure(failure: Outcome.Failure) {

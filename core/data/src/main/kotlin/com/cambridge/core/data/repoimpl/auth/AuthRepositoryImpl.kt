@@ -8,6 +8,7 @@ import com.cambridge.core.datastore.DeviceDataSource
 import com.cambridge.core.datastore.LocalStoreRegistry
 import com.cambridge.core.datastore.StoreScope
 import com.cambridge.core.datastore.TokenDataSource
+import com.cambridge.core.domain.error.SessionEndedException
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.model.auth.Session
 import com.cambridge.core.model.auth.SocialProvider
@@ -22,6 +23,8 @@ import com.cambridge.core.network.service.AuthApiService
 import com.cambridge.core.network.service.TokenApiService
 import com.cambridge.core.network.token.AccessTokenExpiryTracker
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 internal class AuthRepositoryImpl
@@ -36,6 +39,14 @@ internal class AuthRepositoryImpl
         // 로그아웃 시 SESSION 스코프 로컬 저장소 일괄 정리.
         private val localStoreRegistry: LocalStoreRegistry,
     ) : AuthRepository {
+        /**
+         * 세션 세대 — [clearLocalSession] 마다 오른다. 회전은 시작 시 세대를 기억하고 저장 직전에 다시 비교해,
+         * 로그아웃이 끼어든 회전 결과를 버린다(로그아웃이 끝난 뒤 토큰이 되살아나는 경합 차단). [sessionMutex] 가
+         * 보호하며, 서버 호출 동안에는 잡지 않는다 — 로그아웃 요청도 AuthInterceptor 를 지나 회전을 부를 수 있다.
+         */
+        private val sessionMutex = Mutex()
+        private var sessionGeneration = 0L
+
         override val isLoggedIn: Flow<Boolean> get() = tokenDataSource.isLoggedIn
 
         override val isBiometricEnabled: Flow<Boolean> get() = deviceDataSource.isBiometricEnabled
@@ -72,9 +83,18 @@ internal class AuthRepositoryImpl
 
         override suspend fun rotateToken(): Result<TokenBundle> =
             runCatchingCancellable {
-                val refreshToken = tokenDataSource.getRefreshToken() ?: error("리프레시 토큰이 존재하지 않습니다.")
+                val (refreshToken, generation) =
+                    sessionMutex.withLock {
+                        val stored = tokenDataSource.getRefreshToken() ?: error("리프레시 토큰이 존재하지 않습니다.")
+                        stored to sessionGeneration
+                    }
                 val bundle = AuthMapper.toTokenBundle(tokenApiService.refresh(RefreshRequestDto(refreshToken)).requireData())
-                tokenDataSource.saveTokens(accessToken = bundle.accessToken, refreshToken = bundle.refreshToken)
+                sessionMutex.withLock {
+                    if (sessionGeneration != generation) {
+                        throw SessionEndedException("세션이 회전 도중 끝나 재발급 결과를 폐기했습니다.")
+                    }
+                    tokenDataSource.saveTokens(accessToken = bundle.accessToken, refreshToken = bundle.refreshToken)
+                }
                 bundle
             }
 
@@ -102,9 +122,12 @@ internal class AuthRepositoryImpl
             runCatchingCancellable { deviceDataSource.setBiometricEnabled(enabled) }
 
         private suspend fun clearLocalSession() {
-            localStoreRegistry.clearScope(StoreScope.SESSION)
-            // tracker 는 network 계층 in-memory 상태라 레지스트리 관할 밖. 남기면 재로그인 후 이전 토큰 기준 deadline 으로 오판한다.
-            expiryTracker.clear()
+            sessionMutex.withLock {
+                sessionGeneration++
+                localStoreRegistry.clearScope(StoreScope.SESSION)
+                // tracker 는 network 계층 in-memory 상태라 레지스트리 관할 밖. 남기면 재로그인 후 이전 토큰 기준 deadline 으로 오판한다.
+                expiryTracker.clear()
+            }
         }
 
         private fun recordIssuedExpiresIn(expiresInSeconds: Long?) {
