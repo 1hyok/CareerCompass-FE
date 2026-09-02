@@ -33,9 +33,10 @@ import com.cambridge.feature.onboarding.presentation.R
 import com.cambridge.feature.onboarding.presentation.shared.util.toMessage
 
 /**
- * Step 3 「경험 추가」 시트의 본문. 시트 컨테이너는 호스트가 감싼다.
+ * Step 3 「경험 추가·수정」 시트의 본문. 시트 컨테이너는 호스트가 감싼다.
  *
- * 유형 칩을 바꾸면 [ExperienceEditorRules] 에 따라 필드 라벨과 필수 표시가 바뀐다.
+ * 유형 칩을 바꾸면 [ExperienceEditorRules] 에 따라 필드 라벨과 필수 표시가 바뀐다. 수정 중에는 유형을 잠근다 —
+ * 유형마다 필드 의미가 달라, 바꾸면 이미 채운 값이 다른 뜻으로 저장된다.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -59,7 +60,10 @@ public fun ExperienceQuickAddSheet(
         verticalArrangement = Arrangement.spacedBy(spacing.medium),
     ) {
         Text(
-            text = stringResource(R.string.onboarding_experience_add_title),
+            text =
+                stringResource(
+                    if (state.isEditing) R.string.onboarding_experience_edit_title else R.string.onboarding_experience_add_title,
+                ),
             modifier = Modifier.semantics { heading() },
             color = colors.onSurface,
             style = CareerCompassTheme.typography.headline4,
@@ -69,21 +73,38 @@ public fun ExperienceQuickAddSheet(
             color = colors.onSurfaceVariant,
             style = CareerCompassTheme.typography.labelMedium,
         )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth().selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.small),
-            verticalArrangement = Arrangement.spacedBy(spacing.small),
-        ) {
-            ExperienceType.entries.forEach { type ->
-                val selected = type == state.type
-                CareerCompassTag(
-                    label = stringResource(type.labelResId()),
-                    selected = selected,
-                    onClick = { onEvent(ExperienceQuickAddEvent.TypeSelected(type)) },
-                    enabled = state.isInputEnabled,
-                    stateDescription = if (selected) selectedState else unselectedState,
-                    role = Role.RadioButton,
-                )
+        if (state.isEditing) {
+            // 잠긴 유형은 고를 수 없다는 것이 보이도록 선택된 칩 하나만 비활성으로 남긴다.
+            CareerCompassTag(
+                label = stringResource(state.type.labelResId()),
+                selected = true,
+                onClick = {},
+                enabled = false,
+                stateDescription = selectedState,
+                role = Role.RadioButton,
+            )
+            Text(
+                text = stringResource(R.string.onboarding_experience_type_locked),
+                color = colors.mutedContent,
+                style = CareerCompassTheme.typography.caption,
+            )
+        } else {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                verticalArrangement = Arrangement.spacedBy(spacing.small),
+            ) {
+                ExperienceType.entries.forEach { type ->
+                    val selected = type == state.type
+                    CareerCompassTag(
+                        label = stringResource(type.labelResId()),
+                        selected = selected,
+                        onClick = { onEvent(ExperienceQuickAddEvent.TypeSelected(type)) },
+                        enabled = state.isInputEnabled,
+                        stateDescription = if (selected) selectedState else unselectedState,
+                        role = Role.RadioButton,
+                    )
+                }
             }
         }
         CareerCompassTextField(
@@ -160,10 +181,7 @@ public fun ExperienceQuickAddSheet(
                 enabled = state.isInputEnabled,
             )
             CareerCompassButton(
-                text =
-                    stringResource(
-                        if (state.isSubmitting) R.string.onboarding_experience_submitting else R.string.onboarding_experience_submit,
-                    ),
+                text = stringResource(submitLabelResId(isEditing = state.isEditing, isSubmitting = state.isSubmitting)),
                 onClick = { onEvent(ExperienceQuickAddEvent.Submitted) },
                 modifier = Modifier.weight(1f),
                 size = CareerCompassButtonSize.Large,
@@ -181,6 +199,17 @@ public fun ExperienceType.labelResId(): Int =
         ExperienceType.Intern -> R.string.onboarding_experience_type_intern
         ExperienceType.Activity -> R.string.onboarding_experience_type_activity
         ExperienceType.Certificate -> R.string.onboarding_experience_type_certificate
+    }
+
+private fun submitLabelResId(
+    isEditing: Boolean,
+    isSubmitting: Boolean,
+): Int =
+    when {
+        isEditing && isSubmitting -> R.string.onboarding_experience_saving
+        isEditing -> R.string.onboarding_experience_save
+        isSubmitting -> R.string.onboarding_experience_submitting
+        else -> R.string.onboarding_experience_submit
     }
 
 private fun startDateLabelResId(type: ExperienceType): Int =

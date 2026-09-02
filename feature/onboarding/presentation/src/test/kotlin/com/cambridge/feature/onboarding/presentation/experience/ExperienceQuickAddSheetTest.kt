@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -112,6 +113,37 @@ public class ExperienceQuickAddSheetTest {
                 events.filterNot { it.isTextChange() },
             )
         }
+    }
+
+    @Test
+    public fun editingState_locksTypeAndRelabelsTitleAndSubmit() {
+        setSheet(
+            ExperienceEditorState(
+                experienceId = 3L,
+                type = ExperienceType.Intern,
+                title = "카카오 인턴",
+                startDate = "2025.01",
+                primary = "카카오",
+                secondary = "안드로이드 개발",
+            ),
+        )
+
+        composeRule.onNodeWithText("경험 수정").assertIsDisplayed()
+        composeRule.onAllNodesWithText("경험 추가").assertCountEquals(0)
+        composeRule.onNodeWithText("인턴").assertIsNotEnabled()
+        composeRule.onAllNodesWithText("프로젝트").assertCountEquals(0)
+        composeRule.onNodeWithText("유형은 바꿀 수 없어요. 바꾸려면 삭제하고 다시 추가해 주세요").assertIsDisplayed()
+        composeRule
+            .onNode(hasText("저장하기") and hasClickAction())
+            .performScrollTo()
+            .assertIsEnabled()
+    }
+
+    @Test
+    public fun editingWhileSaving_showsSavingLabel() {
+        setSheet(ExperienceEditorState(experienceId = 3L, title = "카카오 인턴", isSubmitting = true))
+
+        composeRule.onNodeWithText("저장하는 중").performScrollTo().assertIsNotEnabled()
     }
 
     @Test

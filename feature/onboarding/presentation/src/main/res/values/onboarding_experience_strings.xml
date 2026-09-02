@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="onboarding_experience_add_title">경험 추가</string>
+    <string name="onboarding_experience_edit_title">경험 수정</string>
     <string name="onboarding_experience_type_section">유형</string>
     <string name="onboarding_experience_type_selected_state">선택됨</string>
     <string name="onboarding_experience_type_unselected_state">선택 안 됨</string>
@@ -22,4 +23,10 @@
     <string name="onboarding_experience_certificate_issuer_label">발급 기관</string>
     <string name="onboarding_experience_submit">추가하기</string>
     <string name="onboarding_experience_submitting">추가하는 중</string>
+    <string name="onboarding_experience_save">저장하기</string>
+    <string name="onboarding_experience_saving">저장하는 중</string>
+    <string name="onboarding_experience_type_locked">유형은 바꿀 수 없어요. 바꾸려면 삭제하고 다시 추가해 주세요</string>
+    <string name="onboarding_experience_delete_title">경험을 삭제할까요?</string>
+    <string name="onboarding_experience_delete_message">「%1$s」을(를) 삭제하면 되돌릴 수 없어요.</string>
+    <string name="onboarding_experience_delete_confirm">삭제</string>
 </resources>

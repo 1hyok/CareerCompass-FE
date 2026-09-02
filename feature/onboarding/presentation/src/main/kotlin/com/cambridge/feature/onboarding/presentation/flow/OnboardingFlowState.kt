@@ -12,6 +12,7 @@ import com.cambridge.feature.onboarding.domain.model.JobOptionCatalog
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationPickerState
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerState
+import com.cambridge.feature.onboarding.presentation.experience.ExperienceDeleteState
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditorState
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputState
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryState
@@ -178,6 +179,7 @@ public data class OnboardingFlowState(
     val schoolPicker: SchoolPickerState? = null,
     val graduationPicker: GraduationPickerState? = null,
     val experienceEditor: ExperienceEditorState? = null,
+    val experienceDelete: ExperienceDeleteState? = null,
     val directInput: DirectInputState? = null,
     val itemCategoryPicker: PastApplicationItemCategoryState? = null,
 ) {

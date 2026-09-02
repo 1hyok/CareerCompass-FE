@@ -2,6 +2,9 @@ package com.cambridge.feature.onboarding.presentation
 
 import androidx.compose.runtime.Immutable
 
+/** 경험 카드 등록 상한 — 기능 스펙 F1-3 (`core` 의 `MAX_EXPERIENCE_CARDS` 와 같은 값). */
+public const val ONBOARDING_MAX_EXPERIENCE_CARDS: Int = 30
+
 /** A localized, stable filter shown above the onboarding experience list. */
 @Immutable
 public data class OnboardingExperienceType(
@@ -74,6 +77,10 @@ public data class OnboardingStep3UiState(
      */
     public val isNextEnabled: Boolean
         get() = isInputEnabled
+
+    /** 상한(F1-3, 30개)에 닿으면 추가만 막는다 — 하나를 지우면 다시 열린다. */
+    public val isAddEnabled: Boolean
+        get() = isInputEnabled && experiences.size < ONBOARDING_MAX_EXPERIENCE_CARDS
 }
 
 /** User intentions emitted by [OnboardingStep3Screen]. */
@@ -82,7 +89,13 @@ public sealed interface OnboardingStep3Event {
         public val typeId: String,
     ) : OnboardingStep3Event
 
+    /** 카드 본문 탭 — 그 카드를 수정한다(F1-3). */
     public data class ExperienceSelected(
+        public val experienceId: String,
+    ) : OnboardingStep3Event
+
+    /** 카드 본문과 분리된 삭제 영역 탭 — 확인 다이얼로그를 연다. */
+    public data class ExperienceDeleteClicked(
         public val experienceId: String,
     ) : OnboardingStep3Event
 
