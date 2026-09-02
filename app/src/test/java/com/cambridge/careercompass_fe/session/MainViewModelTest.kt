@@ -4,6 +4,7 @@ import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
+import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
 import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.network.model.ApiException
 import kotlinx.coroutines.CompletableDeferred
@@ -64,9 +65,15 @@ class MainViewModelTest {
 
     private val MainViewModel.destination: AppStartDestination? get() = launch.value?.destination
 
+    /** 실제 배선과 같게 — 세션 진입 판정은 두 리포지토리를 받는 use case 가 한다. */
+    private fun mainViewModel(
+        authRepository: FakeAuthRepository,
+        userProfileRepository: FakeUserProfileRepository,
+    ) = MainViewModel(authRepository, ResolveSessionEntryUseCase(authRepository, userProfileRepository), reporter)
+
     @Test
     fun `세션이 없으면 로그인으로 시작한다`() {
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict(), reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
     }
@@ -74,15 +81,15 @@ class MainViewModelTest {
     @Test
     fun `세션이 있고 지문 로그인을 켰으면 지문 화면으로 시작한다`() {
         val viewModel =
-            MainViewModel(FakeAuthRepository(loggedIn = true, biometricEnabled = true), FakeUserProfileRepository.strict(), reporter)
+            mainViewModel(FakeAuthRepository(loggedIn = true, biometricEnabled = true), FakeUserProfileRepository.strict())
 
         assertEquals(AppStartDestination.BiometricLogin, viewModel.destination)
     }
 
     @Test
     fun `온보딩을 마치지 않은 세션은 온보딩으로, 마친 세션은 메인으로 간다`() {
-        val notDone = MainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)), reporter)
-        val done = MainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(true)), reporter)
+        val notDone = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)))
+        val done = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(true)))
 
         assertEquals(AppStartDestination.Onboarding, notDone.destination)
         assertEquals(AppStartDestination.Main, done.destination)
@@ -97,7 +104,7 @@ class MainViewModelTest {
                 }
             }
 
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles, reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
     }
@@ -113,9 +120,9 @@ class MainViewModelTest {
 
         assertEquals(
             AppStartDestination.Onboarding,
-            MainViewModel(FakeAuthRepository(loggedIn = true), cachedNotDone, reporter).destination,
+            mainViewModel(FakeAuthRepository(loggedIn = true), cachedNotDone).destination,
         )
-        assertEquals(AppStartDestination.Main, MainViewModel(FakeAuthRepository(loggedIn = true), hintDone, reporter).destination)
+        assertEquals(AppStartDestination.Main, mainViewModel(FakeAuthRepository(loggedIn = true), hintDone).destination)
         assertEquals(2, reporter.recorded.size)
         assertEquals("start_profile", reporter.recorded.first()["app_stage"])
     }
@@ -125,14 +132,14 @@ class MainViewModelTest {
         // 신규 사용자의 첫 프로필 조회가 네트워크로 실패한 경우 — 메인으로 추정하면 온보딩을 영영 건너뛴다.
         val unknown = FakeUserProfileRepository().apply { onRefreshProfile = { networkFailure() } }
 
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), unknown, reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), unknown)
 
         assertEquals(AppStartDestination.Onboarding, viewModel.destination)
     }
 
     @Test
     fun `다시 계산하면 목적지가 같아도 revision 이 올라 NavHost 가 새로 만들어진다`() {
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict(), reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
         val first = requireNotNull(viewModel.launch.value)
 
         viewModel.refresh()
@@ -154,7 +161,7 @@ class MainViewModelTest {
                     gate.await()
                 }
             }
-        val viewModel = MainViewModel(FakeAuthRepository(loggedIn = true), profiles, reporter)
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
         assertNull(viewModel.launch.value)
 
         viewModel.refresh()
