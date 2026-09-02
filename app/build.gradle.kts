@@ -222,9 +222,9 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
 
     // App Startup — 기동 초기화는 app 매니페스트에 등록한 Initializer 로 실행한다.
+    // WorkManager 는 두지 않는다 — 아무 모듈도 쓰지 않는데 의존만 있으면 WorkManagerInitializer 가 App Startup 으로
+    // 매 콜드 스타트에 붙는다(#74). 쓰는 모듈이 생기면 그 모듈이 의존을 선언한다.
     implementation(libs.androidx.startup.runtime)
-    // DailyNotificationInitializer 가 WorkManagerInitializer 를 선행 의존으로 지정한다.
-    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.profileinstaller)
 
     // 카카오 OAuth redirect Activity(`com.kakao.sdk.auth.AuthCodeHandlerActivity`)를
