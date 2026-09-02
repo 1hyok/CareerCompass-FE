@@ -18,7 +18,6 @@ import com.cambridge.feature.onboarding.presentation.OnboardingStep4Event
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4Screen
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4UiState
 import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
-import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingSheetHost
 import com.cambridge.feature.onboarding.presentation.flow.util.UploadFileSelectionException
 import com.cambridge.feature.onboarding.presentation.flow.util.readUploadFile
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputEvent
@@ -26,6 +25,7 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInput
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategorySheet
 import com.cambridge.feature.onboarding.presentation.pastapplication.labelResId
+import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
 
 /**
  * Step 4(과거 지원서) 화면의 상태 배선. 파일 선택(SAF)은 여기서 열고, 읽은 [com.cambridge.core.model.application.UploadFile]

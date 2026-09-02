@@ -11,6 +11,7 @@ import com.cambridge.core.network.model.ApiException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -95,6 +96,18 @@ class MainViewModelTest {
             mainViewModel(FakeAuthRepository(loggedIn = true, biometricEnabled = true), FakeUserProfileRepository.strict())
 
         assertEquals(AppStartDestination.BiometricLogin, viewModel.destination)
+    }
+
+    /** 지문 등록 제안(#98)이 실제로 시작 목적지를 바꾸는지 — 등록 호출부터 다음 콜드 스타트까지를 잇는다. */
+    @Test
+    fun `지문을 등록한 뒤 앱을 다시 켜면 지문 화면으로 시작한다`() {
+        val authRepository = FakeAuthRepository(loggedIn = true)
+        val profiles = FakeUserProfileRepository(profile(onboardingDone = true))
+        assertEquals(AppStartDestination.Main, mainViewModel(authRepository, profiles).destination)
+
+        runBlocking { authRepository.registerBiometric().getOrThrow() }
+
+        assertEquals(AppStartDestination.BiometricLogin, mainViewModel(authRepository, profiles).destination)
     }
 
     @Test
