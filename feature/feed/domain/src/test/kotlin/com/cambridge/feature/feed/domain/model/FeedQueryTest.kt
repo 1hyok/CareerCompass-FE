@@ -8,6 +8,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
 class FeedQueryTest {
     @Test
@@ -80,11 +81,44 @@ class FeedQueryTest {
         assertFalse(FeedQuery(types = setOf(PostingType.Recruit)).isDefault)
         assertFalse(FeedQuery(boardIds = setOf(1L)).isDefault)
         assertFalse(FeedQuery(deadline = FeedDeadlineFilter.WithinWeek).isDefault)
+        assertFalse(FeedQuery(deadline = FeedDeadlineFilter.Range(start = NOVEMBER_FIRST, end = null)).isDefault)
         assertFalse(FeedQuery(minScore = 60).isDefault)
         assertFalse(FeedQuery(unreadOnly = true).isDefault)
         assertFalse(FeedQuery(sort = PostingSort.DueAsc).isDefault)
         assertFalse(FeedQuery(searchQuery = "카카오").isDefault)
         assertTrue(FeedQuery(searchQuery = "카카오").copy(searchQuery = "").isDefault)
+    }
+
+    @Test
+    fun `범위는 한쪽만 골라도 되지만 둘 다 비거나 뒤집히면 만들 수 없다`() {
+        FeedDeadlineFilter.Range(start = NOVEMBER_FIRST, end = null)
+        FeedDeadlineFilter.Range(start = null, end = NOVEMBER_LAST)
+        FeedDeadlineFilter.Range(start = NOVEMBER_FIRST, end = NOVEMBER_FIRST)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedDeadlineFilter.Range(start = null, end = null)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedDeadlineFilter.Range(start = NOVEMBER_LAST, end = NOVEMBER_FIRST)
+        }
+    }
+
+    @Test
+    fun `범위는 양 끝을 포함하고 열린 쪽은 언제나 통과한다`() {
+        val november = FeedDeadlineFilter.Range(start = NOVEMBER_FIRST, end = NOVEMBER_LAST)
+
+        assertTrue(november.contains(NOVEMBER_FIRST))
+        assertTrue(november.contains(NOVEMBER_LAST))
+        assertFalse(november.contains(NOVEMBER_FIRST.minusDays(1)))
+        assertFalse(november.contains(NOVEMBER_LAST.plusDays(1)))
+
+        val fromNovember = FeedDeadlineFilter.Range(start = NOVEMBER_FIRST, end = null)
+        assertTrue(fromNovember.contains(NOVEMBER_LAST.plusYears(1)))
+        assertFalse(fromNovember.contains(NOVEMBER_FIRST.minusDays(1)))
+
+        val untilNovember = FeedDeadlineFilter.Range(start = null, end = NOVEMBER_LAST)
+        assertTrue(untilNovember.contains(NOVEMBER_FIRST.minusYears(1)))
+        assertFalse(untilNovember.contains(NOVEMBER_LAST.plusDays(1)))
     }
 
     @Test
@@ -99,3 +133,6 @@ class FeedQueryTest {
         assertFalse(copied == base)
     }
 }
+
+private val NOVEMBER_FIRST: LocalDate = LocalDate.of(2026, 11, 1)
+private val NOVEMBER_LAST: LocalDate = LocalDate.of(2026, 11, 30)

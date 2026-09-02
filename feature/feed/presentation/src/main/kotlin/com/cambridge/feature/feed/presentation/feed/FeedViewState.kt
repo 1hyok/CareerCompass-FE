@@ -2,13 +2,18 @@ package com.cambridge.feature.feed.presentation.feed
 
 import com.cambridge.core.model.board.Board
 import com.cambridge.core.model.posting.Posting
-import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.presentation.FeedListingCategory
+import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
+import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
+import com.cambridge.feature.feed.presentation.shared.util.toDomainDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toListingCategory
 import com.cambridge.feature.feed.presentation.shared.util.toPostingTypes
+import com.cambridge.feature.feed.presentation.shared.util.toUiDeadlineFilter
+import com.cambridge.feature.feed.presentation.shared.util.toUiDeadlineRange
 import java.time.Instant
+import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter as DomainDeadlineFilter
 
 /** 목록 조회의 진행 상태. 항목은 [FeedViewState.postings] 에 따로 누적된다. */
 public sealed interface FeedLoadState {
@@ -47,40 +52,54 @@ public enum class FeedMessage {
 /**
  * 필터 시트가 편집 중인 조건 — 「적용」 전까지 [FeedQuery] 에 반영되지 않는다.
  *
- * 카테고리는 칩 행과 같은 값을 다루므로 시트에서도 함께 고를 수 있다.
+ * 카테고리는 칩 행과 같은 값을 다루므로 시트에서도 함께 고를 수 있다. 마감일은 도메인 값이 아니라 시트
+ * 선택지([FeedDeadlineFilter])로 들고 있다 — 「직접 지정」을 고른 뒤 날짜를 찍기 전까지는 도메인으로
+ * 옮길 수 없는 중간 상태이고, 그 상태에서 「적용」을 막아야 하기 때문이다.
+ *
+ * @property deadlineRange 「직접 지정」의 편집값. 시트가 열려 있는 동안에는 다른 선택지를 골라도 지우지
+ *  않아, 되돌아오면 찍어 둔 날짜가 그대로 남는다.
  */
 public data class FeedFilterDraft(
     val category: FeedListingCategory,
     val boardIds: Set<Long>,
     val deadline: FeedDeadlineFilter,
+    val deadlineRange: FeedDeadlineRange,
     val minScore: Int?,
     val unreadOnly: Boolean,
 ) {
-    public fun applyTo(query: FeedQuery): FeedQuery =
-        query.copy(
-            types = category.toPostingTypes(),
-            boardIds = boardIds,
-            deadline = deadline,
-            minScore = minScore,
-            unreadOnly = unreadOnly,
-        )
+    /** 지금 「적용」을 누를 수 있는가 — 잘못된 범위는 막는다. */
+    public val isApplicable: Boolean get() = deadline.toDomainDeadlineFilter(deadlineRange) != null
+
+    /** 적용할 수 없는 초안([isApplicable] 이 false)이면 null 이다. */
+    public fun applyTo(query: FeedQuery): FeedQuery? =
+        deadline.toDomainDeadlineFilter(deadlineRange)?.let { deadlineFilter ->
+            query.copy(
+                types = category.toPostingTypes(),
+                boardIds = boardIds,
+                deadline = deadlineFilter,
+                minScore = minScore,
+                unreadOnly = unreadOnly,
+            )
+        }
 
     public companion object {
         public fun from(query: FeedQuery): FeedFilterDraft =
             FeedFilterDraft(
                 category = query.types.toListingCategory(),
                 boardIds = query.boardIds,
-                deadline = query.deadline,
+                deadline = query.deadline.toUiDeadlineFilter(),
+                deadlineRange = query.deadline.toUiDeadlineRange(),
                 minScore = query.minScore,
                 unreadOnly = query.unreadOnly,
             )
 
-        /** 「초기화」 — 카테고리까지 「전체」로 되돌린다. */
+        /** 「초기화」 — 카테고리와 고른 마감일 범위까지 되돌린다. */
         public val Default: FeedFilterDraft =
             FeedFilterDraft(
                 category = FeedListingCategory.All,
                 boardIds = emptySet(),
                 deadline = FeedDeadlineFilter.All,
+                deadlineRange = FeedDeadlineRange(),
                 minScore = null,
                 unreadOnly = false,
             )
@@ -127,7 +146,7 @@ public data class FeedViewState(
         get() =
             listOf(
                 query.boardIds.isNotEmpty(),
-                query.deadline != FeedDeadlineFilter.All,
+                query.deadline != DomainDeadlineFilter.All,
                 query.minScore != null,
                 query.unreadOnly,
             ).count { it }

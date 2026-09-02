@@ -19,7 +19,6 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
-import com.cambridge.feature.feed.presentation.shared.util.toDomainDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toMinScore
 import com.cambridge.feature.feed.presentation.shared.util.toPostingSort
 import com.cambridge.feature.feed.presentation.shared.util.toPostingTypes
@@ -33,6 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
@@ -122,7 +122,22 @@ public class FeedViewModel
                 }
 
                 is FeedFilterEvent.DeadlineSelected -> {
-                    updateDraft { it.copy(deadline = event.deadline.toDomainDeadlineFilter()) }
+                    updateDraft { it.copy(deadline = event.deadline) }
+                }
+
+                is FeedFilterEvent.DeadlineRangeEndpointClicked -> {
+                    updateDraft { it.copy(deadlineRange = it.deadlineRange.copy(editing = event.endpoint)) }
+                }
+
+                is FeedFilterEvent.DeadlineRangeDateSelected -> {
+                    updateDraft { draft ->
+                        val endpoint = draft.deadlineRange.editing ?: return@updateDraft draft
+                        draft.copy(deadlineRange = draft.deadlineRange.withDate(endpoint, event.date))
+                    }
+                }
+
+                FeedFilterEvent.DeadlineRangePickerDismissed -> {
+                    updateDraft { it.copy(deadlineRange = it.deadlineRange.copy(editing = null)) }
                 }
 
                 is FeedFilterEvent.MinScoreSelected -> {
@@ -138,9 +153,11 @@ public class FeedViewModel
                 }
 
                 FeedFilterEvent.ApplyClicked -> {
-                    val draft = _state.value.filterDraft ?: return
+                    // 잘못된 범위는 시트를 닫지 않는다 — 버튼이 이미 잠겨 있지만, 계약을 여기서도 지켜
+                    // 도메인이 만들 수 없는 값을 조회 조건에 넣지 않는다.
+                    val applied = _state.value.filterDraft?.applyTo(_state.value.query) ?: return
                     _state.update { it.copy(filterDraft = null) }
-                    applyQuery(draft.applyTo(_state.value.query))
+                    applyQuery(applied)
                 }
 
                 FeedFilterEvent.DismissClicked -> {
@@ -233,6 +250,10 @@ public class FeedViewModel
          *
          * 스냅샷에는 다음 커서가 없으므로 [onLoadMore] 는 잠기고, 북마크는 [FeedMessage.OfflineReadOnly] 로 막는다.
          * 검색·필터·정렬은 그대로 재조회를 부르고, 성공하면 [online] 으로 온라인 목록으로 돌아온다.
+         *
+         * 스냅샷은 기본 조회의 사본이라 지금 걸린 마감일·검색어가 반영돼 있지 않다 — 조회와 같은 규칙
+         * ([FeedQuery.filterClientSide])을 여기서 한 번 더 적용해, 「마감일 범위」를 걸어 둔 채 오프라인으로
+         * 넘어온 사람이 범위 밖 공고를 보지 않게 한다.
          */
         public fun showOfflineSnapshot() {
             val snapshot = _state.value.offlineSnapshot ?: return
@@ -240,7 +261,7 @@ public class FeedViewModel
             loadMoreJob?.cancel()
             _state.update {
                 it.copy(
-                    postings = snapshot.postings,
+                    postings = it.query.filterClientSide(snapshot.postings, LocalDate.now(clock)),
                     nextCursor = null,
                     loadState = FeedLoadState.Loaded,
                     isRefreshing = false,

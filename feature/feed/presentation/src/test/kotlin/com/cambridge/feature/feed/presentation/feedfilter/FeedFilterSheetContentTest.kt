@@ -6,6 +6,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasClickAction
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,6 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -76,6 +79,100 @@ class FeedFilterSheetContentTest {
             .performScrollTo()
             .assertIsOn()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+    }
+
+    @Test
+    fun deadlineRangeEditor_isHiddenWhileAPresetIsSelected() {
+        composeRule.setFilterContent(state = sampleState())
+
+        composeRule.onNodeWithText("직접 지정").performScrollTo().assertIsOff()
+        composeRule.onAllNodesWithContentDescription("시작일, 선택 안 함").assertCountEquals(0)
+    }
+
+    @Test
+    fun deadlineRangeEditor_isDrawnForTheRangeOption() {
+        composeRule.setFilterContent(state = rangeState(FeedDeadlineRange()))
+
+        composeRule.onNode(hasText("직접 지정") and hasStateDescription("선택됨")).performScrollTo().assertIsOn()
+        composeRule.onNodeWithContentDescription("시작일, 선택 안 함").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("종료일, 선택 안 함").assertIsDisplayed()
+    }
+
+    @Test
+    fun deadlineRangeFields_showPickedDatesAndAskForTheEndpointTheyOwn() {
+        val events = mutableListOf<FeedFilterEvent>()
+        composeRule.setFilterContent(
+            state = rangeState(FeedDeadlineRange(start = NOVEMBER_FIRST, end = NOVEMBER_LAST)),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("2026.11.01").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("종료일, 2026.11.30").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription("시작일, 2026.11.01").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.End),
+                    FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.Start),
+                ),
+                events,
+            )
+        }
+    }
+
+    @Test
+    fun emptyRange_blocksApplyWithAReason() {
+        val events = mutableListOf<FeedFilterEvent>()
+        composeRule.setFilterContent(state = rangeState(FeedDeadlineRange()), onEvent = events::add)
+
+        composeRule.onNodeWithText("시작일이나 종료일 중 하나는 골라야 해요").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("12개 공고 보기") and hasClickAction()).assertIsNotEnabled().performClick()
+
+        composeRule.runOnIdle { assertEquals(emptyList<FeedFilterEvent>(), events) }
+    }
+
+    @Test
+    fun invertedRange_blocksApplyWithAReason() {
+        val events = mutableListOf<FeedFilterEvent>()
+        composeRule.setFilterContent(
+            state = rangeState(FeedDeadlineRange(start = NOVEMBER_LAST, end = NOVEMBER_FIRST)),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("시작일이 종료일보다 늦어요").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("12개 공고 보기") and hasClickAction()).assertIsNotEnabled().performClick()
+
+        composeRule.runOnIdle { assertEquals(emptyList<FeedFilterEvent>(), events) }
+    }
+
+    @Test
+    fun validRange_leavesApplyEnabled() {
+        val events = mutableListOf<FeedFilterEvent>()
+        composeRule.setFilterContent(
+            state = rangeState(FeedDeadlineRange(start = NOVEMBER_FIRST, end = NOVEMBER_LAST)),
+            onEvent = events::add,
+        )
+
+        composeRule.onNode(hasText("12개 공고 보기") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle { assertEquals(listOf(FeedFilterEvent.ApplyClicked), events) }
+    }
+
+    @Test
+    fun datePicker_opensForTheEditedEndpointAndCanBeCancelled() {
+        val events = mutableListOf<FeedFilterEvent>()
+        composeRule.setFilterContent(
+            state = rangeState(FeedDeadlineRange(editing = FeedDeadlineRangeEndpoint.Start)),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("취소").assertIsDisplayed()
+        composeRule.onNodeWithText("취소").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedFilterEvent.DeadlineRangePickerDismissed), events)
+        }
     }
 
     @Test
@@ -142,6 +239,8 @@ private fun sampleState(
     selectedBoardIds: Set<String> = emptySet(),
     unreadOnly: Boolean = false,
     matchingCount: Int? = 12,
+    deadline: FeedDeadlineFilter = FeedDeadlineFilter.All,
+    deadlineRange: FeedDeadlineRange? = null,
 ): FeedFilterUiState =
     FeedFilterUiState(
         categories =
@@ -153,8 +252,15 @@ private fun sampleState(
         selectedCategory = FeedListingCategory.Employment,
         boards = boards,
         selectedBoardIds = selectedBoardIds,
-        deadline = FeedDeadlineFilter.All,
+        deadline = deadline,
+        deadlineRange = deadlineRange,
         minScore = FeedMinScoreFilter.All,
         unreadOnly = unreadOnly,
         matchingCount = matchingCount,
     )
+
+private fun rangeState(range: FeedDeadlineRange): FeedFilterUiState =
+    sampleState(deadline = FeedDeadlineFilter.Range, deadlineRange = range)
+
+private val NOVEMBER_FIRST: LocalDate = LocalDate.of(2026, 11, 1)
+private val NOVEMBER_LAST: LocalDate = LocalDate.of(2026, 11, 30)

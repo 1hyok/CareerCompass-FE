@@ -23,6 +23,9 @@ import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.TODAY
 import com.cambridge.feature.feed.presentation.board
+import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
+import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRangeEndpoint
+import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRangeError
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
@@ -35,6 +38,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -190,6 +194,116 @@ class FeedViewModelTest {
             repository.queries.last(),
         )
         assertEquals(listOf(1L), state.postings.map(Posting::id))
+    }
+
+    @Test
+    fun `직접 지정 범위는 날짜를 고른 뒤에야 적용되고 다시 열면 그대로 남는다`() {
+        val repository =
+            FakePostingRepository(
+                initial =
+                    listOf(
+                        posting(id = 1, dueDate = TODAY.plusDays(10)),
+                        posting(id = 2, dueDate = TODAY.plusDays(40)),
+                        posting(id = 3, dueDate = null),
+                    ),
+            )
+        val viewModel = viewModel(postingRepository = repository)
+
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineSelected(UiDeadlineFilter.Range))
+
+        // 날짜가 하나도 없으면 거를 것이 없다 — 「적용」은 시트를 닫지 않는다.
+        viewModel.onFilterEvent(FeedFilterEvent.ApplyClicked)
+        assertNotNull(viewModel.state.value.filterDraft)
+
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.Start))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY.plusDays(5)))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.End))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY.plusDays(20)))
+        viewModel.onFilterEvent(FeedFilterEvent.ApplyClicked)
+
+        val state = viewModel.state.value
+        assertNull(state.filterDraft)
+        assertEquals(
+            FeedDeadlineFilter.Range(start = TODAY.plusDays(5), end = TODAY.plusDays(20)),
+            state.query.deadline,
+        )
+        assertEquals(listOf(1L), state.postings.map(Posting::id))
+        assertEquals(1, state.activeFilterCount)
+
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+
+        val reopened = requireNotNull(viewModel.state.value.filterDraft)
+        assertEquals(UiDeadlineFilter.Range, reopened.deadline)
+        assertEquals(
+            FeedDeadlineRange(start = TODAY.plusDays(5), end = TODAY.plusDays(20)),
+            reopened.deadlineRange,
+        )
+    }
+
+    @Test
+    fun `뒤집힌 범위는 적용되지 않고 초기화로 지워진다`() {
+        val viewModel = viewModel()
+
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineSelected(UiDeadlineFilter.Range))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.Start))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY.plusDays(20)))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.End))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY.plusDays(5)))
+
+        val draft = requireNotNull(viewModel.state.value.filterDraft)
+        assertFalse(draft.isApplicable)
+        assertEquals(FeedDeadlineRangeError.StartAfterEnd, draft.deadlineRange.error)
+
+        viewModel.onFilterEvent(FeedFilterEvent.ApplyClicked)
+
+        assertNotNull(viewModel.state.value.filterDraft)
+        assertEquals(FeedDeadlineFilter.All, viewModel.state.value.query.deadline)
+
+        viewModel.onFilterEvent(FeedFilterEvent.ResetClicked)
+
+        assertEquals(FeedFilterDraft.Default, viewModel.state.value.filterDraft)
+        assertEquals(
+            FeedDeadlineRange(),
+            viewModel.state.value.filterDraft
+                ?.deadlineRange,
+        )
+    }
+
+    @Test
+    fun `날짜 선택기를 그냥 닫으면 고른 범위는 그대로다`() {
+        val viewModel = viewModel()
+
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineSelected(UiDeadlineFilter.Range))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.Start))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.End))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangePickerDismissed)
+
+        assertEquals(
+            FeedDeadlineRange(start = TODAY, end = null, editing = null),
+            viewModel.state.value.filterDraft
+                ?.deadlineRange,
+        )
+    }
+
+    @Test
+    fun `범위가 걸린 조회는 스냅샷으로 저장하지 않는다`() {
+        // 범위도 조건이다 — 부분집합을 「전체」로 저장하면 오프라인 목록이 거짓말을 한다.
+        val snapshots = FakeFeedSnapshotRepository()
+        val viewModel = viewModel(snapshotRepository = snapshots)
+        snapshots.saved.clear()
+
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineSelected(UiDeadlineFilter.Range))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.Start))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY))
+        viewModel.onFilterEvent(FeedFilterEvent.ApplyClicked)
+
+        assertFalse(viewModel.state.value.query.isDefault)
+        assertTrue(snapshots.saved.isEmpty())
     }
 
     @Test
@@ -499,6 +613,38 @@ class FeedViewModelTest {
         assertEquals(listOf(7L, 8L), state.postings.map(Posting::id))
         assertEquals(FIXED_CLOCK.instant(), state.offlineSavedAt)
         assertNull(state.nextCursor)
+    }
+
+    @Test
+    fun `오프라인 목록에도 마감일 범위가 그대로 적용된다`() {
+        // 스냅샷은 기본 조회의 사본이라 범위가 반영돼 있지 않다 — 걸어 둔 조건 밖 공고가 새어 나오면 안 된다.
+        val snapshots =
+            FakeFeedSnapshotRepository(
+                initial =
+                    FeedSnapshot(
+                        postings =
+                            listOf(
+                                posting(id = 7, dueDate = TODAY.plusDays(10)),
+                                posting(id = 8, dueDate = TODAY.plusDays(40)),
+                                posting(id = 9, dueDate = null),
+                            ),
+                        savedAt = FIXED_CLOCK.instant(),
+                    ),
+            )
+        val viewModel = viewModel(postingRepository = offlinePostings(), snapshotRepository = snapshots)
+
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineSelected(UiDeadlineFilter.Range))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.Start))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY.plusDays(5)))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.End))
+        viewModel.onFilterEvent(FeedFilterEvent.DeadlineRangeDateSelected(TODAY.plusDays(20)))
+        viewModel.onFilterEvent(FeedFilterEvent.ApplyClicked)
+        viewModel.showOfflineSnapshot()
+
+        val state = viewModel.state.value
+        assertTrue(state.isOffline)
+        assertEquals(listOf(7L), state.postings.map(Posting::id))
     }
 
     @Test
