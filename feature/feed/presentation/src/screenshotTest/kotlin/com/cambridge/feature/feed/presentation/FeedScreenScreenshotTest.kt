@@ -61,6 +61,7 @@ private fun feedPreviewState(): FeedUiState =
         selectedSort = FeedSortUiModel(id = "fit", label = "적합도 높은순"),
         totalListingCount = 12,
         content = FeedContentState.Loaded(feedPreviewListings()),
+        activeFilterCount = 2,
     )
 
 private fun feedPreviewListings(): List<FeedListingUiModel> =
@@ -111,6 +112,18 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             deadlineLabel = "D-30",
             isDeadlineUrgent = false,
             isNew = false,
+            isBookmarked = false,
+        ),
+        FeedListingUiModel(
+            id = "analyzing",
+            title = "학생회관 리모델링 공청회 참가자 모집",
+            category = FeedListingCategory.Other,
+            categoryLabel = "기타",
+            sourceLabel = "학교 게시판",
+            suitabilityScore = null,
+            deadlineLabel = "마감 미정",
+            isDeadlineUrgent = false,
+            isNew = true,
             isBookmarked = false,
         ),
     )

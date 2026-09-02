@@ -2,4 +2,9 @@
 <resources>
     <string name="feed_posting_raw_title">원문 보기</string>
     <string name="feed_posting_raw_open_original">원본 링크 열기</string>
+    <string name="feed_posting_raw_source">%1$s · %2$s 수집</string>
+    <string name="feed_posting_raw_empty_content">본문을 가져오지 못했어요</string>
+    <string name="feed_posting_raw_error_title">원문을 불러오지 못했어요</string>
+    <string name="feed_posting_raw_error_description">잠시 후 다시 시도해 주세요</string>
+    <string name="feed_posting_raw_error_retry">다시 시도</string>
 </resources>

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityAxisUiModel
+import com.cambridge.feature.feed.presentation.shared.component.HIGH_SCORE_THRESHOLD
 
 /** One analysis axis: label, weight caption, score, and a thin score bar (spec F3-2). */
 @Composable

@@ -122,7 +122,12 @@ public enum class BoardStatus {
     Failing,
 }
 
-/** Display-only data for one registered board. */
+/**
+ * Display-only data for one registered board.
+ *
+ * [postingCount] is `null` when the source does not report how many postings the board produced;
+ * the count row is then omitted instead of showing a misleading zero.
+ */
 public data class BoardUiModel(
     val id: String,
     val name: String,
@@ -133,7 +138,7 @@ public data class BoardUiModel(
     val isActive: Boolean,
     val failCount: Int,
     val lastCollectedLabel: String?,
-    val postingCount: Int,
+    val postingCount: Int?,
 ) {
     init {
         require(id.isNotBlank()) { "id must not be blank" }
@@ -144,7 +149,7 @@ public data class BoardUiModel(
         require(lastCollectedLabel == null || lastCollectedLabel.isNotBlank()) {
             "lastCollectedLabel must be null or non-blank"
         }
-        require(postingCount >= 0) { "postingCount must not be negative" }
+        require(postingCount == null || postingCount >= 0) { "postingCount must be null or non-negative" }
     }
 }
 
