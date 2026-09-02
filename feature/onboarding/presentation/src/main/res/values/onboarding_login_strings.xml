@@ -7,4 +7,7 @@
     <string name="onboarding_login_google_icon" translatable="false">G</string>
     <string name="onboarding_login_loading">로그인하는 중이에요</string>
     <string name="onboarding_login_terms_notice">계속하면 서비스 이용약관과 개인정보 처리방침에 동의하는 것으로 간주돼요</string>
+    <string name="onboarding_login_failure_network">네트워크 연결을 확인한 뒤 다시 시도해 주세요</string>
+    <string name="onboarding_login_failure_rejected">로그인에 실패했어요. 다시 시도해 주세요</string>
+    <string name="onboarding_login_failure_unknown">문제가 생겨 로그인하지 못했어요. 잠시 후 다시 시도해 주세요</string>
 </resources>

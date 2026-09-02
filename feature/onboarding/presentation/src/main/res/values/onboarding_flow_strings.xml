@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_failure_network">네트워크 연결을 확인한 뒤 다시 시도해 주세요</string>
+    <string name="onboarding_failure_session_expired">로그인이 만료됐어요. 다시 로그인해 주세요</string>
+    <string name="onboarding_failure_limit_exceeded">더 이상 추가할 수 없어요. 상한에 도달했어요</string>
+    <string name="onboarding_failure_invalid_input">입력값을 다시 확인해 주세요</string>
+    <string name="onboarding_failure_server">서버에 문제가 있어요. 잠시 후 다시 시도해 주세요</string>
+    <string name="onboarding_failure_unsupported_file">PDF, DOCX, TXT 파일만 올릴 수 있어요</string>
+    <string name="onboarding_failure_file_too_large">파일은 10MB 이하만 올릴 수 있어요</string>
+    <string name="onboarding_failure_unknown">문제가 생겼어요. 잠시 후 다시 시도해 주세요</string>
+    <string name="onboarding_upload_failed_network">연결 실패</string>
+    <string name="onboarding_upload_failed_session_expired">로그인 만료</string>
+    <string name="onboarding_upload_failed_limit">상한 초과</string>
+    <string name="onboarding_upload_failed_invalid">지원하지 않는 파일</string>
+    <string name="onboarding_upload_failed_server">서버 오류</string>
+    <string name="onboarding_upload_failed_unknown">처리 실패</string>
+    <string name="onboarding_field_required">필수 입력이에요</string>
+    <string name="onboarding_field_too_long">%1$d자 이내로 입력해 주세요</string>
+    <string name="onboarding_field_invalid_format">형식이 올바르지 않아요</string>
+    <string name="onboarding_field_out_of_range">허용 범위를 벗어났어요</string>
+    <string name="onboarding_step1_gpa_invalid">숫자로 입력해 주세요</string>
+    <string name="onboarding_step1_gpa_out_of_range">0.0 ~ 4.5 사이로 입력해 주세요</string>
+    <string name="onboarding_step1_graduation_invalid">YYYY.MM 형식으로 입력해 주세요</string>
+    <string name="onboarding_step1_graduation_out_of_range">2000년 이후로 선택해 주세요</string>
+    <string name="onboarding_experience_type_project">프로젝트</string>
+    <string name="onboarding_experience_type_award">수상</string>
+    <string name="onboarding_experience_type_intern">인턴</string>
+    <string name="onboarding_experience_type_activity">대외활동</string>
+    <string name="onboarding_experience_type_certificate">자격증</string>
+    <string name="onboarding_experience_period_range">%1$s – %2$s</string>
+    <string name="onboarding_experience_period_ongoing">진행 중</string>
+    <string name="onboarding_experience_period_unknown">기간 미입력</string>
+    <string name="onboarding_experience_role_intern">%1$s · %2$s</string>
+    <string name="onboarding_experience_role_fallback_project">프로젝트</string>
+    <string name="onboarding_experience_role_fallback_certificate">자격증</string>
+</resources>

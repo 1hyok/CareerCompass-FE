@@ -6,11 +6,23 @@ plugins {
     id("careercompass.kover")
 }
 
+// Google 로그인(Credential Manager)의 서버 클라이언트 ID. 읽기와 release 가드는 socialLoginKey 가 한 호출로 배선한다 —
+// 앱 모듈의 KAKAO_NATIVE_APP_KEY 와 같은 경로(local.properties → 환경변수)다.
+val googleWebClientId = socialLoginKey("GOOGLE_WEB_CLIENT_ID")
+
 android {
     namespace = "com.cambridge.feature.onboarding.presentation"
     resourcePrefix = "onboarding_"
     testOptions.unitTests.isIncludeAndroidResources = true
     experimentalProperties["android.experimental.enableScreenshotTest"] = true
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    defaultConfig {
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
+    }
 }
 
 dependencies {
@@ -20,9 +32,21 @@ dependencies {
     implementation(projects.core.model)
     implementation(projects.core.ui)
 
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.kakao.sdk.user)
+    implementation(libs.kakao.sdk.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.androidx.biometric)
+
     testImplementation(libs.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.navigation.testing)
+    testImplementation(testFixtures(projects.core.domain))
+    testImplementation(testFixtures(projects.feature.onboarding.domain))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     screenshotTestImplementation(libs.screenshot.validation.api)
     screenshotTestImplementation(libs.androidx.compose.ui.tooling)

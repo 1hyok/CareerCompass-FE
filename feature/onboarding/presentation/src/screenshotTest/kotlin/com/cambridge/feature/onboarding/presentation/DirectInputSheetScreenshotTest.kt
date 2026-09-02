@@ -1,0 +1,52 @@
+package com.cambridge.feature.onboarding.presentation
+
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import com.android.tools.screenshot.PreviewTest
+import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputSheet
+import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputState
+import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
+
+@PreviewTest
+@Preview(name = "Direct input empty", widthDp = 360, heightDp = 800)
+@Composable
+public fun DirectInputEmptyPreview() {
+    DirectInputPreviewHost(state = DirectInputState())
+}
+
+@PreviewTest
+@Preview(name = "Direct input filled", widthDp = 360, heightDp = 800)
+@Composable
+public fun DirectInputFilledPreview() {
+    DirectInputPreviewHost(
+        state =
+            DirectInputState(
+                label = "2024 카카오 인턴 자소서",
+                content = "지원 동기: 사용자에게 닿는 제품을 만들고 싶어 지원했습니다.\n\n성장 배경: ...",
+            ),
+    )
+}
+
+@PreviewTest
+@Preview(name = "Direct input errors", widthDp = 360, heightDp = 800)
+@Composable
+public fun DirectInputErrorPreview() {
+    DirectInputPreviewHost(
+        state =
+            DirectInputState(
+                labelError = OnboardingFieldError.Required,
+                contentError = OnboardingFieldError.Required,
+            ),
+    )
+}
+
+@Composable
+private fun DirectInputPreviewHost(state: DirectInputState) {
+    CareerCompassTheme {
+        Surface(color = CareerCompassTheme.colors.surface) {
+            DirectInputSheet(state = state, onEvent = {})
+        }
+    }
+}
