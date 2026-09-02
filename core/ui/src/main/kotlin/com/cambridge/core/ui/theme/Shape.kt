@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 public class CareerCompassShapes internal constructor(
     public val control: CornerBasedShape,
     public val largeControl: CornerBasedShape,
+    public val card: CornerBasedShape,
     public val pill: CornerBasedShape,
 )
 
@@ -18,6 +19,7 @@ internal val defaultCareerCompassShapes =
     CareerCompassShapes(
         control = RoundedCornerShape(10.dp),
         largeControl = RoundedCornerShape(12.dp),
+        card = RoundedCornerShape(16.dp),
         pill = RoundedCornerShape(percent = 50),
     )
 
