@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Compose/일반 Activity용 (스플래시 이후 postSplashScreenTheme) -->
-    <style name="Theme.CareerCompassfe.Main" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Compose/일반 Activity용 (스플래시 이후 postSplashScreenTheme). 다크는 values-night/themes.xml 이 덮어쓴다. -->
+    <!-- windowBackground 를 스플래시 배경과 같은 값으로 두어 스플래시 → 첫 컴포지션 사이에 배경이 튀지 않게 한다. -->
+    <style name="Theme.CareerCompassfe.Main" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
 
     <!-- 런처(MainActivity) 전용: Theme.SplashScreen + installSplashScreen() -->
     <style name="Theme.CareerCompassfe.Starting" parent="Theme.SplashScreen">

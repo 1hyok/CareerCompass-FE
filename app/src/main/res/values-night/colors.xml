@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- CareerCompassColors.subtleSurface (다크) 와 동일 #0A0A0A -->
+    <color name="splash_background">#FF0A0A0A</color>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 다크 모드의 Theme.CareerCompassfe.Main. appcompat 없이 DayNight 를 만들기 위해 부모만 다크 Material 로 바꾼다.
+         Theme.CareerCompassfe.Starting 은 Theme.SplashScreen 자체가 DayNight 라 여기서 다시 선언하지 않는다. -->
+    <style name="Theme.CareerCompassfe.Main" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+</resources>

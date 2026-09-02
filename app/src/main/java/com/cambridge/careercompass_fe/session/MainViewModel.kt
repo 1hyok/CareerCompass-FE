@@ -2,6 +2,7 @@ package com.cambridge.careercompass_fe.session
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cambridge.careercompass_fe.navigation.AppDeepLink
 import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
@@ -49,6 +50,15 @@ public class MainViewModel
         /** 초기 진입 시 null(로딩)이며, 세션·프로필 확인 뒤 확정된다. */
         public val launch: StateFlow<AppShellLaunch?> = _launch.asStateFlow()
 
+        private val _pendingDeepLink = MutableStateFlow<AppDeepLink?>(null)
+
+        /**
+         * 아직 적용하지 않은 딥링크(`careercompass://postings/{id}`) — `MainActivity` 가 intent 에서 파싱해 싣고,
+         * `AppNavigation` 이 피드 그래프 안에서 이동한 뒤 [consumeDeepLink] 로 비운다. 로그인·온보딩 중에 들어온 것은
+         * 인증을 마칠 때까지 여기 머문다.
+         */
+        public val pendingDeepLink: StateFlow<AppDeepLink?> = _pendingDeepLink.asStateFlow()
+
         // 프로세스마다 다른 시작값 — 이전 프로세스의 NavController 저장 상태와 키가 겹치지 않는다.
         private var revision: Long = System.nanoTime()
         private var resolveJob: Job? = null
@@ -56,6 +66,15 @@ public class MainViewModel
 
         init {
             refresh()
+        }
+
+        /** intent 의 딥링크를 보관한다. 계약에 맞지 않아 파싱이 null 이면 무시한다 — 보관 중인 것도 지우지 않는다. */
+        public fun onDeepLink(link: AppDeepLink?) {
+            if (link != null) _pendingDeepLink.value = link
+        }
+
+        public fun consumeDeepLink() {
+            _pendingDeepLink.value = null
         }
 
         /**
@@ -76,9 +95,15 @@ public class MainViewModel
                 }
         }
 
-        /** 새 시작 목적지를 흘린다. revision 이 올라 NavHost 가 새로 만들어진다. */
+        /**
+         * 새 시작 목적지를 흘린다. [revision] 이 올라 NavHost 가 새로 만들어진다.
+         *
+         * 첫 계산이 아니면 소비되지 않은 딥링크를 버린다 — 다른 계정으로 로그인해 남의 알림 공고가 열리지 않게.
+         * 첫 계산([launch] 가 아직 null)에서는 지킨다: 앱이 뜨기 전에 받은 딥링크가 거기 있다.
+         */
         private fun emit(destination: AppStartDestination) {
             revision += 1
+            if (_launch.value != null) _pendingDeepLink.value = null
             _launch.value = AppShellLaunch(revision = revision, destination = destination)
         }
 
@@ -105,13 +130,11 @@ public class MainViewModel
         /**
          * 캐시로 메인에 들어간 뒤 서버와 한 번 맞춰 본다.
          *
-         * - 서버가 확정했고 온보딩 미완료거나 세션이 끝났으면 다시 계산한다(use case 가 401 에서 로컬 세션을 이미
-         *   정리했다). 피드가 잠깐 보였다가 온보딩·로그인으로 바뀌는데, 서버가 완료를 되돌렸거나 세션이 만료된 드문
-         *   경우라 허용한다 — 캐시를 믿고 먼저 들어가는 대가다.
+         * - 서버가 확정했고 온보딩 미완료거나 세션이 끝났으면 그 목적지를 그대로 반영한다(use case 가 401 에서 로컬
+         *   세션을 이미 정리했다). 피드가 잠깐 보였다가 온보딩·로그인으로 바뀌는데, 서버가 완료를 되돌렸거나 세션이
+         *   만료된 드문 경우라 허용한다 — 캐시를 믿고 먼저 들어가는 대가다.
          * - 서버 확인 자체가 실패해 캐시로 판단한 결과([SessionEntry.fallbackCause])면 기록만 남기고 목적지를 유지한다.
          *   이미 그 캐시로 들어와 있으므로 화면을 흔들 이유가 없다(오프라인 시작).
-         *
-         * 다시 계산을 부르면 [refresh] 가 이 잡을 취소하지만 남은 작업이 없어 무해하다.
          */
         private fun verifyProfileBehindMain() {
             profileVerifyJob?.cancel()

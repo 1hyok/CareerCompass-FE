@@ -33,6 +33,10 @@ public class AppState(
                 currentDestination?.hierarchy?.any { destination -> destination.hasRoute(route::class) } == true
             }?.key ?: CareerCompassBottomTab.Feed
 
+    /** 현재 목적지가 메인 루트(피드 그래프) 안인가 — 인증 뒤에만 허용하는 이동(딥링크)을 지금 적용해도 되는지 판정한다. */
+    public fun isInMainRoot(currentDestination: NavDestination?): Boolean =
+        currentDestination?.hierarchy?.any { destination -> destination.hasRoute(mainRoot) } == true
+
     /** 탭 전환 — 메인 루트를 백스택에 남기고 탭 상태를 저장·복원한다. */
     public fun navigateToTab(tab: CareerCompassBottomTab) {
         val route = tabRoutes.getValue(tab)
