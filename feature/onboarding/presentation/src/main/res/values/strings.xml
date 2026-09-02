@@ -38,6 +38,12 @@
     <string name="onboarding_step4_document_retry_description">%1$s 분류 재시도</string>
     <string name="onboarding_step4_document_menu">%1$s 메뉴</string>
     <string name="onboarding_step4_document_options_icon" translatable="false">⋯</string>
+    <string name="onboarding_step4_document_expand">%1$s 분류 항목 펼치기</string>
+    <string name="onboarding_step4_document_collapse">%1$s 분류 항목 접기</string>
+    <string name="onboarding_step4_document_expand_icon" translatable="false">⌄</string>
+    <string name="onboarding_step4_document_collapse_icon" translatable="false">⌃</string>
+    <string name="onboarding_step4_item_needs_review">분류 확인 필요</string>
+    <string name="onboarding_step4_item_change_category">%1$s 분류 바꾸기</string>
     <string name="onboarding_step4_skip">건너뛰기</string>
     <string name="onboarding_step4_complete">완료</string>
 </resources>

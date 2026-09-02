@@ -55,6 +55,25 @@ public sealed interface OnboardingApplicationDocumentStatus {
     }
 }
 
+/**
+ * 분류가 끝난 지원서의 항목 하나 — 기능 스펙 F1-4.
+ *
+ * @property id 서버 항목 id. 분류 조정 요청이 이 값을 그대로 쓴다.
+ * @property needsReview 서버 분류가 불확실해(`confident=false`) 사용자 확인이 필요하다.
+ */
+@Immutable
+public data class OnboardingApplicationItem(
+    public val id: Long,
+    public val categoryLabel: String,
+    public val contentPreview: String,
+    public val needsReview: Boolean,
+) {
+    init {
+        require(categoryLabel.isNotBlank()) { "Application item categoryLabel must not be blank" }
+        require(contentPreview.isNotBlank()) { "Application item contentPreview must not be blank" }
+    }
+}
+
 /** A previously submitted application that can be reused during onboarding. */
 @Immutable
 public data class OnboardingApplicationDocument(
@@ -63,6 +82,7 @@ public data class OnboardingApplicationDocument(
     public val format: OnboardingApplicationDocumentFormat,
     public val fileSizeBytes: Long,
     public val status: OnboardingApplicationDocumentStatus,
+    public val items: List<OnboardingApplicationItem> = emptyList(),
 ) {
     init {
         require(id.isNotBlank()) { "Application document id must not be blank" }
@@ -73,18 +93,32 @@ public data class OnboardingApplicationDocument(
         require(fileSizeBytes in 1..ONBOARDING_MAX_APPLICATION_FILE_SIZE_BYTES) {
             "Application document fileSizeBytes must be within the upload limit"
         }
+        require(items.map(OnboardingApplicationItem::id).distinct().size == items.size) {
+            "Application item ids must be unique"
+        }
     }
+
+    /** 펼칠 것이 있어야 펼침 토글을 그린다 — 분류 항목이 0개인 문서는 카드만 남는다. */
+    public val isExpandable: Boolean
+        get() = status is OnboardingApplicationDocumentStatus.Completed && items.isNotEmpty()
 }
 
 /** Immutable rendering state for the fourth onboarding step. */
 @Immutable
 public data class OnboardingStep4UiState(
     public val uploadedDocuments: List<OnboardingApplicationDocument> = emptyList(),
+    public val expandedDocumentId: String? = null,
     public val isInputEnabled: Boolean = true,
     public val currentStep: Int = 4,
     public val totalSteps: Int = 4,
 ) {
     init {
+        require(
+            expandedDocumentId == null ||
+                uploadedDocuments.any { it.id == expandedDocumentId },
+        ) {
+            "expandedDocumentId must refer to an uploaded document"
+        }
         require(totalSteps > 0) { "totalSteps must be positive" }
         require(currentStep in 1..totalSteps) { "currentStep must be within 1..totalSteps" }
         require(uploadedDocuments.size <= ONBOARDING_MAX_APPLICATION_UPLOAD_COUNT) {
@@ -125,6 +159,17 @@ public sealed interface OnboardingStep4Event {
     /** Requests the document action menu, including removal. */
     public data class DocumentMenuClicked(
         public val documentId: String,
+    ) : OnboardingStep4Event
+
+    /** 분류 항목 목록을 펼치거나 접는다(F1-4 분류 확인). */
+    public data class DocumentExpandToggled(
+        public val documentId: String,
+    ) : OnboardingStep4Event
+
+    /** 항목의 분류를 바꾸려고 선택 시트를 연다. */
+    public data class ItemCategoryClicked(
+        public val documentId: String,
+        public val itemId: Long,
     ) : OnboardingStep4Event
 
     /** Requests classification retry for a failed document. */

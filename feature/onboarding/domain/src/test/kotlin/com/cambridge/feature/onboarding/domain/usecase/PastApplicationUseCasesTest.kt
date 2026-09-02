@@ -2,6 +2,8 @@ package com.cambridge.feature.onboarding.domain.usecase
 
 import com.cambridge.core.domain.testing.FakePastApplicationRepository
 import com.cambridge.core.model.application.PastApplication
+import com.cambridge.core.model.application.PastApplicationCategory
+import com.cambridge.core.model.application.PastApplicationItem
 import com.cambridge.core.model.application.UploadFile
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -54,5 +56,45 @@ class PastApplicationUseCasesTest {
             assertTrue(DeletePastApplicationUseCase(repository)(3L).isSuccess)
             assertTrue(repository.applications.isEmpty())
             assertTrue(DeletePastApplicationUseCase(repository)(3L).isFailure)
+        }
+
+    @Test
+    fun `분류 조정은 저장소가 돌려준 항목을 그대로 전달한다`() =
+        runTest {
+            val item = PastApplicationItem(id = 7L, category = PastApplicationCategory.Other, content = "내용", confident = false)
+            val existing = PastApplication(id = 3L, label = "지원서", items = listOf(item), createdAt = null)
+            val repository = FakePastApplicationRepository(initial = listOf(existing))
+
+            val updated =
+                UpdatePastApplicationItemCategoryUseCase(repository)(
+                    applicationId = 3L,
+                    itemId = 7L,
+                    category = PastApplicationCategory.Motivation,
+                ).getOrThrow()
+
+            assertEquals(PastApplicationCategory.Motivation, updated.category)
+            assertTrue(updated.confident)
+            assertEquals(
+                listOf(updated),
+                repository.applications
+                    .single()
+                    .items,
+            )
+        }
+
+    @Test
+    fun `분류 조정 실패는 그대로 전파한다`() =
+        runTest {
+            val failure = IOException("offline")
+            val repository = FakePastApplicationRepository(onUpdateItemCategory = { _, _, _ -> Result.failure(failure) })
+
+            assertSame(
+                failure,
+                UpdatePastApplicationItemCategoryUseCase(repository)(
+                    applicationId = 3L,
+                    itemId = 7L,
+                    category = PastApplicationCategory.Growth,
+                ).exceptionOrNull(),
+            )
         }
 }

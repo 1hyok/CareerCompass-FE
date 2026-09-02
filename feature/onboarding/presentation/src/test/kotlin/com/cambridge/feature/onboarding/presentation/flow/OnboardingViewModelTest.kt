@@ -27,6 +27,7 @@ import com.cambridge.feature.onboarding.domain.usecase.ProceedToPastApplicationU
 import com.cambridge.feature.onboarding.domain.usecase.ResolveOnboardingEntryUseCase
 import com.cambridge.feature.onboarding.domain.usecase.SaveBasicInfoUseCase
 import com.cambridge.feature.onboarding.domain.usecase.SaveJobPreferencesUseCase
+import com.cambridge.feature.onboarding.domain.usecase.UpdatePastApplicationItemCategoryUseCase
 import com.cambridge.feature.onboarding.domain.usecase.UploadPastApplicationUseCase
 import com.cambridge.feature.onboarding.presentation.OnboardingStep1Event
 import com.cambridge.feature.onboarding.presentation.OnboardingStep2Event
@@ -37,6 +38,7 @@ import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerEvent
 import com.cambridge.feature.onboarding.presentation.complete.OnboardingCompleteEvent
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputEvent
+import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 import kotlinx.coroutines.CompletableDeferred
@@ -87,6 +89,7 @@ class OnboardingViewModelTest {
             getOnboardingPastApplications = GetOnboardingPastApplicationsUseCase(pastApplicationRepository),
             uploadPastApplication = UploadPastApplicationUseCase(pastApplicationRepository),
             deletePastApplication = DeletePastApplicationUseCase(pastApplicationRepository),
+            updatePastApplicationItemCategory = UpdatePastApplicationItemCategoryUseCase(pastApplicationRepository),
             completeOnboarding = CompleteOnboardingUseCase(progressRepository, userProfileRepository),
             errorReporter = reporter,
         )
@@ -461,7 +464,7 @@ class OnboardingViewModelTest {
         val document = state.step4.documents.single()
         assertEquals("remote-9", document.id)
         assertEquals(9L, document.remoteId)
-        assertEquals(OnboardingUploadStatus.Completed(3), document.status)
+        assertEquals(3, (document.status as OnboardingUploadStatus.Completed).classifiedItemCount)
         assertNull(document.file)
     }
 
@@ -488,7 +491,7 @@ class OnboardingViewModelTest {
         val completed =
             viewModel.uiState.value.step4.documents
                 .single()
-        assertEquals(OnboardingUploadStatus.Completed(4), completed.status)
+        assertEquals(4, (completed.status as OnboardingUploadStatus.Completed).classifiedItemCount)
         assertEquals(11L, completed.remoteId)
         assertEquals("resume.pdf", pastApplicationRepository.uploads.single().second)
     }
@@ -512,7 +515,7 @@ class OnboardingViewModelTest {
         val retried =
             viewModel.uiState.value.step4.documents
                 .single()
-        assertEquals(OnboardingUploadStatus.Completed(0), retried.status)
+        assertEquals(0, (retried.status as OnboardingUploadStatus.Completed).classifiedItemCount)
         assertEquals(2, pastApplicationRepository.uploads.size)
         assertTrue(pastApplicationRepository.uploads.all { it.first === file })
     }
@@ -598,7 +601,120 @@ class OnboardingViewModelTest {
             viewModel.uiState.value.step4.documents
                 .single()
         assertEquals("2024 카카오 인턴 자소서", document.label)
-        assertEquals(OnboardingUploadStatus.Completed(0), document.status)
+        assertEquals(0, (document.status as OnboardingUploadStatus.Completed).classifiedItemCount)
+    }
+
+    @Test
+    fun `분류 항목은 펼쳤다 접을 수 있고 문서를 지우면 펼침도 함께 사라진다`() {
+        pastApplicationRepository.applications += samplePastApplication(id = 9L, itemCount = 2)
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
+        val viewModel = createViewModel()
+
+        viewModel.onStep4Event(OnboardingStep4Event.DocumentExpandToggled("remote-9"))
+        assertEquals("remote-9", viewModel.uiState.value.step4.expandedDocumentId)
+
+        viewModel.onStep4Event(OnboardingStep4Event.DocumentExpandToggled("remote-9"))
+        assertNull(viewModel.uiState.value.step4.expandedDocumentId)
+
+        viewModel.onStep4Event(OnboardingStep4Event.DocumentExpandToggled("remote-9"))
+        viewModel.onStep4Event(OnboardingStep4Event.DocumentMenuClicked("remote-9"))
+
+        assertTrue(
+            viewModel.uiState.value.step4.documents
+                .isEmpty(),
+        )
+        assertNull(viewModel.uiState.value.step4.expandedDocumentId)
+    }
+
+    @Test
+    fun `항목이 없는 문서는 펼치지 않는다`() {
+        pastApplicationRepository.applications += samplePastApplication(id = 9L, itemCount = 0)
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
+        val viewModel = createViewModel()
+
+        viewModel.onStep4Event(OnboardingStep4Event.DocumentExpandToggled("remote-9"))
+
+        assertNull(viewModel.uiState.value.step4.expandedDocumentId)
+    }
+
+    @Test
+    fun `분류 조정은 낙관적으로 반영하고 성공하면 서버 항목으로 맞춘다`() {
+        val gate = CompletableDeferred<Unit>()
+        pastApplicationRepository.applications += samplePastApplication(id = 9L, itemCount = 2, confident = false)
+        pastApplicationRepository.onUpdateItemCategory = { _, itemId, category ->
+            gate.await()
+            Result.success(PastApplicationItem(id = itemId, category = category, content = "서버 본문", confident = true))
+        }
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
+        val viewModel = createViewModel()
+
+        viewModel.onStep4Event(OnboardingStep4Event.ItemCategoryClicked("remote-9", 1L))
+        val picker = viewModel.uiState.value.itemCategoryPicker
+        assertNotNull(picker)
+        assertEquals(1L, picker!!.itemId)
+        assertEquals(PastApplicationCategory.Other, picker.selected)
+        assertEquals("내용 0", picker.contentPreview)
+
+        viewModel.onItemCategoryPickerEvent(PastApplicationItemCategoryEvent.CategorySelected(PastApplicationCategory.Motivation))
+
+        assertNull(viewModel.uiState.value.itemCategoryPicker)
+        val optimistic = items(viewModel, "remote-9")
+        assertEquals(PastApplicationCategory.Motivation, optimistic.first().category)
+        assertEquals("내용 0", optimistic.first().content)
+        assertEquals(PastApplicationCategory.Other, optimistic.last().category)
+
+        gate.complete(Unit)
+
+        val saved = items(viewModel, "remote-9")
+        assertEquals("서버 본문", saved.first().content)
+        assertTrue(saved.first().confident)
+        assertFalse(saved.last().confident)
+        assertNull(viewModel.uiState.value.failure)
+    }
+
+    @Test
+    fun `분류 조정 실패는 이전 분류로 되돌리고 사유를 알린다`() {
+        pastApplicationRepository.applications += samplePastApplication(id = 9L, itemCount = 1, confident = false)
+        pastApplicationRepository.onUpdateItemCategory = { _, _, _ ->
+            Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", IOException("500")))
+        }
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
+        val viewModel = createViewModel()
+
+        viewModel.onStep4Event(OnboardingStep4Event.ItemCategoryClicked("remote-9", 1L))
+        viewModel.onItemCategoryPickerEvent(PastApplicationItemCategoryEvent.CategorySelected(PastApplicationCategory.Growth))
+
+        val reverted = items(viewModel, "remote-9").single()
+        assertEquals(PastApplicationCategory.Other, reverted.category)
+        assertFalse(reverted.confident)
+        assertEquals(OnboardingFailureReason.Server, viewModel.uiState.value.failure)
+        assertEquals(listOf("update_past_application_item_category"), reporter.stages())
+    }
+
+    @Test
+    fun `같은 분류를 다시 고르면 요청하지 않는다`() {
+        pastApplicationRepository.applications += samplePastApplication(id = 9L, itemCount = 1)
+        pastApplicationRepository.onUpdateItemCategory = { _, _, _ -> error("요청하면 안 된다") }
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
+        val viewModel = createViewModel()
+
+        viewModel.onStep4Event(OnboardingStep4Event.ItemCategoryClicked("remote-9", 1L))
+        viewModel.onItemCategoryPickerEvent(PastApplicationItemCategoryEvent.CategorySelected(PastApplicationCategory.Other))
+
+        assertNull(viewModel.uiState.value.itemCategoryPicker)
+        assertNull(viewModel.uiState.value.failure)
+    }
+
+    @Test
+    fun `분류 조정 중에도 건너뛰기로 온보딩을 끝낼 수 있다`() {
+        pastApplicationRepository.applications += samplePastApplication(id = 9L, itemCount = 1, confident = false)
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
+        val viewModel = createViewModel()
+        viewModel.onStep4Event(OnboardingStep4Event.DocumentExpandToggled("remote-9"))
+
+        viewModel.onStep4Event(OnboardingStep4Event.SkipClicked)
+
+        assertEquals(OnboardingDestination.Complete, viewModel.uiState.value.pendingNavigation)
     }
 
     @Test
@@ -668,15 +784,32 @@ class OnboardingViewModelTest {
         id: Long,
         itemCount: Int,
         label: String = "지원서 $id",
+        confident: Boolean = true,
     ) = PastApplication(
         id = id,
         label = label,
         items =
             List(itemCount) { index ->
-                PastApplicationItem(id = index + 1L, category = PastApplicationCategory.Other, content = "내용 $index", confident = true)
+                PastApplicationItem(
+                    id = index + 1L,
+                    category = PastApplicationCategory.Other,
+                    content = "내용 $index",
+                    confident = confident,
+                )
             },
         createdAt = null,
     )
+
+    private fun items(
+        viewModel: OnboardingViewModel,
+        documentId: String,
+    ): List<PastApplicationItem> {
+        val status =
+            viewModel.uiState.value.step4.documents
+                .first { it.id == documentId }
+                .status
+        return (status as OnboardingUploadStatus.Completed).items
+    }
 
     private fun uploadFile(fileName: String) = UploadFile(fileName = fileName, sizeBytes = 16L) { ByteArrayInputStream(ByteArray(16)) }
 }

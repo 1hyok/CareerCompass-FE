@@ -6,11 +6,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.model.application.PastApplicationFileFormat
+import com.cambridge.core.model.application.PastApplicationItem
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocument
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocumentFormat
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocumentStatus
+import com.cambridge.feature.onboarding.presentation.OnboardingApplicationItem
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4Event
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4Screen
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4UiState
@@ -20,6 +23,9 @@ import com.cambridge.feature.onboarding.presentation.flow.util.UploadFileSelecti
 import com.cambridge.feature.onboarding.presentation.flow.util.readUploadFile
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputSheet
+import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
+import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategorySheet
+import com.cambridge.feature.onboarding.presentation.pastapplication.labelResId
 
 /**
  * Step 4(과거 지원서) 화면의 상태 배선. 파일 선택(SAF)은 여기서 열고, 읽은 [com.cambridge.core.model.application.UploadFile]
@@ -73,12 +79,21 @@ public fun OnboardingStep4Entry(
             DirectInputSheet(state = input, onEvent = viewModel::onDirectInputEvent)
         }
     }
+
+    state.itemCategoryPicker?.let { picker ->
+        OnboardingSheetHost(
+            onDismissRequest = { viewModel.onItemCategoryPickerEvent(PastApplicationItemCategoryEvent.Dismissed) },
+        ) {
+            PastApplicationItemCategorySheet(state = picker, onEvent = viewModel::onItemCategoryPickerEvent)
+        }
+    }
 }
 
 @Composable
 private fun OnboardingStep4FormState.toUiState(isInputEnabled: Boolean): OnboardingStep4UiState =
     OnboardingStep4UiState(
         uploadedDocuments = documents.map { it.toUiModel() },
+        expandedDocumentId = expandedDocumentId,
         isInputEnabled = isInputEnabled,
     )
 
@@ -91,19 +106,31 @@ private fun OnboardingStep4FormState.toUiState(isInputEnabled: Boolean): Onboard
 private fun OnboardingUploadDocument.toUiModel(): OnboardingApplicationDocument {
     val format = PastApplicationFileFormat.fromFileName(label)
     val fileName = if (format != null) label else "$label.${PastApplicationFileFormat.Txt.extension}"
+    val status = status
     return OnboardingApplicationDocument(
         id = id,
         fileName = fileName,
         format = (format ?: PastApplicationFileFormat.Txt).toUiFormat(),
         fileSizeBytes = sizeBytes ?: UNKNOWN_SIZE_PLACEHOLDER_BYTES,
         status =
-            when (val status = status) {
+            when (status) {
                 OnboardingUploadStatus.Processing -> OnboardingApplicationDocumentStatus.Processing
                 is OnboardingUploadStatus.Completed -> OnboardingApplicationDocumentStatus.Completed(status.classifiedItemCount)
                 is OnboardingUploadStatus.Failed -> OnboardingApplicationDocumentStatus.Failed(status.reason.toShortMessage())
             },
+        items = (status as? OnboardingUploadStatus.Completed)?.items.orEmpty().map { it.toUiModel() },
     )
 }
+
+/** 본문은 카드 아래 미리보기라 원문을 그대로 넘기고, 줄 수 제한은 화면이 한다. */
+@Composable
+private fun PastApplicationItem.toUiModel(): OnboardingApplicationItem =
+    OnboardingApplicationItem(
+        id = id,
+        categoryLabel = stringResource(category.labelResId()),
+        contentPreview = content,
+        needsReview = !confident,
+    )
 
 private fun PastApplicationFileFormat.toUiFormat(): OnboardingApplicationDocumentFormat =
     when (this) {

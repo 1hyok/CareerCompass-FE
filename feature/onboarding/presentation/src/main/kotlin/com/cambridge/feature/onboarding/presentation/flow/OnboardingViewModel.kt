@@ -6,7 +6,9 @@ import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.model.application.MAX_PAST_APPLICATIONS
 import com.cambridge.core.model.application.MAX_PAST_APPLICATION_FILE_BYTES
 import com.cambridge.core.model.application.PastApplication
+import com.cambridge.core.model.application.PastApplicationCategory
 import com.cambridge.core.model.application.PastApplicationFileFormat
+import com.cambridge.core.model.application.PastApplicationItem
 import com.cambridge.core.model.application.UploadFile
 import com.cambridge.core.model.experience.ExperienceDetails
 import com.cambridge.core.model.experience.ExperienceDraft
@@ -28,6 +30,7 @@ import com.cambridge.feature.onboarding.domain.usecase.ProceedToPastApplicationU
 import com.cambridge.feature.onboarding.domain.usecase.ResolveOnboardingEntryUseCase
 import com.cambridge.feature.onboarding.domain.usecase.SaveBasicInfoUseCase
 import com.cambridge.feature.onboarding.domain.usecase.SaveJobPreferencesUseCase
+import com.cambridge.feature.onboarding.domain.usecase.UpdatePastApplicationItemCategoryUseCase
 import com.cambridge.feature.onboarding.domain.usecase.UploadPastApplicationUseCase
 import com.cambridge.feature.onboarding.presentation.OnboardingStep1Event
 import com.cambridge.feature.onboarding.presentation.OnboardingStep2Event
@@ -43,6 +46,8 @@ import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditor
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputState
+import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
+import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryState
 import com.cambridge.feature.onboarding.presentation.reporting.OnboardingFailureStage
 import com.cambridge.feature.onboarding.presentation.reporting.recordOnboardingFailure
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
@@ -76,6 +81,7 @@ public class OnboardingViewModel
         private val getOnboardingPastApplications: GetOnboardingPastApplicationsUseCase,
         private val uploadPastApplication: UploadPastApplicationUseCase,
         private val deletePastApplication: DeletePastApplicationUseCase,
+        private val updatePastApplicationItemCategory: UpdatePastApplicationItemCategoryUseCase,
         private val completeOnboarding: CompleteOnboardingUseCase,
         private val errorReporter: ErrorReporter,
     ) : ViewModel() {
@@ -484,6 +490,10 @@ public class OnboardingViewModel
 
                 is OnboardingStep4Event.DocumentRetryClicked -> retryUpload(event.documentId)
 
+                is OnboardingStep4Event.DocumentExpandToggled -> toggleDocumentItems(event.documentId)
+
+                is OnboardingStep4Event.ItemCategoryClicked -> openItemCategoryPicker(event.documentId, event.itemId)
+
                 OnboardingStep4Event.BackClicked -> Unit
 
                 OnboardingStep4Event.SkipClicked -> finishOnboarding()
@@ -558,7 +568,7 @@ public class OnboardingViewModel
                             return@onSuccess
                         }
                         replaceDocument(document.id) {
-                            copy(remoteId = application.id, status = OnboardingUploadStatus.Completed(application.items.size))
+                            copy(remoteId = application.id, status = OnboardingUploadStatus.Completed(application.items))
                         }
                     }.onFailure { throwable ->
                         report(OnboardingFailureStage.UploadPastApplication, throwable)
@@ -582,17 +592,91 @@ public class OnboardingViewModel
                     .firstOrNull { it.id == documentId } ?: return
             val remoteId = document.remoteId
             if (remoteId == null) {
-                updateStep4 { copy(documents = documents.filterNot { it.id == documentId }) }
+                updateStep4 { removeDocument(documentId) }
                 return
             }
             viewModelScope.launch {
                 deletePastApplication(remoteId)
-                    .onSuccess { updateStep4 { copy(documents = documents.filterNot { it.id == documentId }) } }
+                    .onSuccess { updateStep4 { removeDocument(documentId) } }
                     .onFailure { throwable ->
                         report(OnboardingFailureStage.DeletePastApplication, throwable)
                         _uiState.update { it.copy(failure = throwable.toOnboardingFailureReason()) }
                     }
             }
+        }
+
+        /** 분류 항목 목록 펼침/접기. 한 번에 하나만 펼쳐 아래 액션이 멀리 밀리지 않게 한다. */
+        private fun toggleDocumentItems(documentId: String) {
+            val document =
+                _uiState.value.step4.documents
+                    .firstOrNull { it.id == documentId } ?: return
+            val items = (document.status as? OnboardingUploadStatus.Completed)?.items.orEmpty()
+            if (items.isEmpty()) return
+            updateStep4 { copy(expandedDocumentId = documentId.takeIf { it != expandedDocumentId }) }
+        }
+
+        private fun openItemCategoryPicker(
+            documentId: String,
+            itemId: Long,
+        ) {
+            if (!_uiState.value.isInputEnabled) return
+            val item = findItem(documentId, itemId) ?: return
+            _uiState.update {
+                it.copy(
+                    itemCategoryPicker =
+                        PastApplicationItemCategoryState(
+                            documentId = documentId,
+                            itemId = itemId,
+                            contentPreview = item.content,
+                            selected = item.category,
+                        ),
+                )
+            }
+        }
+
+        public fun onItemCategoryPickerEvent(event: PastApplicationItemCategoryEvent) {
+            when (event) {
+                is PastApplicationItemCategoryEvent.CategorySelected -> submitItemCategory(event.category)
+                PastApplicationItemCategoryEvent.Dismissed -> _uiState.update { it.copy(itemCategoryPicker = null) }
+            }
+        }
+
+        /**
+         * 분류 조정을 낙관적으로 반영한다 — 목록에 바로 새 분류를 그리고 시트를 닫는다.
+         *
+         * 실패하면 조정 전 항목으로 되돌리고 사유를 알린다. 성공하면 서버가 돌려준 항목으로 다시 맞춘다
+         * (서버가 `confident` 를 어떻게 판정하는지는 서버 몫이다).
+         */
+        private fun submitItemCategory(category: PastApplicationCategory) {
+            val picker = _uiState.value.itemCategoryPicker ?: return
+            _uiState.update { it.copy(itemCategoryPicker = null) }
+            val document =
+                _uiState.value.step4.documents
+                    .firstOrNull { it.id == picker.documentId } ?: return
+            val remoteId = document.remoteId ?: return
+            val previous = findItem(picker.documentId, picker.itemId) ?: return
+            if (previous.category == category) return
+            replaceItem(picker.documentId, previous.copy(category = category, confident = true))
+            viewModelScope.launch {
+                updatePastApplicationItemCategory(applicationId = remoteId, itemId = picker.itemId, category = category)
+                    .onSuccess { updated -> replaceItem(picker.documentId, updated) }
+                    .onFailure { throwable ->
+                        report(OnboardingFailureStage.UpdatePastApplicationItemCategory, throwable)
+                        replaceItem(picker.documentId, previous)
+                        _uiState.update { it.copy(failure = throwable.toOnboardingFailureReason()) }
+                    }
+            }
+        }
+
+        private fun findItem(
+            documentId: String,
+            itemId: Long,
+        ): PastApplicationItem? {
+            val status =
+                _uiState.value.step4.documents
+                    .firstOrNull { it.id == documentId }
+                    ?.status
+            return (status as? OnboardingUploadStatus.Completed)?.items?.firstOrNull { it.id == itemId }
         }
 
         private fun openDirectInput() {
@@ -737,6 +821,17 @@ public class OnboardingViewModel
             updateStep4 { copy(documents = documents.map { if (it.id == documentId) it.transform() else it }) }
         }
 
+        /** 분류가 끝난 문서의 항목 하나만 갈아 끼운다 — 다른 문서·항목은 그대로 둔다. */
+        private fun replaceItem(
+            documentId: String,
+            item: PastApplicationItem,
+        ) {
+            replaceDocument(documentId) {
+                val status = status as? OnboardingUploadStatus.Completed ?: return@replaceDocument this
+                copy(status = OnboardingUploadStatus.Completed(status.items.map { if (it.id == item.id) item else it }))
+            }
+        }
+
         private companion object {
             const val GRADUATION_YEARS_AHEAD = 6
 
@@ -769,13 +864,20 @@ private fun OnboardingStep2FormState.prefill(profile: UserProfile?): OnboardingS
     return copy(selectedJobCodes = codes, interestTags = tags)
 }
 
+/** 문서를 목록에서 빼면서 펼침 상태도 함께 정리한다 — 목록에 없는 문서를 펼친 채로 두면 상태 불변식이 깨진다. */
+private fun OnboardingStep4FormState.removeDocument(documentId: String): OnboardingStep4FormState =
+    copy(
+        documents = documents.filterNot { it.id == documentId },
+        expandedDocumentId = expandedDocumentId?.takeIf { it != documentId },
+    )
+
 private fun toRemoteDocument(application: PastApplication): OnboardingUploadDocument =
     OnboardingUploadDocument(
         id = "remote-${application.id}",
         remoteId = application.id,
         label = application.label,
         sizeBytes = null,
-        status = OnboardingUploadStatus.Completed(application.items.size),
+        status = OnboardingUploadStatus.Completed(application.items),
         file = null,
     )
 

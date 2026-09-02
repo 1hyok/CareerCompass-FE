@@ -27,6 +27,7 @@ public enum class OnboardingFailureStage(
     LoadPastApplications("load_past_applications"),
     UploadPastApplication("upload_past_application"),
     DeletePastApplication("delete_past_application"),
+    UpdatePastApplicationItemCategory("update_past_application_item_category"),
     Complete("complete"),
 }
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -63,6 +64,98 @@ public class OnboardingStep4ScreenTest {
                 uploadedDocuments = listOf(sampleDocument, sampleDocument),
             )
         }
+        assertThrows(IllegalArgumentException::class.java) {
+            sampleItems.first().copy(categoryLabel = "   ")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            sampleItems.first().copy(contentPreview = "   ")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            sampleDocument.copy(items = listOf(sampleItems.first(), sampleItems.first()))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            OnboardingStep4UiState(
+                uploadedDocuments = listOf(sampleDocument),
+                expandedDocumentId = "application-unknown",
+            )
+        }
+    }
+
+    @Test
+    public fun expandedDocument_listsItemsAndForwardsCategoryEvents() {
+        val events = mutableListOf<OnboardingStep4Event>()
+        composeRule.setStep4Content(state = expandedState, onEvent = events::add)
+
+        composeRule.onNodeWithText("지원 동기").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("분류 확인 필요").performScrollTo().assertIsDisplayed()
+        composeRule
+            .onNodeWithText(sampleItems.last().contentPreview)
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithTag("onboarding_step4_item_2")
+            .assertHeightIsAtLeast(48.dp)
+
+        itemRow("기타").performScrollTo().performClick()
+        collapseToggle().performScrollTo().performClick()
+
+        assertEquals(
+            listOf(
+                OnboardingStep4Event.ItemCategoryClicked(classifiedDocument.id, 2L),
+                OnboardingStep4Event.DocumentExpandToggled(classifiedDocument.id),
+            ),
+            events,
+        )
+    }
+
+    @Test
+    public fun collapsedDocument_hidesItemsAndOffersExpandToggle() {
+        val events = mutableListOf<OnboardingStep4Event>()
+        composeRule.setStep4Content(state = collapsedState, onEvent = events::add)
+
+        composeRule.onAllNodesWithText("지원 동기").assertCountEquals(0)
+        expandToggle().performScrollTo().performClick()
+
+        assertEquals(listOf(OnboardingStep4Event.DocumentExpandToggled(classifiedDocument.id)), events)
+    }
+
+    @Test
+    public fun documentWithoutItems_hasNoExpandToggle() {
+        composeRule.setStep4Content(state = uploadedState)
+
+        assertFalse(sampleDocument.isExpandable)
+        composeRule
+            .onAllNodesWithContentDescription("${sampleDocument.fileName} 분류 항목 펼치기")
+            .assertCountEquals(0)
+    }
+
+    @Test
+    public fun expandToggle_staysOutsideMenuTouchTarget() {
+        composeRule.setStep4Content(state = collapsedState)
+
+        val toggle = expandToggle().performScrollTo()
+        val menu = documentMenuButton()
+
+        assertTrue(
+            "expand toggle overlaps the document menu: " +
+                "toggle=${toggle.getUnclippedBoundsInRoot()}, " +
+                "menu=${menu.getUnclippedBoundsInRoot()}",
+            toggle.getUnclippedBoundsInRoot().right <= menu.getUnclippedBoundsInRoot().left,
+        )
+    }
+
+    @Test
+    public fun disabledState_disablesItemRowsAndExpandToggle() {
+        val events = mutableListOf<OnboardingStep4Event>()
+        composeRule.setStep4Content(
+            state = expandedState.copy(isInputEnabled = false),
+            onEvent = events::add,
+        )
+
+        collapseToggle().assertIsNotEnabled().performClick()
+        itemRow("지원 동기").performScrollTo().assertIsNotEnabled().performClick()
+
+        assertTrue(events.isEmpty())
     }
 
     @Test
@@ -448,6 +541,12 @@ public class OnboardingStep4ScreenTest {
 
     private fun retryButton() = composeRule.onNodeWithContentDescription("${sampleDocument.fileName} 분류 재시도")
 
+    private fun expandToggle() = composeRule.onNodeWithContentDescription("${sampleDocument.fileName} 분류 항목 펼치기")
+
+    private fun collapseToggle() = composeRule.onNodeWithContentDescription("${sampleDocument.fileName} 분류 항목 접기")
+
+    private fun itemRow(categoryLabel: String) = composeRule.onNodeWithContentDescription("$categoryLabel 분류 바꾸기")
+
     private fun documentMenuButton() = composeRule.onNodeWithContentDescription("${sampleDocument.fileName} 메뉴")
 
     private fun skipButton() =
@@ -508,6 +607,35 @@ public class OnboardingStep4ScreenTest {
         val uploadedState =
             OnboardingStep4UiState(
                 uploadedDocuments = listOf(sampleDocument),
+            )
+
+        val sampleItems =
+            listOf(
+                OnboardingApplicationItem(
+                    id = 1L,
+                    categoryLabel = "지원 동기",
+                    contentPreview = "사용자에게 닿는 제품을 만들고 싶어 지원했습니다.",
+                    needsReview = false,
+                ),
+                OnboardingApplicationItem(
+                    id = 2L,
+                    categoryLabel = "기타",
+                    contentPreview = "동아리에서 팀장을 맡아 협업하는 법을 배웠습니다.",
+                    needsReview = true,
+                ),
+            )
+
+        val classifiedDocument = sampleDocument.copy(items = sampleItems)
+
+        val collapsedState =
+            OnboardingStep4UiState(
+                uploadedDocuments = listOf(classifiedDocument),
+            )
+
+        val expandedState =
+            OnboardingStep4UiState(
+                uploadedDocuments = listOf(classifiedDocument),
+                expandedDocumentId = classifiedDocument.id,
             )
 
         val processingState =
