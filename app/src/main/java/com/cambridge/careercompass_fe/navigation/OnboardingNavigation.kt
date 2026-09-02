@@ -5,22 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
-import com.cambridge.careercompass_fe.session.AppStartDestination
 import com.cambridge.feature.onboarding.presentation.navigation.OnboardingGraphRoute
 import com.cambridge.feature.onboarding.presentation.navigation.OnboardingNavActions
 import com.cambridge.feature.onboarding.presentation.navigation.OnboardingRoute
 import com.cambridge.feature.onboarding.presentation.navigation.toRoute
-
-/**
- * 시작 목적지 → 온보딩 그래프의 시작 화면. 온보딩 재개 단계는 온보딩 ViewModel 이 Step 1 에서 판정해 전진시킨다.
- */
-internal fun AppStartDestination.toOnboardingStart(): OnboardingRoute =
-    when (this) {
-        AppStartDestination.Login -> OnboardingRoute.Login
-        AppStartDestination.BiometricLogin -> OnboardingRoute.BiometricLogin
-        AppStartDestination.Onboarding -> OnboardingRoute.Step1
-        AppStartDestination.Main -> error("메인 시작 목적지는 온보딩 그래프로 들어가지 않는다")
-    }
 
 /**
  * 온보딩 그래프가 앱 셸에 요청하는 이동의 구현.
