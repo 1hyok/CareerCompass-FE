@@ -321,5 +321,38 @@ class AuthRepositoryImplTest {
             assertFalse(repository.isBiometricEnabled.first())
         }
 
+    @Test
+    fun `등록 제안 거절은 현재 사용자에게 귀속하고 로그아웃 뒤에도 남는다`() =
+        runTest {
+            profileDataSource.saveProfile(profileJson(userId = 1L), userId = 1L)
+
+            repository.declineBiometricEnroll().getOrThrow()
+            assertTrue(repository.isBiometricEnrollDeclined.first())
+
+            repository.logout().getOrThrow()
+            profileDataSource.saveProfile(profileJson(userId = 1L), userId = 1L)
+            assertTrue(repository.isBiometricEnrollDeclined.first())
+        }
+
+    @Test
+    fun `계정 A 의 거절은 계정 B 의 제안을 막지 않는다`() =
+        runTest {
+            profileDataSource.saveProfile(profileJson(userId = 1L), userId = 1L)
+            repository.declineBiometricEnroll().getOrThrow()
+
+            profileDataSource.saveProfile(profileJson(userId = 2L), userId = 2L)
+
+            assertFalse(repository.isBiometricEnrollDeclined.first())
+        }
+
+    @Test
+    fun `프로필을 받기 전에는 거절을 기록하지 않는다`() =
+        runTest {
+            val result = repository.declineBiometricEnroll()
+
+            assertTrue(result.exceptionOrNull() is IllegalStateException)
+            assertFalse(repository.isBiometricEnrollDeclined.first())
+        }
+
     private fun profileJson(userId: Long) = """{"id":$userId,"jobInterests":[],"tags":[],"onboardingDone":true,"completion":10}"""
 }
