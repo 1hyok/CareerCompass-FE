@@ -8,6 +8,8 @@ import com.cambridge.core.domain.repository.UserProfileRepository
 import com.cambridge.core.model.posting.Posting
 import com.cambridge.feature.feed.domain.model.FeedPage
 import com.cambridge.feature.feed.domain.model.FeedQuery
+import com.cambridge.feature.feed.domain.model.FeedSnapshot
+import com.cambridge.feature.feed.domain.repository.FeedSnapshotRepository
 import com.cambridge.feature.feed.domain.usecase.CountTodayNewPostingsUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.GetFeedPageUseCase
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -49,6 +52,7 @@ public class FeedViewModel
         private val togglePostingBookmark: TogglePostingBookmarkUseCase,
         private val getBoards: GetBoardsUseCase,
         private val userProfileRepository: UserProfileRepository,
+        private val feedSnapshotRepository: FeedSnapshotRepository,
         private val errorReporter: ErrorReporter,
         /** Entry 가 D-day·신규 판정에 같은 시계를 쓴다. */
         public val clock: Clock,
@@ -161,6 +165,7 @@ public class FeedViewModel
         /** 목록 끝에 닿았다. 다음 커서가 없거나 이미 읽는 중이면 무시한다. */
         public fun onLoadMore() {
             val current = _state.value
+            if (current.isOffline) return
             val cursor = current.nextCursor ?: return
             if (current.isLoadingMore || current.isRefreshing || current.loadState != FeedLoadState.Loaded) return
             val query = current.query
@@ -196,13 +201,15 @@ public class FeedViewModel
                     fetchUntilNonEmpty(query, cursor = null)
                         .onSuccess { page ->
                             _state.update {
-                                it.copy(
-                                    postings = page.postings,
-                                    nextCursor = page.nextCursor,
-                                    loadState = FeedLoadState.Loaded,
-                                    isRefreshing = false,
-                                )
+                                it
+                                    .copy(
+                                        postings = page.postings,
+                                        nextCursor = page.nextCursor,
+                                        loadState = FeedLoadState.Loaded,
+                                        isRefreshing = false,
+                                    ).online()
                             }
+                            saveSnapshotIfDefault(query, page.postings)
                         }.onFailure { throwable ->
                             recordFailure(FeedFailureStage.FeedRefresh, throwable)
                             _state.update {
@@ -219,6 +226,64 @@ public class FeedViewModel
         /** 오류 화면의 「다시 시도」 — 처음부터 다시 읽는다. */
         public fun retry() {
             load()
+        }
+
+        /**
+         * 네트워크 오류 화면의 「오프라인 모드로 보기」 — 저장해 둔 스냅샷을 목록으로 건다.
+         *
+         * 스냅샷에는 다음 커서가 없으므로 [onLoadMore] 는 잠기고, 북마크는 [FeedMessage.OfflineReadOnly] 로 막는다.
+         * 검색·필터·정렬은 그대로 재조회를 부르고, 성공하면 [online] 으로 온라인 목록으로 돌아온다.
+         */
+        public fun showOfflineSnapshot() {
+            val snapshot = _state.value.offlineSnapshot ?: return
+            loadJob?.cancel()
+            loadMoreJob?.cancel()
+            _state.update {
+                it.copy(
+                    postings = snapshot.postings,
+                    nextCursor = null,
+                    loadState = FeedLoadState.Loaded,
+                    isRefreshing = false,
+                    isLoadingMore = false,
+                    isOffline = true,
+                    offlineSavedAt = snapshot.savedAt,
+                )
+            }
+        }
+
+        /** 조회가 성공했다 — 오프라인 표시와 그 근거를 모두 버린다. */
+        private fun FeedViewState.online(): FeedViewState =
+            if (!isOffline && offlineSnapshot == null && offlineSavedAt == null) {
+                this
+            } else {
+                copy(isOffline = false, offlineSavedAt = null, offlineSnapshot = null)
+            }
+
+        /**
+         * 기본 조건의 첫 페이지만 스냅샷으로 남긴다 — 조건이 걸린 결과를 저장하면 오프라인에서 「전체」로 보이는
+         * 목록이 사실은 부분집합이 된다. 빈 목록은 저장하지 않는다(스냅샷 없음과 구분할 이유가 없다).
+         * 저장 실패는 기록만 남긴다 — 이번 조회는 이미 성공했고 사용자가 할 일이 없다.
+         */
+        private fun saveSnapshotIfDefault(
+            query: FeedQuery,
+            postings: List<Posting>,
+        ) {
+            if (!query.isDefault || postings.isEmpty()) return
+            viewModelScope.launch {
+                feedSnapshotRepository
+                    .save(FeedSnapshot(postings = postings, savedAt = Instant.now(clock)))
+                    .onFailure { recordFailure(FeedFailureStage.FeedSnapshotSave, it) }
+            }
+        }
+
+        /** 네트워크 단절로 목록을 못 받았다 — 스냅샷이 있으면 「오프라인 모드로 보기」를 열어 준다. */
+        private fun loadSnapshotForOfflineOffer() {
+            viewModelScope.launch {
+                feedSnapshotRepository
+                    .load()
+                    .onSuccess { snapshot -> _state.update { it.copy(offlineSnapshot = snapshot) } }
+                    .onFailure { recordFailure(FeedFailureStage.FeedSnapshotLoad, it) }
+            }
         }
 
         public fun onBoardListRequested() {
@@ -279,15 +344,19 @@ public class FeedViewModel
                     fetchUntilNonEmpty(query, cursor = null)
                         .onSuccess { page ->
                             _state.update {
-                                it.copy(
-                                    postings = page.postings,
-                                    nextCursor = page.nextCursor,
-                                    loadState = FeedLoadState.Loaded,
-                                )
+                                it
+                                    .copy(
+                                        postings = page.postings,
+                                        nextCursor = page.nextCursor,
+                                        loadState = FeedLoadState.Loaded,
+                                    ).online()
                             }
+                            saveSnapshotIfDefault(query, page.postings)
                         }.onFailure { throwable ->
                             recordFailure(FeedFailureStage.FeedLoad, throwable)
-                            _state.update { it.copy(loadState = FeedLoadState.Failed(throwable.isNetworkUnavailable())) }
+                            val networkUnavailable = throwable.isNetworkUnavailable()
+                            _state.update { it.copy(loadState = FeedLoadState.Failed(networkUnavailable)) }
+                            if (networkUnavailable) loadSnapshotForOfflineOffer()
                         }
                 }
         }
@@ -314,6 +383,10 @@ public class FeedViewModel
         }
 
         private fun toggleBookmark(postingId: Long) {
+            if (_state.value.isOffline) {
+                _state.update { it.copy(message = FeedMessage.OfflineReadOnly) }
+                return
+            }
             val before = _state.value.postings.firstOrNull { it.id == postingId } ?: return
             replacePosting(before.copy(isBookmarked = !before.isBookmarked))
             viewModelScope.launch {

@@ -4,9 +4,11 @@ import com.cambridge.core.model.board.Board
 import com.cambridge.core.model.posting.Posting
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter
 import com.cambridge.feature.feed.domain.model.FeedQuery
+import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.shared.util.toListingCategory
 import com.cambridge.feature.feed.presentation.shared.util.toPostingTypes
+import java.time.Instant
 
 /** 목록 조회의 진행 상태. 항목은 [FeedViewState.postings] 에 따로 누적된다. */
 public sealed interface FeedLoadState {
@@ -37,6 +39,9 @@ public enum class FeedMessage {
     BookmarkFailed,
     LoadMoreFailed,
     RefreshFailed,
+
+    /** 오프라인 모드에서 북마크를 눌렀다 — 스냅샷은 읽기 전용이다. */
+    OfflineReadOnly,
 }
 
 /**
@@ -87,8 +92,11 @@ public data class FeedFilterDraft(
  *
  * @property searchInput 입력창의 현재 글자. 300ms 뒤 [query] 의 `searchQuery` 로 옮겨진다.
  * @property query 서버·클라이언트 조회 조건(카테고리 칩 = `types`, 필터 시트 = 나머지, 정렬 포함).
- * @property postings 지금까지 받은 페이지의 누적 목록.
+ * @property postings 지금까지 받은 페이지의 누적 목록. 오프라인 모드에서는 스냅샷의 목록.
  * @property filterDraft 필터 시트가 열려 있으면 편집 중인 조건, 닫혀 있으면 null.
+ * @property offlineSnapshot 네트워크 단절 실패 직후 읽어 둔 스냅샷 — 있으면 오류 화면에 「오프라인 모드로 보기」가 열린다.
+ * @property isOffline 스냅샷 목록을 보여 주는 중. 더 불러오기·북마크는 잠긴다.
+ * @property offlineSavedAt 보여 주는 스냅샷의 저장 시각(배너 문구 근거). [isOffline] 일 때만 값이 있다.
  */
 public data class FeedViewState(
     val userName: String? = null,
@@ -106,6 +114,9 @@ public data class FeedViewState(
     val pendingNavigation: FeedDestination? = null,
     val message: FeedMessage? = null,
     val sessionEnded: Boolean = false,
+    val offlineSnapshot: FeedSnapshot? = null,
+    val isOffline: Boolean = false,
+    val offlineSavedAt: Instant? = null,
 ) {
     public val hasNext: Boolean get() = nextCursor != null
 

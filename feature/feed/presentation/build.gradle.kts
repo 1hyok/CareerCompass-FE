@@ -26,6 +26,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(testFixtures(projects.core.domain))
+    testImplementation(testFixtures(projects.feature.feed.domain))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     screenshotTestImplementation(libs.screenshot.validation.api)
     screenshotTestImplementation(libs.androidx.compose.ui.tooling)

@@ -10,6 +10,8 @@ import com.cambridge.core.model.posting.PostingQuery
 import com.cambridge.core.model.posting.PostingSort
 import com.cambridge.core.model.posting.PostingType
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter
+import com.cambridge.feature.feed.domain.model.FeedSnapshot
+import com.cambridge.feature.feed.domain.testing.FakeFeedSnapshotRepository
 import com.cambridge.feature.feed.domain.usecase.CountTodayNewPostingsUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.GetFeedPageUseCase
@@ -51,6 +53,7 @@ class FeedViewModelTest {
         postingRepository: FakePostingRepository = FakePostingRepository(initial = List(3) { posting(id = it + 1L) }),
         boardRepository: FakeBoardRepository = FakeBoardRepository(initial = listOf(board(id = 1), board(id = 2))),
         profileRepository: FakeUserProfileRepository = FakeUserProfileRepository(initialProfile = profile()),
+        snapshotRepository: FakeFeedSnapshotRepository = FakeFeedSnapshotRepository(),
     ): FeedViewModel =
         FeedViewModel(
             getFeedPage = GetFeedPageUseCase(postingRepository, FIXED_CLOCK),
@@ -58,9 +61,18 @@ class FeedViewModelTest {
             togglePostingBookmark = TogglePostingBookmarkUseCase(postingRepository),
             getBoards = GetBoardsUseCase(boardRepository),
             userProfileRepository = profileRepository,
+            feedSnapshotRepository = snapshotRepository,
             errorReporter = reporter,
             clock = FIXED_CLOCK,
         )
+
+    /** 네트워크 단절로 첫 조회가 실패하는 리포지토리. */
+    private fun offlinePostings() =
+        FakePostingRepository().apply {
+            onGetPostings = { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
+        }
+
+    private fun snapshot(vararg ids: Long) = FeedSnapshot(postings = ids.map { posting(id = it) }, savedAt = FIXED_CLOCK.instant())
 
     @Test
     fun `초기 로드는 첫 페이지·오늘 신규 개수·이름·게시판을 함께 채운다`() {
@@ -414,5 +426,129 @@ class FeedViewModelTest {
         assertEquals(FeedLoadState.Loaded, state.loadState)
         assertTrue(state.boards.isEmpty())
         assertTrue(reporter.stages.contains("filter_boards"))
+    }
+
+    // ── 오프라인 스냅샷 (#86) ──────────────────────────────────────────────────
+
+    @Test
+    fun `기본 조건의 첫 페이지 성공은 스냅샷으로 저장한다`() {
+        val snapshots = FakeFeedSnapshotRepository()
+
+        viewModel(snapshotRepository = snapshots)
+
+        assertEquals(1, snapshots.saved.size)
+        assertEquals(
+            listOf(1L, 2L, 3L),
+            snapshots.saved
+                .single()
+                .postings
+                .map(Posting::id),
+        )
+        assertEquals(FIXED_CLOCK.instant(), snapshots.saved.single().savedAt)
+    }
+
+    @Test
+    fun `조건이 걸린 조회는 스냅샷으로 저장하지 않는다`() {
+        // 필터된 부분집합을 「전체」로 저장하면 오프라인에서 빠진 공고를 모른 채 읽게 된다.
+        val snapshots = FakeFeedSnapshotRepository()
+        val viewModel = viewModel(snapshotRepository = snapshots)
+        snapshots.saved.clear()
+
+        viewModel.onEvent(FeedUiEvent.FilterSelected(FeedListingCategory.Employment))
+
+        assertTrue(snapshots.saved.isEmpty())
+    }
+
+    @Test
+    fun `빈 결과는 스냅샷으로 저장하지 않는다`() {
+        val snapshots = FakeFeedSnapshotRepository()
+
+        viewModel(postingRepository = FakePostingRepository(), snapshotRepository = snapshots)
+
+        assertTrue(snapshots.saved.isEmpty())
+    }
+
+    @Test
+    fun `네트워크 단절로 실패하면 저장된 스냅샷을 오프라인 제안으로 싣는다`() {
+        val snapshots = FakeFeedSnapshotRepository(initial = snapshot(7L, 8L))
+
+        val state = viewModel(postingRepository = offlinePostings(), snapshotRepository = snapshots).state.value
+
+        assertEquals(FeedLoadState.Failed(isNetworkUnavailable = true), state.loadState)
+        assertEquals(listOf(7L, 8L), state.offlineSnapshot?.postings?.map(Posting::id))
+        assertFalse(state.isOffline)
+    }
+
+    @Test
+    fun `스냅샷이 없으면 오프라인 제안도 없다`() {
+        val state = viewModel(postingRepository = offlinePostings()).state.value
+
+        assertNull(state.offlineSnapshot)
+    }
+
+    @Test
+    fun `오프라인 모드로 보기는 스냅샷을 목록으로 걸고 저장 시각을 남긴다`() {
+        val viewModel =
+            viewModel(postingRepository = offlinePostings(), snapshotRepository = FakeFeedSnapshotRepository(initial = snapshot(7L, 8L)))
+
+        viewModel.showOfflineSnapshot()
+
+        val state = viewModel.state.value
+        assertTrue(state.isOffline)
+        assertEquals(FeedLoadState.Loaded, state.loadState)
+        assertEquals(listOf(7L, 8L), state.postings.map(Posting::id))
+        assertEquals(FIXED_CLOCK.instant(), state.offlineSavedAt)
+        assertNull(state.nextCursor)
+    }
+
+    @Test
+    fun `오프라인 모드에서는 더 불러오기가 돌지 않고 북마크는 안내만 한다`() {
+        val postings = offlinePostings()
+        val viewModel = viewModel(postingRepository = postings, snapshotRepository = FakeFeedSnapshotRepository(initial = snapshot(7L)))
+        viewModel.showOfflineSnapshot()
+        val queriesBefore = postings.queries.size
+
+        viewModel.onLoadMore()
+        viewModel.onEvent(FeedUiEvent.BookmarkToggled("7"))
+
+        assertEquals(queriesBefore, postings.queries.size)
+        assertEquals(FeedMessage.OfflineReadOnly, viewModel.state.value.message)
+        assertTrue(postings.bookmarkCalls.isEmpty())
+    }
+
+    @Test
+    fun `새로고침이 성공하면 온라인 목록으로 돌아온다`() {
+        val postings = offlinePostings()
+        val viewModel = viewModel(postingRepository = postings, snapshotRepository = FakeFeedSnapshotRepository(initial = snapshot(7L)))
+        viewModel.showOfflineSnapshot()
+        assertTrue(viewModel.state.value.isOffline)
+
+        postings.onGetPostings = null
+        postings.postings.addAll(List(2) { posting(id = it + 1L) })
+        viewModel.refresh()
+
+        val state = viewModel.state.value
+        assertFalse(state.isOffline)
+        assertNull(state.offlineSavedAt)
+        assertNull(state.offlineSnapshot)
+        assertEquals(listOf(1L, 2L), state.postings.map(Posting::id))
+    }
+
+    @Test
+    fun `스냅샷 저장이 실패해도 조회 결과는 그대로 두고 기록만 남긴다`() {
+        val snapshots =
+            FakeFeedSnapshotRepository().apply {
+                onSave = { Result.failure(IllegalStateException("disk full")) }
+            }
+
+        val viewModel = viewModel(snapshotRepository = snapshots)
+
+        assertEquals(FeedLoadState.Loaded, viewModel.state.value.loadState)
+        assertEquals(
+            listOf(1L, 2L, 3L),
+            viewModel.state.value.postings
+                .map(Posting::id),
+        )
+        assertTrue(reporter.stages.contains("feed_snapshot_save"))
     }
 }

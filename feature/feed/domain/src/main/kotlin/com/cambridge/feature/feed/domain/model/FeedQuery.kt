@@ -56,6 +56,12 @@ public class FeedQuery(
     public val hasSearchQuery: Boolean get() = searchQuery.isNotEmpty()
 
     /**
+     * 아무 조건도 걸리지 않은 기본 조회(`FeedQuery()`)인가 — 오프라인 스냅샷([FeedSnapshot])은 이 조건의
+     * 첫 페이지만 저장한다.
+     */
+    public val isDefault: Boolean get() = this == DEFAULT
+
+    /**
      * 서버 `GET /postings` 쿼리로 옮긴다. 집합은 정렬해 실어 같은 조건이면 같은 요청이 되게 한다.
      * 검색어·마감일 필터는 서버 파라미터가 없어 여기 실리지 않는다.
      */
@@ -122,5 +128,7 @@ public class FeedQuery(
     public companion object {
         /** 기능 스펙 F2-3 「적합도 점수」 필터 선택지. */
         public val ALLOWED_MIN_SCORES: Set<Int> = setOf(60, 70, 80)
+
+        private val DEFAULT: FeedQuery by lazy { FeedQuery() }
     }
 }

@@ -86,6 +86,9 @@ public sealed interface FeedContentState {
  *
  * [activeFilterCount] is the number of filter-sheet conditions (board, deadline, score, unread) that
  * differ from their defaults; the category chip row is not counted because it is visible on its own.
+ *
+ * [offlineNotice] is the localized banner shown while the feed displays a stored offline snapshot
+ * ("오프라인 · 9월 3일 14:20 기준 목록"); `null` hides the banner.
  */
 public data class FeedUiState(
     val userName: String,
@@ -97,12 +100,14 @@ public data class FeedUiState(
     val totalListingCount: Int,
     val content: FeedContentState,
     val activeFilterCount: Int = 0,
+    val offlineNotice: String? = null,
 ) {
     init {
         requireNonBlank("userName", userName)
         require(newListingCount >= 0) { "newListingCount must not be negative" }
         require(totalListingCount >= 0) { "totalListingCount must not be negative" }
         require(activeFilterCount >= 0) { "activeFilterCount must not be negative" }
+        require(offlineNotice == null || offlineNotice.isNotBlank()) { "offlineNotice must be null or non-blank" }
         require(filters.map(FeedFilterUiModel::category).distinct().size == filters.size) {
             "filter categories must be unique"
         }

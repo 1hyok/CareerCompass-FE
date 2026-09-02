@@ -30,8 +30,11 @@
     <string name="feed_bookmark_failed">북마크를 저장하지 못했어요</string>
     <string name="feed_load_more_failed">공고를 더 불러오지 못했어요</string>
     <string name="feed_refresh_failed">공고를 새로고침하지 못했어요</string>
+    <string name="feed_offline_notice">오프라인 · %1$s 기준 목록</string>
+    <string name="feed_offline_read_only">오프라인에서는 북마크를 바꿀 수 없어요</string>
 
     <string name="feed_icon_wave" translatable="false">👋</string>
+    <string name="feed_icon_offline" translatable="false">📴</string>
     <string name="feed_icon_notification" translatable="false">🔔</string>
     <string name="feed_icon_search" translatable="false">🔍</string>
     <string name="feed_icon_sort" translatable="false">⌄</string>

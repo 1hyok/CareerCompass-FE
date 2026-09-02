@@ -84,9 +84,11 @@ public fun FeedEntry(
         when (val loadState = state.loadState) {
             is FeedLoadState.Failed -> {
                 if (loadState.isNetworkUnavailable) {
+                    // 저장해 둔 스냅샷이 있을 때만 「오프라인 모드로 보기」를 연다 — 눌러도 보여 줄 것이 없는
+                    // 버튼을 그리지 않는다.
                     CareerCompassNetworkErrorState(
                         onRetryClick = viewModel::retry,
-                        onOfflineClick = null,
+                        onOfflineClick = state.offlineSnapshot?.let { { viewModel.showOfflineSnapshot() } },
                     )
                 } else {
                     CareerCompassEmptyState(
