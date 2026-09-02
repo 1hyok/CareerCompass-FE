@@ -12,10 +12,6 @@ public sealed interface Route {
     @Serializable
     public data object MainTab : Route
 
-    /** 온보딩 그래프가 붙기 전 인증 계열 시작 목적지의 자리표시자. */
-    @Serializable
-    public data object AuthPlaceholder : Route
-
     /** 하단 탭 「분석」(For You·커리어 로드맵·강점 Export) — foryou 모듈이 진입점을 제공할 때까지 자리표시자. */
     @Serializable
     public data object AnalysisTab : Route

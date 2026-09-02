@@ -62,7 +62,7 @@ class AccessibilitySmokeAndroidTest {
     @Test
     fun appShellMain_hasNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            AppNavigation(startDestination = AppStartDestination.Main, onSessionEnded = {})
+            AppNavigation(startDestination = AppStartDestination.Main, onSessionEnded = {}, onExitRequest = {})
         }
     }
 
