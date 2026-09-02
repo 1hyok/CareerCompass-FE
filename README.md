@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-저장소 운영 하네스, GitHub Actions 파이프라인과 **Android 클라이언트의 28개 Gradle 모듈 골격** 위에 공통 UI와 첫 presentation 화면들이 구현돼 있다. 다만 앱의 `AppNavigation` 은 아직 `CareerCompass` 자리표시자만 보여 주며, 아래 온보딩·피드 화면은 실제 내비게이션이나 데이터 흐름에 연결되기 전이다.
+저장소 운영 하네스, GitHub Actions 파이프라인과 **Android 클라이언트의 28개 Gradle 모듈 골격** 위에 공통 UI·`core` 데이터 계층·온보딩과 피드의 화면·ViewModel·내비게이션이 구현돼 있다. 앱 셸(`AppNavigation`)은 세션 여부와 온보딩 완료 여부로 시작 목적지를 정해 온보딩 그래프 또는 피드 그래프로 들어가고, 하단 탭 4개 중 피드 외 탭과 알림은 다른 담당 모듈이 진입점을 제공할 때까지 자리표시자다. 백엔드는 아직 자리표시자 주소(`core/network` 의 `BASE_URL`)라 실제 서버 없이 도는 흐름은 계측 테스트의 fake 주입으로 확인한다.
 
 빠른 로컬 검증은 다음과 같이 실행한다.
 
@@ -27,10 +27,11 @@ Android 명령 전에는 `local.properties` 의 `sdk.dir` 로 SDK 위치를 제�
 
 | 범위 | 현재 구현 | 아직 구현하지 않은 경계 |
 | --- | --- | --- |
-| [`:core:ui`](core/ui) | 색상·타이포그래피·간격·모양 테마와 버튼, 텍스트 필드, 배지, 태그, 적합도 칩. 단위 테스트와 Compose Preview screenshot baseline 포함 | 기능별 상태·데이터 연결 |
-| [`:feature:onboarding:presentation`](feature/onboarding/presentation) | 상태·이벤트를 외부에서 받는 온보딩 Step 1~4 UI. 기본 정보 입력, 관심 직무·키워드 선택, 경험 목록, 과거 지원서 업로드·직접 입력을 공통 스캐폴드 위에 구현했고 각 단계의 단위/Compose 테스트와 360dp screenshot baseline을 포함한다 | `data`·`domain`, ViewModel, 저장·API 연동, 경험 작성·편집, 실제 파일 선택·업로드·분류 및 앱 내비게이션 |
-| [`:feature:feed:presentation`](feature/feed/presentation) | 상태·이벤트를 외부에서 받는 메인 피드. 검색어·분류 필터 선택, 정렬 메뉴 요청, 공고 선택·북마크·알림 intent와 loading/empty/loaded UI의 단위/Compose 테스트 및 screenshot baseline 포함 | `data`·`domain`, ViewModel, 실제 검색·필터·정렬과 공고 조회·저장, 상세 화면 및 앱 내비게이션 |
-| [`:app`](app) · [`:baselineprofile`](baselineprofile) | 최소 앱 시작 화면, 수집된 Baseline/Startup Profile, API 26·36 경계 smoke와 API 34 접근성 smoke | 온보딩·피드의 앱 셸 연결. 현재 instrumentation smoke는 `careercompass_app_start` 자리표시자만 검사한다 |
+| [`:core:ui`](core/ui) | 색상·타이포그래피·간격·모양 테마와 버튼, 텍스트 필드, 배지, 태그, 적합도 칩, 하단 탭, 앱 바, 카드, 엣지 상태 화면 5종. 단위 테스트와 Compose Preview screenshot baseline 포함 | 다크 모드 |
+| `core` 데이터 계층 ([`common`](core/common) · [`datastore`](core/datastore) · [`model`](core/model) · [`domain`](core/domain) · [`network`](core/network) · [`data`](core/data)) | API_SPEC v0.1 §1~§5(인증·프로필·경험 카드·과거 지원서·게시판·공고)의 모델, 리포지토리 계약과 fake(`src/testFixtures`), Retrofit 서비스·DTO·토큰 재발급(single-flight)·401 재시도·`ApiException` 변환, DataStore 세션·기기 저장소, 리포지토리 구현과 Hilt 바인딩. `ApiWireContractSmokeTest` 가 전 엔드포인트의 route·body·응답 스키마를 검증 | 지원서 작성(§6)·For You·로드맵·Export(§7)·알림(§8) 계약, 실제 서버 주소 |
+| [`:feature:onboarding`](feature/onboarding) | 소셜 로그인(카카오·Google)·지문 로그인·Step 1~4·완료 화면, 그래프 스코프 ViewModel(검증·저장·업로드·재개), 진행 상태 DataStore, 학교/졸업 피커·경험 빠른 추가·직접 입력 시트, 내비게이션 그래프. 단위/Compose 테스트와 screenshot baseline 포함 | 직무·학교 목록의 서버 연동(현재 로컬 상수), 경험 카드 편집(profile 모듈) |
+| [`:feature:feed`](feature/feed) | 메인 피드(검색·카테고리·필터 시트·정렬·커서 페이징·북마크), 공고 상세(적합도 분석·키워드·자격/우대·지원서 항목·유사 공고)·원문, 게시판 등록(구조 감지·미리보기)·목록, domain use case(마감·검색 클라이언트 규칙), 내비게이션 그래프 | 지원서 초안 작성 진입(editor 모듈), 알림 화면(notification 모듈), 상세 화면 분석 축 문구의 서버 연동 |
+| [`:app`](app) · [`:baselineprofile`](baselineprofile) | 시작 목적지 ViewModel, 온보딩·피드 그래프와 하단 탭을 잇는 앱 셸, Kakao SDK 초기화, Crashlytics `ErrorReporter`, 계측 테스트의 Hilt fake 주입(`AppNavigationAndroidTest`·API 경계·접근성 smoke), Baseline/Startup Profile | 다른 담당 모듈 탭·알림의 실제 진입점, 로그아웃 진입(마이 탭) |
 | `editor` · `profile` · `foryou` · `notification` | 멀티모듈 build/패키지 골격 | `data`·`domain`·`presentation` 전체 구현 |
 
 ### 모듈
@@ -46,9 +47,9 @@ Android 명령 전에는 `local.properties` 의 `sdk.dir` 로 SDK 위치를 제�
 | 검증 | 현재 기준 |
 | --- | --- |
 | Baseline Profile | [`baseline-prof.txt`](app/src/main/generated/baselineProfiles/baseline-prof.txt) 와 [`startup-prof.txt`](app/src/main/generated/baselineProfiles/startup-prof.txt) 를 커밋하고, generator·주간 workflow·release AAB 패키징 계약을 정책 테스트로 검증한다 |
-| API 경계 smoke | [`ApiBoundarySmokeAndroidTest`](app/src/androidTest/java/com/cambridge/careercompass_fe/ApiBoundarySmokeAndroidTest.kt) 가 API 26·36 managed-device lane에서 앱 시작 시맨틱과 지원 범위를 확인한다 |
-| 접근성 smoke | [`AccessibilitySmokeAndroidTest`](app/src/androidTest/java/com/cambridge/careercompass_fe/AccessibilitySmokeAndroidTest.kt) 가 API 34에서 현재 앱 시작 화면에 Android Accessibility Test Framework 검사를 수행한다 |
-| UI 회귀 | `core:ui`, 온보딩 Step 1~4, 피드의 단위/Compose 테스트와 커밋된 screenshot baseline을 검증한다 |
+| API 경계 smoke | [`ApiBoundarySmokeAndroidTest`](app/src/androidTest/java/com/cambridge/careercompass_fe/ApiBoundarySmokeAndroidTest.kt) 가 API 26·36 managed-device lane에서 앱 시작 시맨틱과 지원 범위를 확인하고, [`AppNavigationAndroidTest`](app/src/androidTest/java/com/cambridge/careercompass_fe/AppNavigationAndroidTest.kt) 가 fake 세션으로 로그인·온보딩·피드 시작 분기를 확인한다 |
+| 접근성 smoke | [`AccessibilitySmokeAndroidTest`](app/src/androidTest/java/com/cambridge/careercompass_fe/AccessibilitySmokeAndroidTest.kt) 가 API 34에서 온보딩 Step 1~4·피드 화면에 Android Accessibility Test Framework 검사를 수행한다 |
+| UI 회귀 | `core:ui`, 온보딩(로그인·지문·Step 1~4·완료·시트), 피드(홈·상세·원문·필터·게시판)의 단위/Compose 테스트와 커밋된 screenshot baseline을 검증한다 |
 
 ## 분담
 

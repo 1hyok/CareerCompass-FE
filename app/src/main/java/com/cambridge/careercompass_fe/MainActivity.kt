@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,7 +33,15 @@ public class MainActivity : FragmentActivity() {
             CareerCompassTheme {
                 val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
                 startDestination?.let { destination ->
-                    AppNavigation(startDestination = destination, onSessionEnded = viewModel::refresh)
+                    // 시작 목적지가 바뀌면(로그아웃·세션 만료) NavHost 를 새로 만든다 — 같은 컨트롤러의
+                    // startDestination 만 바꾸면 이전 백스택이 남는다.
+                    key(destination) {
+                        AppNavigation(
+                            startDestination = destination,
+                            onSessionEnded = viewModel::refresh,
+                            onExitRequest = ::finish,
+                        )
+                    }
                 }
             }
         }
