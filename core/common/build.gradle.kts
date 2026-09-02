@@ -8,3 +8,7 @@ android {
     namespace = "com.cambridge.core.common"
     resourcePrefix = "core_common_"
 }
+
+dependencies {
+    implementation(libs.coroutines.core)
+}

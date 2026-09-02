@@ -1,0 +1,158 @@
+package com.cambridge.core.network.di
+
+import com.cambridge.core.network.BuildConfig
+import com.cambridge.core.network.calladapter.ApiErrorCallAdapterFactory
+import com.cambridge.core.network.interceptor.AuthInterceptor
+import com.cambridge.core.network.interceptor.TokenAuthenticator
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.util.concurrent.TimeUnit
+import javax.inject.Named
+import javax.inject.Singleton
+
+private const val CONNECT_TIMEOUT_SECONDS = 10L
+private const val IO_TIMEOUT_SECONDS = 10L
+
+/** 한 호출의 전체 상한. OkHttp 기본값 0(무제한)에서는 read timeout 이 바이트 사이 간격에만 걸린다. */
+private const val CALL_TIMEOUT_SECONDS = 30L
+
+/** 업로드·LLM 처리(지원서 분류)는 본문 크기와 서버 처리 시간에 비례해 길어진다. */
+private const val UPLOAD_IO_TIMEOUT_SECONDS = 60L
+private const val UPLOAD_CALL_TIMEOUT_SECONDS = 5 * 60L
+
+/** Hilt 한정자 이름 — 클라이언트·Retrofit 파생 구분. */
+public object NetworkQualifiers {
+    public const val BASE_CLIENT: String = "BaseClient"
+    public const val MAIN_CLIENT: String = "MainClient"
+    public const val REFRESH_CLIENT: String = "RefreshClient"
+    public const val UPLOAD_CLIENT: String = "UploadClient"
+    public const val MAIN_RETROFIT: String = "MainRetrofit"
+    public const val REFRESH_RETROFIT: String = "RefreshRetrofit"
+    public const val UPLOAD_RETROFIT: String = "UploadRetrofit"
+}
+
+private fun OkHttpClient.Builder.withApiTimeouts(): OkHttpClient.Builder =
+    connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+
+@Module
+@InstallIn(SingletonComponent::class)
+public object NetworkModule {
+    @Provides
+    @Singleton
+    public fun provideJson(): Json =
+        Json {
+            ignoreUnknownKeys = true
+            // coerceInputValues 는 두지 않는다 — non-null 프로퍼티에 null 이 와도 기본값이 있으면 조용히 치환해
+            // 계약 위반을 삼킨다. 응답 DTO 에 보정형 기본값을 새로 두는 것은 ResponseDtoContractKonsistTest 가 막는다.
+            // encodeDefaults 는 기본 false — 요청 DTO 의 null 기본값 필드는 직렬화되지 않아 PATCH 부분 수정이 성립한다.
+        }
+
+    @Provides
+    @Singleton
+    public fun provideLoggingInterceptor(): HttpLoggingInterceptor =
+        HttpLoggingInterceptor().apply {
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+            redactHeader("Authorization")
+        }
+
+    /**
+     * 모든 클라이언트의 공통 뿌리. 파생은 [OkHttpClient.newBuilder] 로 — 설정값만이 아니라 ConnectionPool ·
+     * Dispatcher · 스레드풀을 실제로 공유한다. 인터셉터는 여기 두지 않는다: 로깅은 각 클라이언트가 마지막에 달아야
+     * 최종 요청·응답을 관찰한다.
+     */
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.BASE_CLIENT)
+    public fun provideBaseOkHttpClient(): OkHttpClient = OkHttpClient.Builder().withApiTimeouts().build()
+
+    /** 재발급 전용 — 액세스 토큰을 붙이지 않는다. 일반 클라이언트로 재발급하면 만료 토큰이 헤더에 실려 401 이 반복된다. */
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.REFRESH_CLIENT)
+    public fun provideRefreshOkHttpClient(
+        @Named(NetworkQualifiers.BASE_CLIENT) baseClient: OkHttpClient,
+        loggingInterceptor: HttpLoggingInterceptor,
+    ): OkHttpClient = baseClient.newBuilder().addInterceptor(loggingInterceptor).build()
+
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.MAIN_CLIENT)
+    public fun provideMainOkHttpClient(
+        @Named(NetworkQualifiers.BASE_CLIENT) baseClient: OkHttpClient,
+        loggingInterceptor: HttpLoggingInterceptor,
+        authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator,
+    ): OkHttpClient =
+        baseClient
+            .newBuilder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .authenticator(tokenAuthenticator)
+            .build()
+
+    /** 지원서 업로드 전용 — 인증은 같고 타임아웃만 넉넉하다. */
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.UPLOAD_CLIENT)
+    public fun provideUploadOkHttpClient(
+        @Named(NetworkQualifiers.MAIN_CLIENT) mainClient: OkHttpClient,
+    ): OkHttpClient =
+        mainClient
+            .newBuilder()
+            .readTimeout(UPLOAD_IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(UPLOAD_IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .callTimeout(UPLOAD_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .build()
+
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.MAIN_RETROFIT)
+    public fun provideMainRetrofit(
+        @Named(NetworkQualifiers.MAIN_CLIENT) client: OkHttpClient,
+        json: Json,
+        apiErrorCallAdapterFactory: ApiErrorCallAdapterFactory,
+    ): Retrofit = retrofit(client, json, apiErrorCallAdapterFactory)
+
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.REFRESH_RETROFIT)
+    public fun provideRefreshRetrofit(
+        @Named(NetworkQualifiers.REFRESH_CLIENT) client: OkHttpClient,
+        json: Json,
+        apiErrorCallAdapterFactory: ApiErrorCallAdapterFactory,
+    ): Retrofit = retrofit(client, json, apiErrorCallAdapterFactory)
+
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.UPLOAD_RETROFIT)
+    public fun provideUploadRetrofit(
+        @Named(NetworkQualifiers.UPLOAD_CLIENT) client: OkHttpClient,
+        json: Json,
+        apiErrorCallAdapterFactory: ApiErrorCallAdapterFactory,
+    ): Retrofit = retrofit(client, json, apiErrorCallAdapterFactory)
+
+    private fun retrofit(
+        client: OkHttpClient,
+        json: Json,
+        apiErrorCallAdapterFactory: ApiErrorCallAdapterFactory,
+    ): Retrofit =
+        Retrofit
+            .Builder()
+            .baseUrl(BuildConfig.BASE_URL)
+            .client(client)
+            // HTTP 응답을 받은 뒤 400..599 본문을 ApiException 으로 변환한다.
+            .addCallAdapterFactory(apiErrorCallAdapterFactory)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+}

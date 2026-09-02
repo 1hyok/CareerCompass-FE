@@ -32,11 +32,17 @@ data class ApiErrorDto(
  * 서버가 응답을 마쳤지만 HTTP 또는 공통 응답 봉투 계약이 실패했을 때 throw 된다.
  *
  * 전송 계층 실패인 `IOException` 과 타입 계층을 공유하지 않는다 — 서버 응답을 받은 뒤의 내용 실패다.
+ *
+ * @property code 봉투 `error.code`(API_SPEC v0.1 §9). HTTP 실패 본문에 봉투가 없으면 `HTTP_<status>`.
+ * @property status HTTP 상태. 봉투가 `ok=false` 로 왔지만 HTTP 200 이었던 경우 등 상태를 모르면 null.
+ * @property field 서버가 지목한 검증 실패 필드.
  */
 class ApiException(
     val code: String,
     val serverMessage: String?,
     fallbackMessage: String,
+    val status: Int? = null,
+    val field: String? = null,
 ) : RuntimeException(serverMessage?.takeIf(String::isNotBlank) ?: fallbackMessage)
 
 fun <T : Any> BaseResponse<T>.requireData(): T {
@@ -58,6 +64,7 @@ private fun BaseResponse<*>.throwIfEnvelopeFailed(fallbackMessage: String) {
             code = error?.code ?: "UNKNOWN",
             serverMessage = error?.message,
             fallbackMessage = fallbackMessage,
+            field = error?.field,
         )
     }
 }
