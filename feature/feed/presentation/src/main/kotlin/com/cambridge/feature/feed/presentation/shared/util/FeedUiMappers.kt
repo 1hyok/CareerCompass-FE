@@ -28,6 +28,7 @@ import com.cambridge.feature.feed.presentation.board.BoardType
 import com.cambridge.feature.feed.presentation.board.BoardUiModel
 import com.cambridge.feature.feed.presentation.board.labelRes
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
+import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortOption
 import com.cambridge.feature.feed.presentation.feedfilter.labelRes
@@ -117,15 +118,31 @@ public fun DomainDeadlineFilter.toUiDeadlineFilter(): FeedDeadlineFilter =
         DomainDeadlineFilter.WithinWeek -> FeedDeadlineFilter.WithinWeek
         DomainDeadlineFilter.WithinMonth -> FeedDeadlineFilter.WithinMonth
         DomainDeadlineFilter.IncludeExpired -> FeedDeadlineFilter.IncludeExpired
+        is DomainDeadlineFilter.Range -> FeedDeadlineFilter.Range
     }
 
-public fun FeedDeadlineFilter.toDomainDeadlineFilter(): DomainDeadlineFilter =
+/** 조회에 걸린 범위 → 시트 편집값. 프리셋이면 빈 범위에서 시작한다. */
+public fun DomainDeadlineFilter.toUiDeadlineRange(): FeedDeadlineRange =
+    when (this) {
+        is DomainDeadlineFilter.Range -> FeedDeadlineRange(start = start, end = end)
+        else -> FeedDeadlineRange()
+    }
+
+/**
+ * 시트 선택 → 도메인 필터. 잘못된 범위([FeedDeadlineRange.error])는 **null** 이다 — 도메인 값이 뒤집힌
+ * 범위를 만들 수 없으므로, 옮길 수 없다는 사실을 타입으로 돌려주고 호출부가 「적용」을 막는다.
+ */
+public fun FeedDeadlineFilter.toDomainDeadlineFilter(range: FeedDeadlineRange): DomainDeadlineFilter? =
     when (this) {
         FeedDeadlineFilter.All -> DomainDeadlineFilter.All
         FeedDeadlineFilter.WithinWeek -> DomainDeadlineFilter.WithinWeek
         FeedDeadlineFilter.WithinMonth -> DomainDeadlineFilter.WithinMonth
         FeedDeadlineFilter.IncludeExpired -> DomainDeadlineFilter.IncludeExpired
+        FeedDeadlineFilter.Range -> range.toDomainRange()
     }
+
+private fun FeedDeadlineRange.toDomainRange(): DomainDeadlineFilter.Range? =
+    if (error == null) DomainDeadlineFilter.Range(start = start, end = end) else null
 
 public fun Int?.toMinScoreFilter(): FeedMinScoreFilter =
     when (this) {

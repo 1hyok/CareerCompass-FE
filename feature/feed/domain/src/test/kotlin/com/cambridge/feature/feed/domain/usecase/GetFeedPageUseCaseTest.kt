@@ -61,6 +61,35 @@ class GetFeedPageUseCaseTest {
         }
 
     @Test
+    fun `Range 는 양 끝을 포함한 범위 안에 마감하는 공고만 남기고 마감일 없는 공고는 뺀다`() =
+        runTest {
+            val range = FeedDeadlineFilter.Range(start = TODAY.plusDays(7), end = TODAY.plusDays(8))
+
+            assertEquals(listOf(3L, 4L), ids(FeedQuery(deadline = range)))
+        }
+
+    @Test
+    fun `Range 는 오늘과 무관하다 — 지난 날짜를 고르면 마감 지난 공고가 나온다`() =
+        runTest {
+            val range = FeedDeadlineFilter.Range(start = TODAY.minusDays(3), end = TODAY.minusDays(1))
+
+            assertEquals(listOf(1L), ids(FeedQuery(deadline = range)))
+        }
+
+    @Test
+    fun `Range 는 한쪽만 고르면 그 방향으로만 거른다`() =
+        runTest {
+            assertEquals(
+                listOf(5L, 6L),
+                ids(FeedQuery(deadline = FeedDeadlineFilter.Range(start = TODAY.plusDays(30), end = null))),
+            )
+            assertEquals(
+                listOf(1L, 2L),
+                ids(FeedQuery(deadline = FeedDeadlineFilter.Range(start = null, end = TODAY))),
+            )
+        }
+
+    @Test
     fun `검색어는 제목에 대소문자 무시로 포함되는 공고만 남긴다`() =
         runTest {
             val postings =

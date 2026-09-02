@@ -7,13 +7,13 @@ import com.cambridge.feature.feed.presentation.FeedContentState
 import com.cambridge.feature.feed.presentation.FeedUiState
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.feedfilter.FeedBoardFilterUiModel
+import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterUiState
 import com.cambridge.feature.feed.presentation.shared.util.feedCategoryFilters
 import com.cambridge.feature.feed.presentation.shared.util.toListingUiModel
 import com.cambridge.feature.feed.presentation.shared.util.toMinScoreFilter
 import com.cambridge.feature.feed.presentation.shared.util.toSortOption
 import com.cambridge.feature.feed.presentation.shared.util.toSortUiModel
-import com.cambridge.feature.feed.presentation.shared.util.toUiDeadlineFilter
 import java.time.Clock
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -54,7 +54,8 @@ internal fun FeedFilterDraft.toFilterUiState(
         selectedCategory = category,
         boards = boardModels,
         selectedBoardIds = boardIds.map(Long::toString).filter { it in knownIds }.toSet(),
-        deadline = deadline.toUiDeadlineFilter(),
+        deadline = deadline,
+        deadlineRange = deadlineRange.takeIf { deadline == FeedDeadlineFilter.Range },
         minScore = minScore.toMinScoreFilter(),
         unreadOnly = unreadOnly,
         matchingCount = null,

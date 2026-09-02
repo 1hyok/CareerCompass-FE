@@ -10,6 +10,16 @@
     <string name="feed_filter_deadline_within_week">7일 이내</string>
     <string name="feed_filter_deadline_within_month">30일 이내</string>
     <string name="feed_filter_deadline_include_expired">마감 지난 공고 포함</string>
+    <string name="feed_filter_deadline_range">직접 지정</string>
+    <string name="feed_filter_deadline_range_start">시작일</string>
+    <string name="feed_filter_deadline_range_end">종료일</string>
+    <string name="feed_filter_deadline_range_separator" translatable="false">~</string>
+    <string name="feed_filter_deadline_range_unset">선택 안 함</string>
+    <string name="feed_filter_deadline_range_field">%1$s, %2$s</string>
+    <string name="feed_filter_deadline_range_error_empty">시작일이나 종료일 중 하나는 골라야 해요</string>
+    <string name="feed_filter_deadline_range_error_start_after_end">시작일이 종료일보다 늦어요</string>
+    <string name="feed_filter_deadline_range_confirm">확인</string>
+    <string name="feed_filter_deadline_range_cancel">취소</string>
     <string name="feed_filter_min_score_title">적합도</string>
     <string name="feed_filter_min_score_all">전체</string>
     <string name="feed_filter_min_score_60">60점 이상</string>

@@ -129,6 +129,10 @@ public fun FeedFilterSheetContent(
                         )
                     }
                 }
+                // 「직접 지정」일 때만 그린다 — 프리셋과 배타적이라 함께 보이면 무엇이 걸렸는지 흐려진다.
+                state.deadlineRange?.let { range ->
+                    FeedDeadlineRangeEditor(range = range, onEvent = onEvent)
+                }
             }
             FeedFilterSection(title = stringResource(R.string.feed_filter_min_score_title)) {
                 FlowRow(
@@ -173,6 +177,7 @@ public fun FeedFilterSheetContent(
                 modifier = Modifier.weight(1f),
                 variant = CareerCompassButtonVariant.Primary,
                 size = CareerCompassButtonSize.Large,
+                enabled = state.isApplyEnabled,
             )
         }
     }
@@ -221,6 +226,7 @@ private fun FeedDeadlineFilter.labelRes(): Int =
         FeedDeadlineFilter.WithinWeek -> R.string.feed_filter_deadline_within_week
         FeedDeadlineFilter.WithinMonth -> R.string.feed_filter_deadline_within_month
         FeedDeadlineFilter.IncludeExpired -> R.string.feed_filter_deadline_include_expired
+        FeedDeadlineFilter.Range -> R.string.feed_filter_deadline_range
     }
 
 private fun FeedMinScoreFilter.labelRes(): Int =
