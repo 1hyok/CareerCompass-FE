@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_posting_raw_title">원문 보기</string>
+    <string name="feed_posting_raw_open_original">원본 링크 열기</string>
+</resources>

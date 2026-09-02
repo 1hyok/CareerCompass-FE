@@ -68,9 +68,12 @@ public data class OnboardingStep3UiState(
     public val visibleExperiences: List<OnboardingExperience>
         get() = experiences.filter { it.typeId == selectedExperienceTypeId }
 
-    /** Whether onboarding can advance with at least one saved experience. */
+    /**
+     * Whether onboarding can advance. Experiences are optional (spec F1-2), so only the input
+     * lock gates the next action; the screen nudges users to add at least one for better analysis.
+     */
     public val isNextEnabled: Boolean
-        get() = isInputEnabled && experiences.isNotEmpty()
+        get() = isInputEnabled
 }
 
 /** User intentions emitted by [OnboardingStep3Screen]. */
