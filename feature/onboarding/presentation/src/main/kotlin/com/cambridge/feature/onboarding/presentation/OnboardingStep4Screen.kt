@@ -46,8 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassButtonVariant
 import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
@@ -808,7 +806,6 @@ private fun OnboardingStep4Footer(
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
-    val useFigmaCompactSize = LocalDensity.current.fontScale <= 1f
 
     Row(
         modifier =
@@ -825,51 +822,38 @@ private fun OnboardingStep4Footer(
         horizontalArrangement = Arrangement.spacedBy(spacing.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (useFigmaCompactSize) {
-            CareerCompassButton(
-                text = stringResource(R.string.onboarding_step4_skip),
-                onClick = onSkipClick,
-                modifier = Modifier.weight(1f),
-                variant = CareerCompassButtonVariant.Secondary,
-                size = CareerCompassButtonSize.Large,
-                enabled = enabled,
-            )
-            CareerCompassButton(
-                text = stringResource(R.string.onboarding_step4_complete),
-                onClick = onCompleteClick,
-                modifier = Modifier.weight(2.2f),
-                size = CareerCompassButtonSize.Large,
-                enabled = completeEnabled,
-            )
-        } else {
-            OnboardingStep4AdaptiveFooterButton(
-                text = stringResource(R.string.onboarding_step4_skip),
-                onClick = onSkipClick,
-                modifier = Modifier.weight(1f),
-                isPrimary = false,
-                enabled = enabled,
-            )
-            OnboardingStep4AdaptiveFooterButton(
-                text = stringResource(R.string.onboarding_step4_complete),
-                onClick = onCompleteClick,
-                modifier = Modifier.weight(2.2f),
-                isPrimary = true,
-                enabled = completeEnabled,
-            )
-        }
+        OnboardingStep4FooterButton(
+            text = stringResource(R.string.onboarding_step4_skip),
+            onClick = onSkipClick,
+            modifier = Modifier.weight(1f),
+            isPrimary = false,
+            enabled = enabled,
+        )
+        OnboardingStep4FooterButton(
+            text = stringResource(R.string.onboarding_step4_complete),
+            onClick = onCompleteClick,
+            modifier = Modifier.weight(2.2f),
+            isPrimary = true,
+            enabled = completeEnabled,
+        )
     }
 }
 
 /**
- * 큰 글꼴 전용 푸터 버튼.
+ * Step 4 푸터 전용 버튼.
  *
- * [CareerCompassButton] 도 이제 높이가 하한이라 큰 글꼴에서 문구를 두 줄까지 접는다(#122). 그래도
- * 이 자리만 따로 두는 이유는 «폭» 이다. 이 푸터는 건너뛰기 : 완료를 1 : 2.2 로 나눠 건너뛰기 칸이
- * 100dp 뿐인데, 디자인 시스템 버튼의 좌우 여백 22dp 를 빼면 배율 2.0 에서 글자 한 자도 온전히
- * 못 들어간다. 여기서는 여백을 8dp 로 줄이고 줄 수 제한을 풀어 문구를 통째로 남긴다.
+ * [CareerCompassButton] 대신 두는 이유는 «폭» 이다. 이 푸터는 시안대로 건너뛰기 : 완료를 1 : 2.2 로
+ * 나눠 건너뛰기 칸이 약 101dp 인데, 디자인 시스템 버튼의 좌우 여백 22dp 씩을 빼면 글자에 약 57dp 만
+ * 남는다. 「건너뛰기」는 16sp 기준 약 71dp 라 기본 배율에서도 마지막 한 자가 다음 줄로 밀렸다(#131).
+ * 여백을 8dp 로 줄이면 85dp 가 남아 한 줄에 들어간다.
+ *
+ * 여백만 줄이고 높이·글꼴·색은 `Large` 와 같게 맞춘다 — 이 자리만 다른 버튼처럼 보이지 않게. 디자인
+ * 시스템의 여백 자체를 건드리지 않는 이유는 그 값이 모든 화면의 버튼을 함께 움직이기 때문이다.
+ *
+ * 큰 글꼴에서는 줄 수 제한 없이 접어 문구를 통째로 남긴다(#122).
  */
 @Composable
-private fun OnboardingStep4AdaptiveFooterButton(
+private fun OnboardingStep4FooterButton(
     text: String,
     onClick: () -> Unit,
     isPrimary: Boolean,
