@@ -9,7 +9,9 @@ import com.cambridge.feature.onboarding.presentation.flow.OnboardingDestination
  * @property replaceLoginWithOnboarding 신규 가입 — 로그인 화면을 걷어내고 Step 1 로.
  * @property replaceAuthWithFeed 기존 사용자 로그인·지문 인증 성공 — 인증 화면을 걷어내고 피드로.
  * @property replaceAuthWithOnboarding 지문 인증 뒤 세션 검증에서 온보딩 미완료로 확인 — 지문 화면을 걷어내고 Step 1 로.
- * @property navigateToLoginFromBiometric 지문 화면의 「다른 방법으로 로그인」과 지문 뒤 세션 만료 — 로그인 화면으로.
+ * @property navigateToLoginFromBiometric 지문 화면의 「다른 방법으로 로그인」 — 사용자가 고른 것이라 설명이 없다.
+ * @property navigateToLoginAfterSessionExpiry 지문 확인 뒤 세션 검증이 만료를 알렸다 — 같은 로그인 화면으로 가되
+ *   셸이 사유를 알아야 「왜 로그아웃됐는지」를 그 화면에서 말할 수 있다(#128).
  * @property proceedToStep 단계 저장 성공 또는 재개 지점으로 전진.
  * @property proceedToComplete Step 4 완료·건너뛰기 뒤 완료 화면으로.
  * @property popBack 단계 화면의 뒤로 가기. Step 1 에서 부르면 그래프가 비므로 셸이 종료를 결정한다.
@@ -21,6 +23,7 @@ public class OnboardingNavActions(
     public val replaceAuthWithFeed: () -> Unit,
     public val replaceAuthWithOnboarding: () -> Unit,
     public val navigateToLoginFromBiometric: () -> Unit,
+    public val navigateToLoginAfterSessionExpiry: () -> Unit,
     public val proceedToStep: (OnboardingStep) -> Unit,
     public val proceedToComplete: () -> Unit,
     public val popBack: () -> Unit,

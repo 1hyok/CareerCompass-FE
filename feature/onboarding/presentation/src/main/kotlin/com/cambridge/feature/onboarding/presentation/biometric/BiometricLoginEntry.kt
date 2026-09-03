@@ -20,13 +20,15 @@ import com.cambridge.feature.onboarding.presentation.R
  * [BiometricFailureReason.Unavailable] 이 와서 「다른 방법으로 로그인」 만 남는다.
  *
  * 인증 성공 뒤 목적지는 ViewModel 이 세션 검증으로 정한다 — 피드([onLoginSuccess]), 온보딩 미완료([onOnboardingRequired]),
- * 세션 만료([onOtherMethodLogin] 과 같은 로그인 화면).
+ * 세션 만료([onSessionExpired]). 만료는 [onOtherMethodLogin] 과 같은 로그인 화면으로 가지만 사용자가 고른 것이
+ * 아니라 이유를 알려야 해서 길을 나눠 둔다 — 판정도 안내도 앱 셸 몫이고 여기서는 사실만 넘긴다(#128).
  */
 @Composable
 public fun BiometricLoginEntry(
     onLoginSuccess: () -> Unit,
     onOnboardingRequired: () -> Unit,
     onOtherMethodLogin: () -> Unit,
+    onSessionExpired: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BiometricLoginViewModel = hiltViewModel(),
 ) {
@@ -34,6 +36,7 @@ public fun BiometricLoginEntry(
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnOnboardingRequired by rememberUpdatedState(onOnboardingRequired)
     val currentOnOtherMethodLogin by rememberUpdatedState(onOtherMethodLogin)
+    val currentOnSessionExpired by rememberUpdatedState(onSessionExpired)
     val fallbackUserName = stringResource(R.string.onboarding_biometric_default_user_name)
 
     LaunchedEffect(state.pendingNavigation) {
@@ -41,6 +44,7 @@ public fun BiometricLoginEntry(
             BiometricDestination.Feed -> currentOnLoginSuccess()
             BiometricDestination.Onboarding -> currentOnOnboardingRequired()
             BiometricDestination.Login -> currentOnOtherMethodLogin()
+            BiometricDestination.SessionExpired -> currentOnSessionExpired()
             null -> return@LaunchedEffect
         }
         viewModel.onNavigationConsumed()

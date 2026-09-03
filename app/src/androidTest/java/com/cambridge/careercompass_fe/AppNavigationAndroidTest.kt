@@ -10,12 +10,14 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakePostingRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
@@ -95,9 +97,13 @@ class AppNavigationAndroidTest {
         composeRule.onNodeWithText("마이 탭을 준비하고 있어요").assertIsDisplayed()
     }
 
-    /** 마이 탭 자리표시자의 로그아웃 — 확인 다이얼로그를 거쳐 세션이 끝나고 셸이 로그인 화면으로 되돌린다. */
+    /**
+     * 마이 탭 자리표시자의 로그아웃 — 확인 다이얼로그를 거쳐 세션이 끝나고 셸이 로그인 화면으로 되돌린다.
+     *
+     * 사용자가 방금 누른 결과라 만료 안내는 붙지 않는다(#128).
+     */
     @Test
-    fun myTabLogout_returnsToLoginScreen() {
+    fun myTabLogout_returnsToLoginScreenWithoutNotice() {
         fakeAuthRepository.loggedIn = true
         fakeUserProfileRepository.profileState.value = profile(onboardingDone = true)
 
@@ -116,7 +122,45 @@ class AppNavigationAndroidTest {
                 .isNotEmpty()
         }
         composeRule.onNodeWithText("카카오 로그인").assertIsDisplayed()
+        composeRule.onNodeWithText(SESSION_EXPIRED_TEXT).assertDoesNotExist()
         assertEquals(1, fakeAuthRepository.logoutCalls)
+    }
+
+    /**
+     * 피드에서 401 — 셸이 로그인 화면으로 되돌리며 이유를 한 줄 남긴다(#128).
+     *
+     * 실제로는 `TokenAuthenticator` 가 401 에서 세션을 정리한 뒤 실패가 화면까지 올라오므로, fake 도 실패를
+     * 돌려주기 전에 세션을 비운다 — 그래야 셸의 재계산이 로그인으로 간다.
+     */
+    @Test
+    fun feedSessionExpiry_returnsToLoginScreenWithNotice() {
+        fakeAuthRepository.loggedIn = true
+        fakeUserProfileRepository.profileState.value = profile(onboardingDone = true)
+        fakePostingRepository.onGetPostings = {
+            fakeAuthRepository.loggedIn = false
+            Result.failure(CoreDataFailure.Unauthorized("AUTH_INVALID", IllegalStateException("만료")))
+        }
+
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+
+        composeRule.waitUntil(timeoutMillis = SESSION_EXPIRY_TIMEOUT_MILLIS) {
+            composeRule
+                .onAllNodesWithText(SESSION_EXPIRED_TEXT)
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .isNotEmpty()
+        }
+        composeRule.onNodeWithText("카카오 로그인").assertIsDisplayed()
+        composeRule.onNodeWithText(SESSION_EXPIRED_TEXT).assertIsDisplayed()
+
+        // 닫으면 사라지고, 남은 로그인 화면은 그대로다.
+        composeRule.onNodeWithContentDescription(DISMISS_NOTICE_DESCRIPTION).performClick()
+        composeRule.waitUntil(timeoutMillis = SESSION_EXPIRY_TIMEOUT_MILLIS) {
+            composeRule
+                .onAllNodesWithText(SESSION_EXPIRED_TEXT)
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .isEmpty()
+        }
+        composeRule.onNodeWithText("카카오 로그인").assertIsDisplayed()
     }
 
     /**
@@ -250,6 +294,13 @@ class AppNavigationAndroidTest {
         const val DEEP_LINK_TIMEOUT_MILLIS = 10_000L
         const val LOGOUT_TIMEOUT_MILLIS = 10_000L
         const val BIOMETRIC_TIMEOUT_MILLIS = 10_000L
+        const val SESSION_EXPIRY_TIMEOUT_MILLIS = 10_000L
+
+        /** `onboarding_failure_session_expired` — 온보딩 저장 실패와 로그인 화면의 만료 안내가 함께 쓰는 문구. */
+        const val SESSION_EXPIRED_TEXT = "로그인이 만료됐어요. 다시 로그인해 주세요"
+
+        /** `OnboardingErrorCard` 의 닫기 버튼 — 라벨이 아니라 접근성 이름으로 찾는다. */
+        const val DISMISS_NOTICE_DESCRIPTION = "오류 안내 닫기"
 
         /** `MyTabPlaceholderScreen` 의 `MY_TAB_BIOMETRIC_SWITCH_TAG` — 라벨은 스위치의 토글 상태를 병합하지 않는다. */
         const val BIOMETRIC_SWITCH_TAG = "my_tab_biometric_switch"

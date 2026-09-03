@@ -8,6 +8,7 @@ import com.cambridge.core.common.reporting.recordStagedFailure
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
 import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
+import com.cambridge.core.domain.usecase.auth.SessionEntry
 import com.cambridge.core.domain.usecase.auth.SessionEntryDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,6 +38,10 @@ import javax.inject.Inject
  *
  * 결과는 [AppShellLaunch] 로 흘린다 — 세션 종료 뒤 같은 목적지가 나와도 [AppShellLaunch.revision] 이 올라 NavHost 가
  * 새로 만들어진다.
+ *
+ * 세션이 **왜** 끝났는지도 여기서 정한다(#128). 화면은 사실만 알려 주고([onSessionEnded]) 판정과 안내 여부는 셸이
+ * 갖는다 — 만료로 로그인 화면에 닿았을 때만 [AppShellLaunch.sessionExpiryNotice] 를 켠다. 셸이 스스로 401 을 만나는
+ * 자리(콜드 스타트의 세션 진입 판정·메인 뒤 백그라운드 확인)도 같은 만료다.
  */
 @HiltViewModel
 public class MainViewModel
@@ -65,6 +71,9 @@ public class MainViewModel
         private var resolveJob: Job? = null
         private var profileVerifyJob: Job? = null
 
+        /** 아직 [emit] 이 소비하지 않은 세션 종료 사유. null 이면 세션이 끝난 적 없는 계산(콜드 스타트)이다. */
+        private var pendingCause: SessionEndCause? = null
+
         init {
             refresh()
         }
@@ -79,13 +88,47 @@ public class MainViewModel
         }
 
         /**
-         * 로그아웃·세션 만료 뒤 시작 목적지를 다시 계산하고 NavHost 를 새로 만들게 한다.
+         * 화면이 알려 온 세션 종료 — 사유를 싣고 시작 목적지를 다시 계산한다.
+         *
+         * 피드·상세·게시판의 401 은 [SessionEndCause.Expired], 마이 탭 로그아웃은 [SessionEndCause.LoggedOut] 이다.
+         * 계산이 진행 중이면 합류하되 사유는 남아 이번 계산이 소비한다 — 두 화면이 같은 종료를 동시에 알려도
+         * 초기화는 한 번이고, 늦게 도착한 401 이 방금 한 로그아웃을 만료로 바꾸지 않는다.
+         */
+        public fun onSessionEnded(cause: SessionEndCause) {
+            reportCause(cause)
+            refresh()
+        }
+
+        /**
+         * 지문 확인 뒤 세션 검증이 만료를 알렸다 — 시작 목적지는 다시 계산하지 않고 안내만 켠다.
+         *
+         * 온보딩 그래프가 스스로 지문 화면을 걷어내고 로그인 화면으로 옮기므로 NavHost 를 새로 만들 이유가 없다.
+         * 더 중요한 이유는 재계산이 이 경로를 가둘 수 있다는 것이다: 세션 정리가 실패해 토큰이 남은 기기에서는
+         * 다시 계산해도 지문 화면이 나와 로그인 화면에 영영 닿지 못한다. 지문 화면 자체에는 알리지 않는다 — 그
+         * 화면은 세션이 살아 있다고 믿고 뜬 자리라 그 시점엔 알릴 만료가 아직 없다.
+         */
+        public fun raiseSessionExpiryNotice() {
+            _launch.update { it?.copy(sessionExpiryNotice = true) }
+        }
+
+        /**
+         * 만료 안내를 끈다 — 닫기를 눌렀거나 다시 로그인을 시도했을 때.
+         *
+         * [AppShellLaunch.revision] 은 그대로라 NavHost 를 다시 만들지 않는다. 안내는 상태라 회전으로 사라지지도,
+         * 두 번 뜨지도 않고, 여기로 꺼야 비로소 없어진다.
+         */
+        public fun consumeSessionExpiryNotice() {
+            _launch.update { if (it?.sessionExpiryNotice == true) it.copy(sessionExpiryNotice = false) else it }
+        }
+
+        /**
+         * 시작 목적지를 다시 계산하고 NavHost 를 새로 만들게 한다.
          *
          * 계산이 진행 중이면 합류한다 — 여러 화면이 같은 세션 종료를 동시에 알려도 초기화는 한 번이고, 계산이
          * 겹치지 않으니 늦게 끝난 옛 결과가 새 결과를 덮어쓰지도 않는다. 같은 이유로 새 계산이 시작되면 이전
          * 백그라운드 프로필 확인은 버린다 — 옛 세션의 결과가 새 목적지를 뒤집지 않는다.
          */
-        public fun refresh() {
+        private fun refresh() {
             if (resolveJob?.isActive == true) return
             profileVerifyJob?.cancel()
             resolveJob =
@@ -99,13 +142,29 @@ public class MainViewModel
         /**
          * 새 시작 목적지를 흘린다. [revision] 이 올라 NavHost 가 새로 만들어진다.
          *
+         * 사유는 여기서 소비한다 — 만료로 끝난 세션이 **실제로 로그인 화면에 닿았을 때만** 안내가 붙는다. 만료를
+         * 알려 왔어도 목적지가 로그인이 아니면(그 사이 다른 경로가 새 세션을 열었다) 설명할 일이 없고, 사유를
+         * 남겨 두면 한참 뒤의 계산에 엉뚱하게 붙으므로 목적지와 무관하게 비운다.
+         *
          * 첫 계산이 아니면 소비되지 않은 딥링크를 버린다 — 다른 계정으로 로그인해 남의 알림 공고가 열리지 않게.
          * 첫 계산([launch] 가 아직 null)에서는 지킨다: 앱이 뜨기 전에 받은 딥링크가 거기 있다.
          */
         private fun emit(destination: AppStartDestination) {
             revision += 1
+            val cause = pendingCause
+            pendingCause = null
             if (_launch.value != null) _pendingDeepLink.value = null
-            _launch.value = AppShellLaunch(revision = revision, destination = destination)
+            _launch.value =
+                AppShellLaunch(
+                    revision = revision,
+                    destination = destination,
+                    sessionExpiryNotice = cause == SessionEndCause.Expired && destination == AppStartDestination.Login,
+                )
+        }
+
+        /** 로그아웃이 이긴다 — 사용자가 끝낸 세션에 뒤늦게 돌아온 401 이 만료 안내를 붙이지 않는다. */
+        private fun reportCause(cause: SessionEndCause) {
+            if (pendingCause != SessionEndCause.LoggedOut) pendingCause = cause
         }
 
         private suspend fun resolve(): Resolution {
@@ -125,7 +184,18 @@ public class MainViewModel
         private suspend fun resolveBySessionEntry(): AppStartDestination {
             val entry = resolveSessionEntry()
             entry.fallbackCause?.let(::recordStartFailure)
+            entry.reportSessionEnd()
             return entry.destination.toStartDestination()
+        }
+
+        /**
+         * 셸이 직접 확인한 401 — 저장해 둔 세션이 서버에서 끝났다는 뜻이라 만료로 남긴다.
+         *
+         * [ResolveSessionEntryUseCase] 는 401 에서만 로그인을 돌려주고 로컬 세션도 함께 정리한다. 서버 확인이
+         * 실패해 캐시로 판단한 경우는 로그인이 아니므로 여기 걸리지 않는다(오프라인 시작에 만료 안내를 띄우지 않는다).
+         */
+        private fun SessionEntry.reportSessionEnd() {
+            if (destination == SessionEntryDestination.Login) reportCause(SessionEndCause.Expired)
         }
 
         /**
@@ -155,6 +225,7 @@ public class MainViewModel
                     // 또 확인을 건다. 0903 에 이 루프로 테스트 워커가 코루틴 1억 4천만 개를 만들며 CPU 를
                     // 태웠다. 캐시 갱신이 성공하면 멎지만 그 쓰기가 실패하면 앱이 영원히 돈다.
                     if (entry.destination != SessionEntryDestination.Feed) {
+                        entry.reportSessionEnd()
                         emit(entry.destination.toStartDestination())
                     }
                 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="onboarding_failure_network">네트워크 연결을 확인한 뒤 다시 시도해 주세요</string>
+    <!-- 온보딩 저장 실패와 로그인 화면의 세션 만료 안내(#128)가 함께 쓴다. 사용자가 읽는 사실이 같아 한 벌로 둔다. -->
     <string name="onboarding_failure_session_expired">로그인이 만료됐어요. 다시 로그인해 주세요</string>
     <string name="onboarding_failure_limit_exceeded">더 이상 추가할 수 없어요. 상한에 도달했어요</string>
     <string name="onboarding_failure_invalid_input">입력값을 다시 확인해 주세요</string>

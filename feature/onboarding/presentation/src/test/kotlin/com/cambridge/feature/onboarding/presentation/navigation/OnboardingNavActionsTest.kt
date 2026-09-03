@@ -34,6 +34,7 @@ internal fun recordingActions(calls: MutableList<String>): OnboardingNavActions 
         replaceAuthWithFeed = { calls += "auth->feed" },
         replaceAuthWithOnboarding = { calls += "auth->onboarding" },
         navigateToLoginFromBiometric = { calls += "biometric->login" },
+        navigateToLoginAfterSessionExpiry = { calls += "biometric->login(expired)" },
         proceedToStep = { calls += "step:${it.name}" },
         proceedToComplete = { calls += "complete" },
         popBack = { calls += "back" },

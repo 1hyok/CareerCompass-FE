@@ -88,6 +88,8 @@ public class OnboardingNavGraphTest {
                     startDestination = startDestination,
                     graphScopedParentEntry = { error("composable lambdas must not run in this test") },
                     actions = recordingActions(mutableListOf()),
+                    isSessionExpiryNoticeVisible = false,
+                    onSessionExpiryNoticeDismissed = {},
                 )
             }
         navController.setGraph(graph, null)

@@ -48,9 +48,12 @@ public class MainActivity : FragmentActivity() {
                     key(current.revision) {
                         AppNavigation(
                             startDestination = current.destination,
+                            isSessionExpiryNoticeVisible = current.sessionExpiryNotice,
+                            onSessionExpiryNoticeDismissed = viewModel::consumeSessionExpiryNotice,
                             pendingDeepLink = pendingDeepLink,
                             onDeepLinkConsumed = viewModel::consumeDeepLink,
-                            onSessionEnded = viewModel::refresh,
+                            onSessionEnded = viewModel::onSessionEnded,
+                            onAuthSessionExpired = viewModel::raiseSessionExpiryNotice,
                             onExitRequest = ::finish,
                         )
                     }
