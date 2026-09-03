@@ -1,5 +1,6 @@
 package com.cambridge.careercompass_fe.session
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cambridge.careercompass_fe.navigation.AppDeepLink
@@ -51,6 +52,7 @@ public class MainViewModel
         private val userProfileRepository: UserProfileRepository,
         private val resolveSessionEntry: ResolveSessionEntryUseCase,
         private val errorReporter: ErrorReporter,
+        private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _launch = MutableStateFlow<AppShellLaunch?>(null)
 
@@ -66,8 +68,17 @@ public class MainViewModel
          */
         public val pendingDeepLink: StateFlow<AppDeepLink?> = _pendingDeepLink.asStateFlow()
 
-        // 프로세스마다 다른 시작값 — 이전 프로세스의 NavController 저장 상태와 키가 겹치지 않는다.
-        private var revision: Long = System.nanoTime()
+        /**
+         * NavHost 세대 번호. 액티비티 저장 상태에 실려 프로세스를 건넌다.
+         *
+         * 예전에는 `System.nanoTime()` 으로 시작해 프로세스마다 달랐다 — 되살아난 앱이 이전 NavController 저장
+         * 상태를 **영영 못 찾게** 만들어 백스택 복원을 막는 장치였다. 그런데 그 저장 상태에는 백스택뿐 아니라
+         * 거기 매달린 그래프 스코프 `SavedStateHandle` 이 전부 들어 있다. 온보딩 입력 초안을 거기 남겨도
+         * 프로세스가 죽으면 함께 버려져, 「중단된 단계부터 재개」가 단계만 지키고 입력은 못 지켰다(#133).
+         *
+         * 그래서 값은 살리고 **버려야 할 때만** 올린다 — [emit] 의 판정이 그것이다.
+         */
+        private var revision: Long = savedStateHandle[KEY_REVISION] ?: 0L
         private var resolveJob: Job? = null
         private var profileVerifyJob: Job? = null
 
@@ -140,7 +151,16 @@ public class MainViewModel
         }
 
         /**
-         * 새 시작 목적지를 흘린다. [revision] 이 올라 NavHost 가 새로 만들어진다.
+         * 새 시작 목적지를 흘린다.
+         *
+         * [revision] 이 오르면 NavHost 가 새로 만들어지고 이전 백스택이 버려진다. 올리는 경우는 둘이다.
+         * - **다시 계산**([launch] 가 이미 있다): 세션이 끝났다는 뜻이라 언제나 버린다. 목적지가 같아도(로그인 →
+         *   만료 → 다시 로그인) 이전 백스택은 남으면 안 되는데, 목적지 값만 키로 쓰면 같은 값이라 아무 일도 없다.
+         * - **콜드 스타트인데 인증이 다시 필요하다**([AppStartDestination.requiresAuthentication]): 되살아난
+         *   백스택이 로그인·지문 게이트를 건너뛴다.
+         *
+         * 그 밖의 콜드 스타트(세션이 그대로인 온보딩·메인)는 **올리지 않는다** — 이전 프로세스가 남긴 NavController
+         * 저장 상태를 그대로 찾아, 보던 화면과 거기 매달린 입력 초안이 함께 돌아온다(#133).
          *
          * 사유는 여기서 소비한다 — 만료로 끝난 세션이 **실제로 로그인 화면에 닿았을 때만** 안내가 붙는다. 만료를
          * 알려 왔어도 목적지가 로그인이 아니면(그 사이 다른 경로가 새 세션을 열었다) 설명할 일이 없고, 사유를
@@ -150,7 +170,8 @@ public class MainViewModel
          * 첫 계산([launch] 가 아직 null)에서는 지킨다: 앱이 뜨기 전에 받은 딥링크가 거기 있다.
          */
         private fun emit(destination: AppStartDestination) {
-            revision += 1
+            if (_launch.value != null || destination.requiresAuthentication) revision += 1
+            savedStateHandle[KEY_REVISION] = revision
             val cause = pendingCause
             pendingCause = null
             if (_launch.value != null) _pendingDeepLink.value = null
@@ -252,5 +273,8 @@ public class MainViewModel
         private companion object {
             const val KEY_STAGE = "app_stage"
             const val STAGE_START_PROFILE = "start_profile"
+
+            /** 액티비티 저장 상태에 실리는 [revision] 키 — 프로세스를 건너 NavHost 세대를 잇는다. */
+            const val KEY_REVISION = "app_shell.navHostRevision"
         }
     }

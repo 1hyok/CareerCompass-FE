@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.flow
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
@@ -76,6 +77,8 @@ import javax.inject.Inject
  * - 재개: `init` 에서 [ResolveOnboardingEntryUseCase] 로 시작 단계를 정하고 프로필 값을 프리필한다(F1-1).
  * - 단계 저장은 각 use case 가 서버 저장과 진행 기록을 함께 처리하고, 성공하면 [OnboardingDestination.Step] 을 낸다.
  * - 실패 사유는 [OnboardingFailureReason] 으로 두고 계측은 [ErrorReporter] 로 남긴다. 문구·플랫폼 의존은 Entry 몫이다.
+ * - 입력 초안은 [OnboardingInputDraft] 가 [SavedStateHandle] 에 남긴다 — 프로세스가 죽어도 친 글자가 남는다(#133).
+ *   무엇을 남기고 무엇을 버리는지, 서버 값과의 우선순위가 어떻게 되는지는 그 클래스의 KDoc 에 있다.
  */
 @HiltViewModel
 public class OnboardingViewModel
@@ -95,13 +98,18 @@ public class OnboardingViewModel
         private val updatePastApplicationItemCategory: UpdatePastApplicationItemCategoryUseCase,
         private val completeOnboarding: CompleteOnboardingUseCase,
         private val errorReporter: ErrorReporter,
+        savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val _uiState = MutableStateFlow(OnboardingFlowState())
+        private val draft = OnboardingInputDraft(savedStateHandle)
+
+        // 초안이 시작값이고, 서버 프리필이 그 위에 덮인다 — 우선순위는 서버 > 초안 > 빈 값이다.
+        private val _uiState = MutableStateFlow(draft.restoredState())
         public val uiState: StateFlow<OnboardingFlowState> = _uiState.asStateFlow()
 
         private var nextLocalDocumentId = 1
 
         init {
+            viewModelScope.launch { _uiState.collect(draft::save) }
             viewModelScope.launch { resolveEntry() }
         }
 
@@ -610,19 +618,25 @@ public class OnboardingViewModel
                 _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded) }
                 return
             }
-            _uiState.update {
-                it.copy(uploadLabel = UploadLabelState(file = file, label = PastApplicationLabelRules.defaultLabelFor(file.fileName)))
-            }
+            val label = draft.restoredUploadLabel(PastApplicationLabelRules.defaultLabelFor(file.fileName))
+            _uiState.update { it.copy(uploadLabel = UploadLabelState(file = file, label = label)) }
         }
 
         public fun onUploadLabelEvent(event: UploadLabelEvent) {
             when (event) {
-                is UploadLabelEvent.LabelChanged -> updateUploadLabel { copy(label = event.value, labelError = null) }
+                is UploadLabelEvent.LabelChanged -> {
+                    updateUploadLabel { copy(label = event.value, labelError = null) }
+                }
 
-                UploadLabelEvent.Submitted -> submitUploadLabel()
+                UploadLabelEvent.Submitted -> {
+                    submitUploadLabel()
+                }
 
-                // 취소는 고른 파일을 버린다 — 목록에 흔적을 남기지 않는다.
-                UploadLabelEvent.Dismissed -> _uiState.update { it.copy(uploadLabel = null) }
+                // 취소는 고른 파일을 버린다 — 목록에도, 초안에도 흔적을 남기지 않는다.
+                UploadLabelEvent.Dismissed -> {
+                    draft.clearUploadLabel()
+                    _uiState.update { it.copy(uploadLabel = null) }
+                }
             }
         }
 
@@ -633,6 +647,7 @@ public class OnboardingViewModel
                 _uiState.update { it.copy(uploadLabel = sheet.copy(labelError = labelError)) }
                 return
             }
+            draft.clearUploadLabel()
             _uiState.update { it.copy(uploadLabel = null) }
             enqueueUpload(label = PastApplicationLabelRules.normalize(sheet.label), file = sheet.file)
         }
@@ -793,17 +808,31 @@ public class OnboardingViewModel
             return (status as? OnboardingUploadStatus.Completed)?.items?.firstOrNull { it.id == itemId }
         }
 
+        /** 프로세스가 죽어 닫힌 시트는 저절로 다시 열지 않는다 — 대신 다시 열면 쓰던 글이 그대로 있다(#133). */
         private fun openDirectInput() {
             if (!_uiState.value.isInputEnabled) return
-            _uiState.update { it.copy(directInput = DirectInputState()) }
+            _uiState.update { it.copy(directInput = draft.restoredDirectInput()) }
         }
 
         public fun onDirectInputEvent(event: DirectInputEvent) {
             when (event) {
-                is DirectInputEvent.LabelChanged -> updateDirectInput { copy(label = event.value, labelError = null) }
-                is DirectInputEvent.ContentChanged -> updateDirectInput { copy(content = event.value, contentError = null) }
-                DirectInputEvent.Submitted -> submitDirectInput()
-                DirectInputEvent.Dismissed -> _uiState.update { it.copy(directInput = null) }
+                is DirectInputEvent.LabelChanged -> {
+                    updateDirectInput { copy(label = event.value, labelError = null) }
+                }
+
+                is DirectInputEvent.ContentChanged -> {
+                    updateDirectInput { copy(content = event.value, contentError = null) }
+                }
+
+                DirectInputEvent.Submitted -> {
+                    submitDirectInput()
+                }
+
+                // 취소는 쓰던 글을 버리겠다는 뜻이다 — 초안도 함께 지워야 다음에 열었을 때 되살아나지 않는다.
+                DirectInputEvent.Dismissed -> {
+                    draft.clearDirectInput()
+                    _uiState.update { it.copy(directInput = null) }
+                }
             }
         }
 
@@ -829,6 +858,7 @@ public class OnboardingViewModel
                     fileName = "${label.replace('/', ' ')}.${PastApplicationFileFormat.Txt.extension}",
                     sizeBytes = bytes.size.toLong(),
                 ) { ByteArrayInputStream(bytes) }
+            draft.clearDirectInput()
             _uiState.update { it.copy(directInput = null) }
             enqueueUpload(label = label, file = file)
         }
@@ -954,6 +984,12 @@ private fun OnboardingStep1FormState.prefill(profile: UserProfile?): OnboardingS
     )
 }
 
+/**
+ * 서버가 아는 값이 이긴다. 서버가 아직 모르는 목록(이 Step 의 「다음」을 누르기 전이다)에서만 살아난 초안이 남는다
+ * — Step 1 의 `?:` 와 같은 규칙이다. 빈 목록으로 덮으면 프로세스가 죽기 직전에 고른 직무·태그가 그대로 지워진다.
+ *
+ * 등록 전의 태그 입력칸(`interestInput`)은 서버에 대응하는 값이 없어 언제나 초안이 남는다.
+ */
 private fun OnboardingStep2FormState.prefill(profile: UserProfile?): OnboardingStep2FormState {
     if (profile == null) return this
     val codes =
@@ -964,7 +1000,10 @@ private fun OnboardingStep2FormState.prefill(profile: UserProfile?): OnboardingS
             .distinct()
             .take(MAX_JOB_INTERESTS)
     val tags = profile.tags.distinct().take(MAX_PROFILE_TAGS)
-    return copy(selectedJobCodes = codes, interestTags = tags)
+    return copy(
+        selectedJobCodes = codes.ifEmpty { selectedJobCodes },
+        interestTags = tags.ifEmpty { interestTags },
+    )
 }
 
 /** 새 카드는 맨 앞(최신 등록순), 수정한 카드는 있던 자리에 그대로 둔다. */
