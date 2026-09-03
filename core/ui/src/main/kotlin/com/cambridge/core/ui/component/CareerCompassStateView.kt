@@ -261,6 +261,9 @@ public fun CareerCompassPermissionDeniedState(
  *
  * [title], [description], and [statusLabel] must be non-blank. When supplied, [contactLabel] must
  * also be non-blank.
+ *
+ * [onOfflineClick] 가 `null` 이면 오프라인 모드 버튼을 그리지 않는다 — 점검 중이라도 저장해 둔
+ * 스냅샷이 있는 화면만 그 길을 연다([CareerCompassNetworkErrorState] 와 같은 규칙).
  */
 @Composable
 public fun CareerCompassMaintenanceState(
@@ -268,6 +271,7 @@ public fun CareerCompassMaintenanceState(
     description: String,
     statusLabel: String,
     onRefreshClick: () -> Unit,
+    onOfflineClick: (() -> Unit)?,
     contactLabel: String?,
     modifier: Modifier = Modifier,
 ) {
@@ -301,6 +305,15 @@ public fun CareerCompassMaintenanceState(
                 variant = CareerCompassButtonVariant.Secondary,
                 size = CareerCompassButtonSize.Large,
             )
+            if (onOfflineClick != null) {
+                CareerCompassButton(
+                    text = stringResource(R.string.core_ui_state_offline),
+                    onClick = onOfflineClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = CareerCompassButtonVariant.Secondary,
+                    size = CareerCompassButtonSize.Large,
+                )
+            }
             if (contactLabel != null) {
                 Text(
                     text = contactLabel,

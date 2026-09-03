@@ -279,6 +279,7 @@ public class CareerCompassStateViewTest {
                 description = "AI 분석 서버를 업데이트하고 있어요",
                 statusLabel = "● 점검 진행 중",
                 onRefreshClick = { refreshCount += 1 },
+                onOfflineClick = null,
                 contactLabel = "문의 · help@careercompass.app",
             )
         }
@@ -298,11 +299,33 @@ public class CareerCompassStateViewTest {
                 description = "AI 분석 서버를 업데이트하고 있어요",
                 statusLabel = "● 점검 진행 중",
                 onRefreshClick = {},
+                onOfflineClick = null,
                 contactLabel = null,
             )
         }
 
         composeRule.onNodeWithText("문의 · help@careercompass.app").assertDoesNotExist()
+        composeRule.onNodeWithText("오프라인 모드로 보기").assertDoesNotExist()
+    }
+
+    @Test
+    public fun maintenanceState_offlineHandlerShowsOfflineAction() {
+        var offlineCount = 0
+
+        setStateContent {
+            CareerCompassMaintenanceState(
+                title = "서비스가 잠시 점검 중이에요",
+                description = "AI 분석 서버를 업데이트하고 있어요",
+                statusLabel = "● 점검 진행 중",
+                onRefreshClick = {},
+                onOfflineClick = { offlineCount += 1 },
+                contactLabel = null,
+            )
+        }
+
+        composeRule.onNode(hasText("오프라인 모드로 보기") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle { assertEquals(1, offlineCount) }
     }
 
     @Test

@@ -17,14 +17,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.ui.component.CareerCompassEmptyState
-import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedScreen
-import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterSheetContent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuContent
@@ -36,9 +32,8 @@ import kotlinx.coroutines.launch
 /**
  * 피드 홈 진입점 — [FeedViewModel] 상태를 [FeedScreen] 계약으로 옮기고 단발 신호를 소비한다.
  *
- * 네트워크 단절은 `CareerCompassNetworkErrorState`, 그 밖의 실패는 재시도 안내로 그린다. 필터·정렬은
- * `ModalBottomSheet` 로 띄운다. 프로필 입력 안내는 [onProfileClick] 으로 앱 셸(마이 탭)에 맡긴다 —
- * 공고 상세의 같은 안내와 목적지를 맞춘다.
+ * 실패는 사유별로 [FeedFailureContent] 가 그린다. 필터·정렬은 `ModalBottomSheet` 로 띄운다. 프로필 입력
+ * 안내는 [onProfileClick] 으로 앱 셸(마이 탭)에 맡긴다 — 공고 상세의 같은 안내와 목적지를 맞춘다.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,21 +81,13 @@ public fun FeedEntry(
     Box(modifier = modifier.fillMaxSize()) {
         when (val loadState = state.loadState) {
             is FeedLoadState.Failed -> {
-                if (loadState.isNetworkUnavailable) {
-                    // 저장해 둔 스냅샷이 있을 때만 「오프라인 모드로 보기」를 연다 — 눌러도 보여 줄 것이 없는
-                    // 버튼을 그리지 않는다.
-                    CareerCompassNetworkErrorState(
-                        onRetryClick = viewModel::retry,
-                        onOfflineClick = state.offlineSnapshot?.let { { viewModel.showOfflineSnapshot() } },
-                    )
-                } else {
-                    CareerCompassEmptyState(
-                        title = stringResource(R.string.feed_error_title),
-                        description = stringResource(R.string.feed_error_description),
-                        actionText = stringResource(R.string.feed_error_retry),
-                        onActionClick = viewModel::retry,
-                    )
-                }
+                // 저장해 둔 스냅샷이 있을 때만 「오프라인 모드로 보기」를 연다 — 눌러도 보여 줄 것이 없는
+                // 버튼을 그리지 않는다. 점검 중에도 같은 길을 열어 둔다.
+                FeedFailureContent(
+                    reason = loadState.reason,
+                    onRetryClick = viewModel::retry,
+                    onOfflineClick = state.offlineSnapshot?.let { { viewModel.showOfflineSnapshot() } },
+                )
             }
 
             FeedLoadState.Loading,

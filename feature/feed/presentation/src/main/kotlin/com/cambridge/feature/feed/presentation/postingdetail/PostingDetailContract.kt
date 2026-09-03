@@ -135,6 +135,12 @@ public sealed interface PostingDetailContentState {
         }
     }
 
+    /**
+     * 서버 점검(503 `LLM_UNAVAILABLE`). [Error] 와 달리 문구가 아니라 전용 안내 화면으로 그린다 —
+     * 재시도만 되풀이해도 소용없다는 것을 한 줄 메시지로는 말할 수 없다.
+     */
+    public data object Maintenance : PostingDetailContentState
+
     public data class Loaded(
         val posting: PostingDetailUiModel,
     ) : PostingDetailContentState

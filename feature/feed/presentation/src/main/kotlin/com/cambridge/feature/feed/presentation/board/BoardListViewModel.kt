@@ -13,6 +13,8 @@ import com.cambridge.feature.feed.domain.usecase.ToggleBoardActiveUseCase
 import com.cambridge.feature.feed.domain.usecase.UpdateBoardUseCase
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.util.toCollectCycle
 import com.cambridge.feature.feed.presentation.shared.util.toDomainBoardType
 import com.cambridge.feature.feed.presentation.shared.util.toUiBoardType
@@ -35,7 +37,7 @@ public sealed interface BoardListLoadState {
     ) : BoardListLoadState
 
     public data class Failed(
-        val isNetworkUnavailable: Boolean,
+        val reason: FeedFailureReason,
     ) : BoardListLoadState
 }
 
@@ -240,7 +242,7 @@ public class BoardListViewModel
                                 if (state.loadState is BoardListLoadState.Loaded) {
                                     state
                                 } else {
-                                    state.copy(loadState = BoardListLoadState.Failed(throwable is CoreDataFailure.NetworkUnavailable))
+                                    state.copy(loadState = BoardListLoadState.Failed(throwable.toFeedFailureReason()))
                                 }
                             }
                         }

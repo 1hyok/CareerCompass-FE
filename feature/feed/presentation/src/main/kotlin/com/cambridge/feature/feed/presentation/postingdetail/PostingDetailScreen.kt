@@ -51,6 +51,7 @@ import com.cambridge.feature.feed.presentation.postingdetail.component.badgeTone
 import com.cambridge.feature.feed.presentation.shared.component.FeedCard
 import com.cambridge.feature.feed.presentation.shared.component.FeedIconButton
 import com.cambridge.feature.feed.presentation.shared.component.FeedLoadingContent
+import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
 import com.cambridge.feature.feed.presentation.shared.component.FeedSectionTitle
 import com.cambridge.feature.feed.presentation.shared.component.FeedTopBar
 
@@ -98,6 +99,15 @@ public fun PostingDetailScreen(
                 PostingDetailError(
                     message = content.message,
                     onRetryClick = { onEvent(PostingDetailEvent.RetryClicked) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            PostingDetailContentState.Maintenance -> {
+                // 상세는 스냅샷을 저장하지 않아 오프라인 경로가 없다.
+                FeedMaintenanceState(
+                    onRetryClick = { onEvent(PostingDetailEvent.RetryClicked) },
+                    onOfflineClick = null,
                     modifier = Modifier.weight(1f),
                 )
             }

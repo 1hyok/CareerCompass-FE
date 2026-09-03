@@ -19,6 +19,8 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.util.toMinScore
 import com.cambridge.feature.feed.presentation.shared.util.toPostingSort
 import com.cambridge.feature.feed.presentation.shared.util.toPostingTypes
@@ -42,7 +44,7 @@ import javax.inject.Inject
  * - 페이지가 비어도 `nextCursor` 가 남아 있으면 끝이 아니다([FeedPage]) — 항목이 나올 때까지 몇 페이지를 이어 읽는다.
  * - 북마크는 먼저 뒤집고 실패하면 되돌린다.
  * - 프로필 캐시는 인사말뿐 아니라 적합도 표시 판정에도 쓴다([FeedViewState.isProfileNoticeVisible]).
- * - `401` 은 [FeedViewState.sessionEnded] 로 올리고, 네트워크 단절은 [FeedLoadState.Failed] 로 구분한다.
+ * - `401` 은 [FeedViewState.sessionEnded] 로 올리고, 네트워크 단절·서버 점검은 [FeedFailureReason] 으로 구분한다.
  */
 @HiltViewModel
 public class FeedViewModel
@@ -236,7 +238,7 @@ public class FeedViewModel
                             recordFailure(FeedFailureStage.FeedRefresh, throwable)
                             _state.update {
                                 if (it.postings.isEmpty()) {
-                                    it.copy(loadState = FeedLoadState.Failed(throwable.isNetworkUnavailable()), isRefreshing = false)
+                                    it.copy(loadState = FeedLoadState.Failed(throwable.toFeedFailureReason()), isRefreshing = false)
                                 } else {
                                     it.copy(isRefreshing = false, message = FeedMessage.RefreshFailed)
                                 }
@@ -302,7 +304,7 @@ public class FeedViewModel
             }
         }
 
-        /** 네트워크 단절로 목록을 못 받았다 — 스냅샷이 있으면 「오프라인 모드로 보기」를 열어 준다. */
+        /** 서버에서 목록을 못 받았다 — 스냅샷이 있으면 「오프라인 모드로 보기」를 열어 준다. */
         private fun loadSnapshotForOfflineOffer() {
             viewModelScope.launch {
                 feedSnapshotRepository
@@ -380,9 +382,10 @@ public class FeedViewModel
                             saveSnapshotIfDefault(query, page.postings)
                         }.onFailure { throwable ->
                             recordFailure(FeedFailureStage.FeedLoad, throwable)
-                            val networkUnavailable = throwable.isNetworkUnavailable()
-                            _state.update { it.copy(loadState = FeedLoadState.Failed(networkUnavailable)) }
-                            if (networkUnavailable) loadSnapshotForOfflineOffer()
+                            val reason = throwable.toFeedFailureReason()
+                            _state.update { it.copy(loadState = FeedLoadState.Failed(reason)) }
+                            // 점검 중에도 스냅샷은 유효하다 — 서버가 살아나기를 기다리는 동안 마지막 목록을 열어 둔다.
+                            if (reason != FeedFailureReason.Generic) loadSnapshotForOfflineOffer()
                         }
                 }
         }
@@ -457,8 +460,6 @@ public class FeedViewModel
                 _state.update { it.copy(sessionEnded = true) }
             }
         }
-
-        private fun Throwable.isNetworkUnavailable(): Boolean = this is CoreDataFailure.NetworkUnavailable
 
         public companion object {
             /** 검색어 입력 뒤 재조회까지 기다리는 시간. */

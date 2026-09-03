@@ -13,8 +13,10 @@ import com.cambridge.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
 import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
+import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +35,7 @@ public sealed interface PostingDetailLoadState {
     ) : PostingDetailLoadState
 
     public data class Failed(
-        val isNetworkUnavailable: Boolean,
+        val reason: FeedFailureReason,
     ) : PostingDetailLoadState
 }
 
@@ -178,7 +180,7 @@ public class PostingDetailViewModel
                         .onFailure { throwable ->
                             recordFailure(FeedFailureStage.PostingDetail, throwable)
                             _state.update {
-                                it.copy(loadState = PostingDetailLoadState.Failed(throwable is CoreDataFailure.NetworkUnavailable))
+                                it.copy(loadState = PostingDetailLoadState.Failed(throwable.toFeedFailureReason()))
                             }
                         }
                 }

@@ -16,6 +16,7 @@ import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.cambridge.feature.feed.presentation.postingDetail
 import com.cambridge.feature.feed.presentation.profile
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -167,12 +168,34 @@ class PostingDetailViewModelTest {
         repository.onGetPostingDetail = { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
         val viewModel = viewModel(repository)
 
-        assertEquals(PostingDetailLoadState.Failed(isNetworkUnavailable = true), viewModel.state.value.loadState)
+        assertEquals(PostingDetailLoadState.Failed(FeedFailureReason.NetworkUnavailable), viewModel.state.value.loadState)
 
         repository.onGetPostingDetail = null
         viewModel.onEvent(PostingDetailEvent.RetryClicked)
 
         assertTrue(viewModel.state.value.loadState is PostingDetailLoadState.Loaded)
+    }
+
+    @Test
+    fun `서버 점검 503 은 점검 상태가 되고 다시 시도로 복구한다`() {
+        val repository = repositoryWith(postingDetail(id = POSTING_ID))
+        repository.onGetPostingDetail = { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException())) }
+        val viewModel = viewModel(repository)
+
+        assertEquals(PostingDetailLoadState.Failed(FeedFailureReason.Maintenance), viewModel.state.value.loadState)
+
+        repository.onGetPostingDetail = null
+        viewModel.onEvent(PostingDetailEvent.RetryClicked)
+
+        assertTrue(viewModel.state.value.loadState is PostingDetailLoadState.Loaded)
+    }
+
+    @Test
+    fun `그 밖의 실패만 일반 실패로 접고 결함으로 기록한다`() {
+        val repository = repositoryWith(postingDetail(id = POSTING_ID))
+        repository.onGetPostingDetail = { Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", RuntimeException())) }
+
+        assertEquals(PostingDetailLoadState.Failed(FeedFailureReason.Generic), viewModel(repository).state.value.loadState)
         assertEquals(listOf("posting_detail"), reporter.stages)
     }
 

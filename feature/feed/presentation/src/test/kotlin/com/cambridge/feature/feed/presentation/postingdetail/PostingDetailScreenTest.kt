@@ -171,6 +171,25 @@ class PostingDetailScreenTest {
     }
 
     @Test
+    fun maintenance_showsMaintenanceNoticeWithoutOfflineActionAndEmitsRetry() {
+        val events = mutableListOf<PostingDetailEvent>()
+        composeRule.setDetailContent(
+            state = PostingDetailUiState(content = PostingDetailContentState.Maintenance),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("서비스가 잠시 점검 중이에요").assertIsDisplayed()
+        composeRule.onNodeWithText("점검 진행 중").assertIsDisplayed()
+        // 상세는 스냅샷이 없어 오프라인 경로를 열지 않는다.
+        composeRule.onAllNodesWithText("오프라인 모드로 보기").assertCountEquals(0)
+        composeRule.onNode(hasText("새로고침") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(PostingDetailEvent.RetryClicked), events)
+        }
+    }
+
+    @Test
     fun similarPosting_emitsSelectionWithListingId() {
         val events = mutableListOf<PostingDetailEvent>()
         composeRule.setDetailContent(state = loadedState(), onEvent = events::add)

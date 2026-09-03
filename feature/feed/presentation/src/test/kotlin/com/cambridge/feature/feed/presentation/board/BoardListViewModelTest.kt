@@ -12,6 +12,7 @@ import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.board
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -103,7 +104,8 @@ class BoardListViewModelTest {
             assertTrue(reverted.isActive)
             assertEquals(DomainBoardStatus.Active, reverted.status)
             assertEquals(BoardListMessage.ToggleFailed, viewModel.state.value.message)
-            assertEquals(listOf("board_toggle"), reporter.stages)
+            // 네트워크 단절은 예상된 상태다 — 스낵바로 알리되 결함으로 기록하지 않는다.
+            assertTrue(reporter.records.isEmpty())
         }
 
     @Test
@@ -201,20 +203,26 @@ class BoardListViewModelTest {
     }
 
     @Test
-    fun `목록 조회 실패는 네트워크 여부를 구분하고 401 은 세션을 끝낸다`() {
+    fun `목록 조회 실패는 사유를 구분하고 401 은 세션을 끝낸다`() {
         val network =
             FakeBoardRepository.strict().apply {
                 onGetBoards =
                     { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
             }
-        assertEquals(BoardListLoadState.Failed(isNetworkUnavailable = true), viewModel(network).state.value.loadState)
+        assertEquals(BoardListLoadState.Failed(FeedFailureReason.NetworkUnavailable), viewModel(network).state.value.loadState)
+
+        val maintenance =
+            FakeBoardRepository.strict().apply {
+                onGetBoards = { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException())) }
+            }
+        assertEquals(BoardListLoadState.Failed(FeedFailureReason.Maintenance), viewModel(maintenance).state.value.loadState)
 
         val unauthorized =
             FakeBoardRepository.strict().apply {
                 onGetBoards = { Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", RuntimeException())) }
             }
         val state = viewModel(unauthorized).state.value
-        assertEquals(BoardListLoadState.Failed(isNetworkUnavailable = false), state.loadState)
+        assertEquals(BoardListLoadState.Failed(FeedFailureReason.Generic), state.loadState)
         assertTrue(state.sessionEnded)
     }
 

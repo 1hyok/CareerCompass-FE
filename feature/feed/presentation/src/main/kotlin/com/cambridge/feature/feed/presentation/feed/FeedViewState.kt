@@ -8,6 +8,7 @@ import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.lacksSuitabilityInputs
 import com.cambridge.feature.feed.presentation.shared.util.toDomainDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toListingCategory
@@ -24,7 +25,7 @@ public sealed interface FeedLoadState {
     public data object Loaded : FeedLoadState
 
     public data class Failed(
-        val isNetworkUnavailable: Boolean,
+        val reason: FeedFailureReason,
     ) : FeedLoadState
 }
 

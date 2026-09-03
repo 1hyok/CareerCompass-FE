@@ -17,4 +17,7 @@
     <string name="feed_relative_time_hours_ago">%1$d시간 전</string>
     <string name="feed_relative_time_days_ago">%1$d일 전</string>
     <string name="feed_open_url_failed">링크를 열 수 있는 앱이 없어요</string>
+    <string name="feed_maintenance_title">서비스가 잠시 점검 중이에요</string>
+    <string name="feed_maintenance_description">AI 분석 서버를 손보고 있어요.\n조금 뒤에 다시 열어 주세요</string>
+    <string name="feed_maintenance_status">점검 진행 중</string>
 </resources>

@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.cambridge.feature.feed.presentation.feed.FeedFailureContent
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 
 @PreviewTest
 @Preview(name = "Main feed", widthDp = 360, heightDp = 772)
@@ -68,6 +70,22 @@ public fun ProfileNoticeFeedScreenPreview() {
                     ),
             ),
     )
+}
+
+@PreviewTest
+@Preview(name = "Maintenance feed", widthDp = 360, heightDp = 772)
+@Composable
+public fun MaintenanceFeedScreenPreview() {
+    // 서버 점검(503) — 스냅샷이 있으면 점검 중에도 「오프라인 모드로 보기」가 함께 열린다.
+    CareerCompassTheme {
+        Surface(color = CareerCompassTheme.colors.subtleSurface) {
+            FeedFailureContent(
+                reason = FeedFailureReason.Maintenance,
+                onRetryClick = {},
+                onOfflineClick = {},
+            )
+        }
+    }
 }
 
 @Composable

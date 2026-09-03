@@ -275,6 +275,7 @@ public fun CareerCompassMaintenanceStatePreview() {
             description = "AI 분석 서버를 업데이트하고 있어요\n예상 종료 시각 19:00",
             statusLabel = "● 점검 진행 중",
             onRefreshClick = {},
+            onOfflineClick = null,
             contactLabel = "문의 · help@careercompass.app",
         )
     }
