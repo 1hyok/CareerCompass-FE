@@ -2,6 +2,7 @@ package com.cambridge.feature.onboarding.presentation.flow
 
 import com.cambridge.core.model.user.MAX_GRADE_POINT_AVERAGE
 import com.cambridge.core.model.user.MIN_GRADUATION_YEAR
+import com.cambridge.feature.onboarding.domain.model.SchoolNameRules
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 
 /** Step 1 검증 규칙 — 기능 스펙 F1-2 Step 1 (이름 20자·학과 30자·학점 0.0~4.5·졸업 연도 2000~). */
@@ -20,6 +21,24 @@ internal object OnboardingStep1Rules {
             value.trim().length > maxLength -> OnboardingFieldError.TooLong(maxLength)
             else -> null
         }
+
+    /**
+     * 학교 검증 — 목록에서 고른 값과 직접 입력한 값이 같은 규칙을 지난다(#138).
+     *
+     * 길이는 [SchoolNameRules.normalize] 로 다듬은 뒤 잰다. 사용자가 지우지 않은 잉여 공백 때문에
+     * 「너무 깁니다」 가 뜨면 어디를 줄여야 하는지 알 수 없다.
+     */
+    fun validateSchool(
+        value: String,
+        requireValue: Boolean,
+    ): OnboardingFieldError? {
+        val name = SchoolNameRules.normalize(value)
+        return when {
+            name.isEmpty() -> if (requireValue) OnboardingFieldError.Required else null
+            name.length > SchoolNameRules.MAX_LENGTH -> OnboardingFieldError.TooLong(SchoolNameRules.MAX_LENGTH)
+            else -> null
+        }
+    }
 
     fun validateGradePointAverage(value: String): OnboardingFieldError? {
         if (value.isBlank()) return null
