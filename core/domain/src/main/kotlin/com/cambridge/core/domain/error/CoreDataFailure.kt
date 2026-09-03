@@ -1,5 +1,7 @@
 package com.cambridge.core.domain.error
 
+import java.io.IOException
+
 /**
  * 데이터 요청 실패 중 **사유가 확인된 것**의 공통 루트 — API_SPEC v0.1 §9 에러 코드를 도메인 사유로 옮긴다.
  *
@@ -11,10 +13,16 @@ public sealed class CoreDataFailure(
     public val code: String?,
     cause: Throwable?,
 ) : Exception(message, cause) {
-    /** 서버 응답 없이 전송 계층에서 끝난 실패. */
+    /**
+     * 서버 응답 없이 전송 계층에서 끝난 실패.
+     *
+     * data 계층이 `IOException` 을 **전부** 이 값으로 접는다 — 오프라인만이 아니라 cleartext 차단·TLS
+     * 회귀·잘린 응답까지 같은 값이 된다. 그래서 원본을 [transportCause] 로 타입까지 붙여 들고 있는다:
+     * 화면은 「네트워크 오류」 하나로 묶어도, 리포팅은 이 원인을 보고 우리 결함인지 갈라야 한다.
+     */
     public class NetworkUnavailable(
-        cause: Throwable,
-    ) : CoreDataFailure("network unavailable", code = null, cause = cause)
+        public val transportCause: IOException,
+    ) : CoreDataFailure("network unavailable", code = null, cause = transportCause)
 
     /** `AUTH_REQUIRED` / `AUTH_INVALID` (401). 세션 정리는 network 계층이 이미 끝냈다. */
     public class Unauthorized(

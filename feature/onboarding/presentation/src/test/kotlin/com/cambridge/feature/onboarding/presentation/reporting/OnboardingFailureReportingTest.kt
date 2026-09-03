@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.reporting
 
+import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
 import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TYPE
 import com.cambridge.core.domain.error.CoreAuthFailure
 import com.cambridge.core.model.auth.SocialProvider
@@ -8,6 +9,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLHandshakeException
 import kotlin.coroutines.cancellation.CancellationException
 
 class OnboardingFailureReportingTest {
@@ -30,6 +33,33 @@ class OnboardingFailureReportingTest {
         val recorded = reporter.failures.single()
         assertEquals("save_basic_info", recorded.attributes[ONBOARDING_REPORT_KEY_STAGE])
         assertNull(recorded.attributes[ONBOARDING_REPORT_KEY_PROVIDER])
+    }
+
+    @Test
+    fun `오프라인 로그인 재시도는 세션 표본 한 건만 남긴다`() {
+        repeat(3) {
+            reporter.recordOnboardingFailure(
+                OnboardingFailureStage.SocialLogin,
+                CoreAuthFailure.NetworkUnavailable(UnknownHostException()),
+                SocialProvider.Kakao,
+            )
+        }
+
+        assertEquals(listOf("social_login"), reporter.stages())
+        assertEquals("transient", reporter.failures.single().attributes[ERROR_REPORT_KEY_TRANSPORT])
+    }
+
+    @Test
+    fun `TLS 회귀는 네트워크 실패로 접혀 와도 매번 기록한다`() {
+        repeat(2) {
+            reporter.recordOnboardingFailure(
+                OnboardingFailureStage.SocialLogin,
+                CoreAuthFailure.NetworkUnavailable(SSLHandshakeException("cert")),
+            )
+        }
+
+        assertEquals(2, reporter.failures.size)
+        assertEquals("defect", reporter.failures.first().attributes[ERROR_REPORT_KEY_TRANSPORT])
     }
 
     @Test

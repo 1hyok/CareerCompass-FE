@@ -10,6 +10,10 @@ import java.io.IOException
  *
  * 사유가 확인된 실패만 치환하고 나머지는 원본 그대로 두어 소비처가 일반 문구로 내려앉는다. 취소는 다시 보지
  * 않는다 — 호출부가 전부 `runCatchingCancellable` 이라 `CancellationException` 이 [Result] 에 담기지 않는다.
+ *
+ * `IOException` 을 전부 `NetworkUnavailable` 하나로 접는 것은 **화면용 분류**다 — 사용자에게는 cleartext 차단도
+ * TLS 회귀도 「네트워크 오류」다. 관측용 분류는 그 안에 든 원본을 다시 읽는다
+ * (`core:common` 의 `transportFailureKind`), 그래서 원본을 잃지 않도록 그대로 cause 에 실어 보낸다.
  */
 internal fun <T> Result<T>.mapDataFailure(): Result<T> =
     when (val exception = exceptionOrNull()) {

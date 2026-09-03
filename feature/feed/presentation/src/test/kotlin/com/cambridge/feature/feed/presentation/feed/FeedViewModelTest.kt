@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.feed
 
+import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeBoardRepository
 import com.cambridge.core.domain.testing.FakePostingRepository
@@ -428,8 +429,8 @@ class FeedViewModelTest {
                     .isBookmarked,
             )
             assertEquals(FeedMessage.BookmarkFailed, viewModel.state.value.message)
-            // 네트워크 단절은 예상된 상태다 — 스낵바로 알리되 결함으로 기록하지 않는다.
-            assertTrue(reporter.records.isEmpty())
+            // 일시적 전송 실패는 (원인, 단계) 조합의 세션 첫 건만 표본으로 남는다.
+            assertEquals(listOf("bookmark"), reporter.stages)
             viewModel.onMessageConsumed()
             assertNull(viewModel.state.value.message)
         }
@@ -492,11 +493,18 @@ class FeedViewModelTest {
     }
 
     @Test
-    fun `네트워크 단절과 서버 점검은 결함으로 기록하지 않는다`() {
-        viewModel(postingRepository = offlinePostings())
+    fun `서버 점검은 빼고 네트워크 단절은 세션 표본 한 건만 남긴다`() {
         viewModel(postingRepository = maintenancePostings())
 
+        // 503 은 서버가 스스로 알린 상태라 통째로 뺀다.
         assertTrue(reporter.records.isEmpty())
+
+        repeat(3) { viewModel(postingRepository = offlinePostings()) }
+
+        // 재시도 폭주가 표본을 독점하지 못하게 (원인, 단계) 조합당 세션 첫 건만 남는다 —
+        // 단계가 다르면 따로 세므로 오늘 신규 개수와 피드 로드가 각각 한 건씩 남는다.
+        assertEquals(listOf("today_count", "feed_load"), reporter.stages)
+        assertTrue(reporter.records.all { it.second[ERROR_REPORT_KEY_TRANSPORT] == "transient" })
     }
 
     @Test
