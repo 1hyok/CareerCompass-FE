@@ -2,6 +2,7 @@ package com.cambridge.careercompass_fe.navigation
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
@@ -139,7 +140,12 @@ public fun AppNavigation(
             },
         ) { innerPadding ->
             NavHost(
-                modifier = Modifier.padding(innerPadding),
+                // `padding` 은 인셋을 **소비하지 않는다** — 자리만 비울 뿐이라, 아래 화면들이 다시 읽는
+                // `WindowInsets.safeDrawing` 에는 여기서 이미 비운 시스템 바가 그대로 남아 있었다. 그래서 모든
+                // 화면 아래에 내비게이션 바 높이만큼(3버튼 48dp) 죽은 여백이 생겼다(#145). 소비를 먼저 선언해
+                // 자식이 「남은 인셋」만 보게 한다 — 인셋의 주인은 이 셸이고, 화면들은 셸 밖에서 단독으로 그려질
+                // 때(스크린샷 골든)도 스스로를 지키도록 safeDrawing 을 그대로 둔다.
+                modifier = Modifier.consumeWindowInsets(innerPadding).padding(innerPadding),
                 navController = navController,
                 startDestination = startDestination.toTopLevelRoute(),
             ) {

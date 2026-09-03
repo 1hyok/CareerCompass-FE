@@ -3,6 +3,8 @@ package com.cambridge.careercompass_fe
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -19,8 +21,13 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeAuthRepository
+import com.cambridge.core.domain.testing.FakeBoardRepository
 import com.cambridge.core.domain.testing.FakePostingRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
+import com.cambridge.core.model.board.Board
+import com.cambridge.core.model.board.BoardStatus
+import com.cambridge.core.model.board.BoardType
+import com.cambridge.core.model.posting.Posting
 import com.cambridge.core.model.posting.PostingBoardRef
 import com.cambridge.core.model.posting.PostingDetail
 import com.cambridge.core.model.posting.PostingType
@@ -60,6 +67,9 @@ class AppNavigationAndroidTest {
 
     @Inject
     lateinit var fakePostingRepository: FakePostingRepository
+
+    @Inject
+    lateinit var fakeBoardRepository: FakeBoardRepository
 
     private var scenario: ActivityScenario<MainActivity>? = null
 
@@ -250,6 +260,48 @@ class AppNavigationAndroidTest {
         composeRule.onNodeWithText(DEEP_LINK_POSTING_TITLE, useUnmergedTree = true).assertDoesNotExist()
     }
 
+    // ── 인셋 (#145) ──────────────────────────────────────────────────────────
+
+    /**
+     * 시스템 바 인셋이 한 번만 들어가는지 — 콘텐츠의 아래끝과 탭 바의 위끝이 맞닿아야 한다.
+     *
+     * 앱 셸의 `Scaffold` 가 `contentWindowInsets` 로 비운 자리를 자식 화면이 `WindowInsets.safeDrawing` 으로
+     * 다시 비우면, 목록이 탭 바에 닿지 못하고 내비게이션 바 높이만큼(3버튼 48dp) 떠서 끝난다. `Modifier.padding`
+     * 은 자리만 비울 뿐 인셋을 **소비하지 않기** 때문이다.
+     *
+     * 골든 스크린샷은 이걸 못 잡는다 — 화면 컴포저블을 셸 없이 단독으로 그리기 때문이다. 그래서 실제 셸 위에서
+     * 잰다. 세로 스크롤 노드로 목록을 집는 이유는 피드 헤더에 가로 스크롤(카테고리 칩)이 따로 있어서다.
+     */
+    @Test
+    fun mainRoot_appliesSystemBarInsetsOnce() {
+        fakeAuthRepository.loggedIn = true
+        fakeUserProfileRepository.profileState.value = profile(onboardingDone = true)
+        fakeBoardRepository.boards += board()
+        fakePostingRepository.postings += posting()
+
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+
+        composeRule.waitUntil(timeoutMillis = FEED_TIMEOUT_MILLIS) {
+            composeRule
+                .onAllNodesWithText(FEED_POSTING_TITLE, useUnmergedTree = true)
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .isNotEmpty()
+        }
+
+        val list =
+            composeRule
+                .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val bottomBar =
+            composeRule
+                .onNodeWithTag(BOTTOM_BAR_TAG, useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .boundsInRoot
+
+        assertEquals(bottomBar.top, list.bottom, 1f)
+    }
+
     /** 알림 모듈이 만들 intent 와 같은 모양 — `careercompass://postings/{id}` 를 VIEW 로 앱에 보낸다. */
     private fun postingDeepLinkIntent(postingId: Long): Intent =
         Intent(Intent.ACTION_VIEW, Uri.parse("careercompass://postings/$postingId"))
@@ -274,6 +326,33 @@ class AppNavigationAndroidTest {
         similar = emptyList(),
     )
 
+    private fun board() =
+        Board(
+            id = 1,
+            url = "https://example.com/board",
+            name = "취업정보 게시판",
+            type = BoardType.Recruit,
+            cycleHours = 6,
+            isActive = true,
+            status = BoardStatus.Active,
+            failCount = 0,
+            lastCollectedAt = Instant.parse("2026-09-01T00:00:00Z"),
+        )
+
+    private fun posting() =
+        Posting(
+            id = 201,
+            title = FEED_POSTING_TITLE,
+            type = PostingType.Recruit,
+            board = PostingBoardRef(id = 1, name = "취업정보 게시판"),
+            dueDate = null,
+            collectedAt = Instant.parse("2026-09-01T00:00:00Z"),
+            score = null,
+            scoreLabel = null,
+            isRead = false,
+            isBookmarked = false,
+        )
+
     private fun profile(onboardingDone: Boolean) =
         UserProfile(
             id = 1,
@@ -290,6 +369,11 @@ class AppNavigationAndroidTest {
 
     private companion object {
         const val DEEP_LINK_POSTING_ID = 101L
+        const val FEED_POSTING_TITLE = "피드 목록에 뜨는 2026 신입 공채"
+        const val FEED_TIMEOUT_MILLIS = 10_000L
+
+        /** `CAREER_COMPASS_BOTTOM_BAR_TAG` — core:ui 의 internal 상수라 값으로 맞춘다. */
+        const val BOTTOM_BAR_TAG = "careercompass_bottom_bar"
         const val DEEP_LINK_POSTING_TITLE = "딥링크로 연 2026 하반기 공채"
         const val DEEP_LINK_TIMEOUT_MILLIS = 10_000L
         const val LOGOUT_TIMEOUT_MILLIS = 10_000L
