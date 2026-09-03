@@ -78,8 +78,8 @@ class AppNavigationAndroidTest {
         scenario = ActivityScenario.launch(MainActivity::class.java)
 
         composeRule.onNodeWithTag("careercompass_app_start", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("카카오로 시작하기").assertIsDisplayed()
-        composeRule.onNodeWithText("Google로 시작하기").assertIsDisplayed()
+        composeRule.onNodeWithText("카카오 로그인").assertIsDisplayed()
+        composeRule.onNodeWithText("Google 계정으로 로그인").assertIsDisplayed()
     }
 
     @Test
@@ -111,11 +111,11 @@ class AppNavigationAndroidTest {
         // 로그아웃 → 시작 목적지 재계산 → NavHost 재생성까지가 비동기다.
         composeRule.waitUntil(timeoutMillis = LOGOUT_TIMEOUT_MILLIS) {
             composeRule
-                .onAllNodesWithText("카카오로 시작하기")
+                .onAllNodesWithText("카카오 로그인")
                 .fetchSemanticsNodes(atLeastOneRootRequired = false)
                 .isNotEmpty()
         }
-        composeRule.onNodeWithText("카카오로 시작하기").assertIsDisplayed()
+        composeRule.onNodeWithText("카카오 로그인").assertIsDisplayed()
         assertEquals(1, fakeAuthRepository.logoutCalls)
     }
 
@@ -202,7 +202,7 @@ class AppNavigationAndroidTest {
         scenario = ActivityScenario.launch<MainActivity>(postingDeepLinkIntent(DEEP_LINK_POSTING_ID))
 
         // 인증 게이트 — 세션이 없으면 딥링크가 있어도 로그인 화면이며, 상세가 백스택에 오르지 않는다.
-        composeRule.onNodeWithText("카카오로 시작하기").assertIsDisplayed()
+        composeRule.onNodeWithText("카카오 로그인").assertIsDisplayed()
         composeRule.onNodeWithText(DEEP_LINK_POSTING_TITLE, useUnmergedTree = true).assertDoesNotExist()
     }
 

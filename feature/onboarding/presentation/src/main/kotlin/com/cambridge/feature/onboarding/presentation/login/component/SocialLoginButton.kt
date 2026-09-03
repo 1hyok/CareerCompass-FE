@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -28,13 +29,15 @@ import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /**
- * Full-width social sign-in button with provider-specific colors.
+ * 소셜 로그인 버튼의 공통 껍데기.
  *
- * The design-system button does not support vendor colors such as Kakao yellow, so this
- * component owns its container and content colors. [text] must be non-blank and is the
- * accessible name; [leadingIcon] is a decorative glyph and must be null or non-blank.
- * The button grows past [SOCIAL_LOGIN_BUTTON_HEIGHT] under large font scales instead of
- * clipping its label.
+ * 디자인 시스템 버튼은 카카오 노랑 같은 벤더 색을 받지 않으므로, 이 컴포넌트가 컨테이너·글자 색을
+ * 직접 갖는다. 어느 색을 넣을지는 provider 별 버튼([KakaoLoginButton] · [GoogleLoginButton])이
+ * 브랜드 가이드에서 가져와 정한다 — 여기서는 그 값을 그리기만 한다.
+ *
+ * [text] 는 비어 있을 수 없고 그대로 접근성 이름이 된다. [leadingMark] 는 브랜드 마크 자리이며
+ * 장식이라 자기 이름을 갖지 않는다 — 마크에 이름을 달면 버튼 이름과 이중으로 읽힌다. 큰 글꼴
+ * 배율에서는 라벨을 자르는 대신 [SOCIAL_LOGIN_BUTTON_HEIGHT] 를 넘겨 자란다.
  */
 @Composable
 internal fun SocialLoginButton(
@@ -43,14 +46,11 @@ internal fun SocialLoginButton(
     containerColor: Color,
     contentColor: Color,
     border: BorderStroke?,
-    leadingIcon: String?,
     enabled: Boolean,
     modifier: Modifier = Modifier,
+    leadingMark: @Composable () -> Unit,
 ) {
     require(text.isNotBlank()) { "text must not be blank" }
-    require(leadingIcon == null || leadingIcon.isNotBlank()) {
-        "leadingIcon must be null or non-blank"
-    }
 
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
@@ -89,19 +89,7 @@ internal fun SocialLoginButton(
         horizontalArrangement = Arrangement.spacedBy(spacing.small, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (leadingIcon != null) {
-            Text(
-                text = leadingIcon,
-                modifier = Modifier.clearAndSetSemantics {},
-                color = resolvedContentColor,
-                style =
-                    CareerCompassTheme.typography.labelMedium.copy(
-                        fontSize = 16.sp,
-                        lineHeight = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-            )
-        }
+        Box(modifier = Modifier.clearAndSetSemantics {}) { leadingMark() }
         Text(
             text = text,
             color = resolvedContentColor,

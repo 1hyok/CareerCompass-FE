@@ -63,6 +63,7 @@ public class LoginScreenTest {
                 .assertHeightIsAtLeast(52.dp)
                 .assertWidthIsAtLeast(48.dp)
         }
+        // 브랜드 마크가 다시 글리프·이모지로 돌아가지 않는지. 마크는 벡터라 어느 쪽도 텍스트로 잡히지 않는다.
         composeRule.onAllNodesWithText("💬", useUnmergedTree = true).assertCountEquals(0)
         composeRule.onAllNodesWithText("G", useUnmergedTree = true).assertCountEquals(0)
     }
@@ -125,9 +126,9 @@ public class LoginScreenTest {
         googleButton().performScrollTo().assertIsDisplayed()
     }
 
-    private fun kakaoButton() = composeRule.onNode(hasText("카카오로 시작하기") and hasClickAction())
+    private fun kakaoButton() = composeRule.onNode(hasText("카카오 로그인") and hasClickAction())
 
-    private fun googleButton() = composeRule.onNode(hasText("Google로 시작하기") and hasClickAction())
+    private fun googleButton() = composeRule.onNode(hasText("Google 계정으로 로그인") and hasClickAction())
 
     private fun setScreen(
         state: LoginUiState,

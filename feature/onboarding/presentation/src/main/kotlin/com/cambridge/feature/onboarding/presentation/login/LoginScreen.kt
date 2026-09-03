@@ -1,6 +1,5 @@
 package com.cambridge.feature.onboarding.presentation.login
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -20,13 +18,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
-import com.cambridge.feature.onboarding.presentation.login.component.SocialLoginButton
+import com.cambridge.feature.onboarding.presentation.login.component.GoogleLoginButton
+import com.cambridge.feature.onboarding.presentation.login.component.KakaoLoginButton
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingBrandMark
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingCenteredLayout
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingErrorCard
-
-private val KakaoContainer = Color(0xFFFEE500)
-private val KakaoContent = Color(0xFF191919)
 
 /** Stateless social login entry screen shown before onboarding. */
 @Composable
@@ -125,27 +121,10 @@ private fun SocialLoginButtons(
     onKakaoClick: () -> Unit,
     onGoogleClick: () -> Unit,
 ) {
-    val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
 
     Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
-        SocialLoginButton(
-            text = stringResource(R.string.onboarding_login_kakao),
-            onClick = onKakaoClick,
-            containerColor = KakaoContainer,
-            contentColor = KakaoContent,
-            border = null,
-            leadingIcon = stringResource(R.string.onboarding_login_kakao_icon),
-            enabled = enabled,
-        )
-        SocialLoginButton(
-            text = stringResource(R.string.onboarding_login_google),
-            onClick = onGoogleClick,
-            containerColor = colors.surface,
-            contentColor = colors.onSurface,
-            border = BorderStroke(1.dp, colors.outline),
-            leadingIcon = stringResource(R.string.onboarding_login_google_icon),
-            enabled = enabled,
-        )
+        KakaoLoginButton(onClick = onKakaoClick, enabled = enabled)
+        GoogleLoginButton(onClick = onGoogleClick, enabled = enabled)
     }
 }
