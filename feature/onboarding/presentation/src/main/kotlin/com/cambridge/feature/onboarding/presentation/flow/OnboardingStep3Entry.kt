@@ -18,7 +18,7 @@ import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickA
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddSheet
 import com.cambridge.feature.onboarding.presentation.experience.labelResId
 import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
-import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingSheetHost
+import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

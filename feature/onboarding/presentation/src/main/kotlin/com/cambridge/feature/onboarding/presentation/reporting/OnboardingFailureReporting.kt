@@ -18,6 +18,9 @@ public enum class OnboardingFailureStage(
     SocialLogin("social_login"),
     BiometricAuth("biometric_auth"),
     BiometricSessionVerify("biometric_session_verify"),
+
+    /** 지문 등록 제안 — 프로필 확보·지문 확인·서버 등록·거절 기록의 실패를 한 단계로 묶는다. */
+    BiometricEnroll("biometric_enroll"),
     ResolveEntry("resolve_entry"),
     SaveBasicInfo("save_basic_info"),
     SaveJobPreferences("save_job_preferences"),

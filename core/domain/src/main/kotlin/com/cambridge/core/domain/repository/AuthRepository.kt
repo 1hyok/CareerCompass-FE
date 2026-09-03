@@ -23,6 +23,15 @@ public interface AuthRepository {
      */
     public val isBiometricEnabled: Flow<Boolean>
 
+    /**
+     * 현재 세션 사용자가 이 기기에서 지문 등록 제안을 「나중에」로 넘긴 적이 있는지.
+     *
+     * [isBiometricEnabled] 와 같은 대조 규칙이다 — 거절 기록은 DEVICE 스코프라 로그아웃해도 남고, 누가 넘겼는지를
+     * 현재 세션 사용자와 맞춰 본다. 그래서 다른 계정은 이 기기에서도 한 번 제안을 받는다.
+     * 프로필을 아직 받지 못한 세션에서는 false 다.
+     */
+    public val isBiometricEnrollDeclined: Flow<Boolean>
+
     /** `POST /auth/social/{provider}` — 성공해도 세션은 저장하지 않는다. 저장은 use case 가 [saveSession] 으로 한다. */
     public suspend fun socialLogin(
         provider: SocialProvider,
@@ -51,6 +60,14 @@ public interface AuthRepository {
      * 현재 사용자 id 를 모르면(프로필을 받기 전) 서버를 부르지 않고 [IllegalStateException] 으로 실패한다.
      */
     public suspend fun registerBiometric(): Result<Unit>
+
+    /**
+     * 지문 등록 제안을 「나중에」로 넘긴 사실을 현재 세션 사용자에게 귀속해 기기에 남긴다.
+     *
+     * 현재 사용자 id 를 모르면(프로필을 받기 전) [IllegalStateException] 으로 실패한다 — 누구의 거절인지 모르는
+     * 기록은 다음 계정에게 제안을 건너뛰게 만든다.
+     */
+    public suspend fun declineBiometricEnroll(): Result<Unit>
 
     /** 켜면 현재 세션 사용자에게 귀속하고(프로필 전이면 [IllegalStateException]), 끄면 등록 사용자까지 지운다. */
     public suspend fun setBiometricEnabled(enabled: Boolean): Result<Unit>

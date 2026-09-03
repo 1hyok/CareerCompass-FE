@@ -69,6 +69,12 @@ internal class AuthRepositoryImpl
                     registered != null && registered == current
                 }
 
+        override val isBiometricEnrollDeclined: Flow<Boolean>
+            get() =
+                combine(deviceDataSource.biometricEnrollDeclinedUserIds, profileDataSource.userId) { declined, current ->
+                    current != null && current in declined
+                }
+
         override suspend fun socialLogin(
             provider: SocialProvider,
             providerToken: String,
@@ -144,12 +150,16 @@ internal class AuthRepositoryImpl
                 deviceDataSource.enableBiometric(userId)
             }.mapDataFailure()
 
+        override suspend fun declineBiometricEnroll(): Result<Unit> =
+            runCatchingCancellable { deviceDataSource.declineBiometricEnroll(requireCurrentUserId()) }
+
         override suspend fun setBiometricEnabled(enabled: Boolean): Result<Unit> =
             runCatchingCancellable {
                 if (enabled) deviceDataSource.enableBiometric(requireCurrentUserId()) else deviceDataSource.disableBiometric()
             }
 
-        private suspend fun requireCurrentUserId(): Long = profileDataSource.userId.first() ?: error("프로필을 받기 전에는 지문 로그인을 등록할 수 없습니다.")
+        /** 지문 로그인 기록은 전부 계정에 귀속된다 — 주인을 모르는 채로 남기면 다음 계정이 그 기록을 물려받는다. */
+        private suspend fun requireCurrentUserId(): Long = profileDataSource.userId.first() ?: error("프로필을 받기 전에는 지문 로그인 기록을 남길 수 없습니다.")
 
         /** [expectedGeneration] 을 주면 그 세대일 때만 정리한다 — 그 사이 열린 새 세션은 건드리지 않는다. */
         private suspend fun clearLocalSession(expectedGeneration: Long? = null) {

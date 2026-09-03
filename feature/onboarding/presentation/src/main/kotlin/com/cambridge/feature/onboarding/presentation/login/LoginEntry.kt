@@ -12,6 +12,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.feature.onboarding.presentation.BuildConfig
+import com.cambridge.feature.onboarding.presentation.biometric.BiometricEnrollGate
 import com.cambridge.feature.onboarding.presentation.login.util.GoogleLoginHelper
 import com.cambridge.feature.onboarding.presentation.login.util.KakaoLoginHelper
 import kotlinx.coroutines.launch
@@ -21,6 +22,9 @@ import kotlinx.coroutines.launch
  *
  * 카카오·Google SDK 는 Activity 를 요구하므로 토큰 획득은 여기서 하고, [LoginViewModel] 에는 토큰만 넘긴다.
  * [LocalActivity] 가 없는 호스트(프리뷰 등)에서는 SDK 를 부르지 않고 실패로 처리한다.
+ *
+ * 기존 사용자가 피드로 나가는 길목에는 [BiometricEnrollGate] 가 있다 — 지문 등록을 한 번 제안하고 끝나면 이동을
+ * 이어 준다(#98). 신규 가입은 온보딩으로 가므로 여기서 묻지 않는다. 그쪽은 완료 화면이 맡는다.
  *
  * Kakao SDK 초기화(`KakaoSdk.init`)와 `GOOGLE_WEB_CLIENT_ID` 주입은 앱 셸 몫이다.
  */
@@ -37,12 +41,10 @@ public fun LoginEntry(
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnNewUserOnboarding by rememberUpdatedState(onNewUserOnboarding)
 
+    // 피드행만 관문을 거친다 — 신규 가입은 온보딩으로 곧장 간다.
     LaunchedEffect(state.pendingNavigation) {
-        when (state.pendingNavigation) {
-            LoginDestination.Feed -> currentOnLoginSuccess()
-            LoginDestination.Onboarding -> currentOnNewUserOnboarding()
-            null -> return@LaunchedEffect
-        }
+        if (state.pendingNavigation != LoginDestination.Onboarding) return@LaunchedEffect
+        currentOnNewUserOnboarding()
         viewModel.onNavigationConsumed()
     }
 
@@ -65,7 +67,9 @@ public fun LoginEntry(
 
     val errorMessage = state.failure?.let { it.toMessage() }
     LoginScreen(
-        state = LoginUiState(isLoading = state.isLoading, errorMessage = errorMessage),
+        // 이동이 대기 중인 동안에도 로딩을 유지한다 — 관문이 프로필을 받아 오는 사이 버튼이 살아 있으면 이미
+        // 로그인한 사용자가 SDK 를 한 번 더 열 수 있다.
+        state = LoginUiState(isLoading = state.isLoading || state.pendingNavigation != null, errorMessage = errorMessage),
         onEvent = { event ->
             when (event) {
                 LoginEvent.KakaoLoginClicked -> requestSocialToken(SocialProvider.Kakao)
@@ -74,6 +78,14 @@ public fun LoginEntry(
             }
         },
         modifier = modifier,
+    )
+
+    BiometricEnrollGate(
+        isRequested = state.pendingNavigation == LoginDestination.Feed,
+        onProceed = {
+            currentOnLoginSuccess()
+            viewModel.onNavigationConsumed()
+        },
     )
 }
 

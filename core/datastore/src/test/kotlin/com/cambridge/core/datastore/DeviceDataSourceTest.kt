@@ -49,4 +49,29 @@ class DeviceDataSourceTest {
 
             assertNull(dataSource.biometricUserId.first())
         }
+
+    @Test
+    fun `등록 제안 거절은 사용자별로 쌓인다`() =
+        runTest {
+            assertEquals(emptySet<Long>(), dataSource.biometricEnrollDeclinedUserIds.first())
+
+            dataSource.declineBiometricEnroll(userId = 7L)
+            dataSource.declineBiometricEnroll(userId = 8L)
+            // 같은 사용자가 두 번 거절해도 기록은 하나다.
+            dataSource.declineBiometricEnroll(userId = 7L)
+
+            assertEquals(setOf(7L, 8L), dataSource.biometricEnrollDeclinedUserIds.first())
+        }
+
+    @Test
+    fun `지문 등록과 거절 기록은 서로를 지우지 않는다`() =
+        runTest {
+            dataSource.declineBiometricEnroll(userId = 7L)
+
+            dataSource.enableBiometric(userId = 7L)
+            dataSource.disableBiometric()
+
+            assertNull(dataSource.biometricUserId.first())
+            assertEquals(setOf(7L), dataSource.biometricEnrollDeclinedUserIds.first())
+        }
 }

@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 public class FakeAuthRepository(
     loggedIn: Boolean = false,
     biometricEnabled: Boolean = false,
+    biometricEnrollDeclined: Boolean = false,
     @Volatile public var accessToken: String? = null,
     @Volatile public var refreshToken: String? = null,
     public var session: Session = Session(DEFAULT_ACCESS_TOKEN, DEFAULT_REFRESH_TOKEN, isNewUser = false, expiresInSeconds = 3600),
@@ -30,9 +31,11 @@ public class FakeAuthRepository(
     public var onLogout: (suspend () -> Result<Unit>)? = null,
     public var onClearSession: (suspend () -> Result<Unit>)? = null,
     public var onRegisterBiometric: (suspend () -> Result<Unit>)? = null,
+    public var onDeclineBiometricEnroll: (suspend () -> Result<Unit>)? = null,
 ) : AuthRepository {
     public val loggedInState: MutableStateFlow<Boolean> = MutableStateFlow(loggedIn)
     public val biometricEnabledState: MutableStateFlow<Boolean> = MutableStateFlow(biometricEnabled)
+    public val biometricEnrollDeclinedState: MutableStateFlow<Boolean> = MutableStateFlow(biometricEnrollDeclined)
 
     public var loggedIn: Boolean
         get() = loggedInState.value
@@ -42,6 +45,7 @@ public class FakeAuthRepository(
 
     override val isLoggedIn: Flow<Boolean> get() = loggedInState
     override val isBiometricEnabled: Flow<Boolean> get() = biometricEnabledState
+    override val isBiometricEnrollDeclined: Flow<Boolean> get() = biometricEnrollDeclinedState
 
     public data class SocialLoginCall(
         val provider: SocialProvider,
@@ -55,11 +59,13 @@ public class FakeAuthRepository(
     private val logoutCounter = AtomicInteger()
     private val clearCounter = AtomicInteger()
     private val registerBiometricCounter = AtomicInteger()
+    private val declineBiometricEnrollCounter = AtomicInteger()
 
     public val rotateTokenCalls: Int get() = rotateCounter.get()
     public val logoutCalls: Int get() = logoutCounter.get()
     public val clearSessionCalls: Int get() = clearCounter.get()
     public val registerBiometricCalls: Int get() = registerBiometricCounter.get()
+    public val declineBiometricEnrollCalls: Int get() = declineBiometricEnrollCounter.get()
 
     override suspend fun socialLogin(
         provider: SocialProvider,
@@ -125,6 +131,13 @@ public class FakeAuthRepository(
         return Result.success(Unit)
     }
 
+    override suspend fun declineBiometricEnroll(): Result<Unit> {
+        declineBiometricEnrollCounter.incrementAndGet()
+        onDeclineBiometricEnroll?.let { return it() }
+        biometricEnrollDeclinedState.value = true
+        return Result.success(Unit)
+    }
+
     override suspend fun setBiometricEnabled(enabled: Boolean): Result<Unit> {
         biometricEnabledState.value = enabled
         return Result.success(Unit)
@@ -152,6 +165,7 @@ public class FakeAuthRepository(
                 onLogout = { unexpectedCall("AuthRepository.logout") },
                 onClearSession = { unexpectedCall("AuthRepository.clearSession") },
                 onRegisterBiometric = { unexpectedCall("AuthRepository.registerBiometric") },
+                onDeclineBiometricEnroll = { unexpectedCall("AuthRepository.declineBiometricEnroll") },
             )
     }
 }

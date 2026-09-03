@@ -14,7 +14,7 @@ import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationDatePic
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerEvent
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerSheet
 import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
-import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingSheetHost
+import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 import com.cambridge.feature.onboarding.presentation.shared.util.toMessage
 
