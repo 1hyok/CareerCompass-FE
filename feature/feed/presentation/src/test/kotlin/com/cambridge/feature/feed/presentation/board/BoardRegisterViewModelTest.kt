@@ -95,8 +95,8 @@ class BoardRegisterViewModelTest {
 
         assertEquals(BoardDetectionState.Idle, viewModel.state.value.detection)
         assertEquals(BoardRegisterMessage.NetworkUnavailable, viewModel.state.value.message)
-        // 네트워크 단절은 예상된 상태다 — 스낵바로 알리되 결함으로 기록하지 않는다.
-        assertTrue(reporter.records.isEmpty())
+        // 일시적 전송 실패는 (원인, 단계) 조합의 세션 첫 건만 표본으로 남는다.
+        assertEquals(listOf("board_detect"), reporter.stages)
     }
 
     @Test

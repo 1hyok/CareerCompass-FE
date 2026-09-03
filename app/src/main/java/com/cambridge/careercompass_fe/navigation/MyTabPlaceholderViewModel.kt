@@ -3,6 +3,7 @@ package com.cambridge.careercompass_fe.navigation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
+import com.cambridge.core.common.reporting.recordStagedFailure
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
 import com.cambridge.core.domain.usecase.auth.LogoutUseCase
@@ -186,14 +187,14 @@ internal class MyTabPlaceholderViewModel
             logoutJob =
                 viewModelScope.launch {
                     logout().onFailure { cause ->
-                        errorReporter.recordFailure(cause, attributes = mapOf(KEY_STAGE to STAGE_LOGOUT))
+                        errorReporter.recordStagedFailure(stageKey = KEY_STAGE, stage = STAGE_LOGOUT, throwable = cause)
                     }
                     _state.update { it.copy(isLoggingOut = false, sessionEnded = true) }
                 }
         }
 
         private fun recordBiometricFailure(cause: Throwable) {
-            errorReporter.recordFailure(cause, attributes = mapOf(KEY_STAGE to STAGE_BIOMETRIC))
+            errorReporter.recordStagedFailure(stageKey = KEY_STAGE, stage = STAGE_BIOMETRIC, throwable = cause)
         }
 
         /** 학교·학과 중 아는 것만 잇는다. 둘 다 모르면 null 이고 화면이 대체 문구를 쓴다. */

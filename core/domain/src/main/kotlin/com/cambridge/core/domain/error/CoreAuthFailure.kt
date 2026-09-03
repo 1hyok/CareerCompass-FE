@@ -1,5 +1,7 @@
 package com.cambridge.core.domain.error
 
+import java.io.IOException
+
 /**
  * 인증 흐름(소셜 로그인·토큰 재발급·지문 로그인)의 실패 중 **사유가 확인된 것**의 공통 루트.
  *
@@ -14,10 +16,15 @@ public sealed class CoreAuthFailure(
     message: String,
     cause: Throwable?,
 ) : Exception(message, cause) {
-    /** 서버 응답 없이 전송 계층에서 끝난 실패(DNS·타임아웃·연결 거부). */
+    /**
+     * 서버 응답 없이 전송 계층에서 끝난 실패(DNS·타임아웃·연결 거부).
+     *
+     * [CoreDataFailure.NetworkUnavailable] 과 같은 이유로 원본을 [transportCause] 에 타입까지 붙여 남긴다 —
+     * 인증 경로에서도 TLS 회귀와 오프라인은 다른 사건이다.
+     */
     public class NetworkUnavailable(
-        cause: Throwable,
-    ) : CoreAuthFailure("network unavailable", cause)
+        public val transportCause: IOException,
+    ) : CoreAuthFailure("network unavailable", transportCause)
 
     /** 소셜 로그인 거절(`AUTH_INVALID` 등). 입력 필드와 무관한 실패라 별도 안내로 표시한다. */
     public class SocialLoginRejected(

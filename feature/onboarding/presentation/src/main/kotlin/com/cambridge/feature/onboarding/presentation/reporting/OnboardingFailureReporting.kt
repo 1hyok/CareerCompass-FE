@@ -1,7 +1,7 @@
 package com.cambridge.feature.onboarding.presentation.reporting
 
 import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.CoreAuthFailure
+import com.cambridge.core.common.reporting.recordStagedFailure
 import com.cambridge.core.model.auth.SocialProvider
 
 /** 리포팅 속성 키 — 온보딩 흐름의 어느 단계에서 실패했는지. */
@@ -39,21 +39,19 @@ public enum class OnboardingFailureStage(
 /**
  * 온보딩 실패를 단계·제공자 속성과 함께 non-fatal 로 남긴다.
  *
- * [CoreAuthFailure.UserCancelledAuth] 는 사용자의 의도된 행동이라 기록하지 않는다 — 기록하면 실제 장애 신호가
- * 취소 잡음에 묻힌다. 코루틴 취소는 [ErrorReporter.recordFailure] 가 거른다.
+ * 무엇을 접고 무엇을 남길지는 [recordStagedFailure] 가 정한다 — 사용자 취소(의도된 행동)와 서버가
+ * 스스로 알린 상태를 빼는 것도, 일시적 전송 실패를 세션당 한 건으로 줄이는 것도 그 규칙이다.
+ * 로그인 재시도가 잦은 화면일수록 이 규칙이 없으면 콘솔이 오프라인 잡음으로 덮인다.
  */
 public fun ErrorReporter.recordOnboardingFailure(
     stage: OnboardingFailureStage,
     throwable: Throwable,
     provider: SocialProvider? = null,
 ) {
-    if (throwable is CoreAuthFailure.UserCancelledAuth) return
-    recordFailure(
+    recordStagedFailure(
+        stageKey = ONBOARDING_REPORT_KEY_STAGE,
+        stage = stage.key,
         throwable = throwable,
-        attributes =
-            buildMap {
-                put(ONBOARDING_REPORT_KEY_STAGE, stage.key)
-                provider?.let { put(ONBOARDING_REPORT_KEY_PROVIDER, it.name.lowercase()) }
-            },
+        attributes = provider?.let { mapOf(ONBOARDING_REPORT_KEY_PROVIDER to it.name.lowercase()) }.orEmpty(),
     )
 }

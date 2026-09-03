@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cambridge.careercompass_fe.navigation.AppDeepLink
 import com.cambridge.core.common.reporting.ErrorReporter
+import com.cambridge.core.common.reporting.recordStagedFailure
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
 import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
@@ -159,8 +160,9 @@ public class MainViewModel
                 }
         }
 
+        /** 시작 프로필 조회 실패. 오프라인 콜드 스타트마다 나므로 공통 규칙에 맡겨 세션 표본만 남긴다. */
         private fun recordStartFailure(cause: Throwable) {
-            errorReporter.recordFailure(cause, attributes = mapOf(KEY_STAGE to STAGE_START_PROFILE))
+            errorReporter.recordStagedFailure(stageKey = KEY_STAGE, stage = STAGE_START_PROFILE, throwable = cause)
         }
 
         private fun SessionEntryDestination.toStartDestination(): AppStartDestination =

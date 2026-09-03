@@ -135,7 +135,7 @@ class BiometricLoginViewModelTest {
     }
 
     @Test
-    fun `네트워크 실패는 기록하고 마지막으로 알려진 완료 여부로 판단한다`() {
+    fun `네트워크 실패는 세션 표본만 남기고 마지막으로 알려진 완료 여부로 판단한다`() {
         stubRefresh { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException("offline"))) }
         val done = createViewModel()
 
@@ -152,7 +152,8 @@ class BiometricLoginViewModelTest {
         notDone.onAuthenticationSucceeded()
 
         assertEquals(BiometricDestination.Onboarding, notDone.uiState.value.pendingNavigation)
-        assertEquals(2, reporter.failures.size)
+        // 같은 (원인, 단계) 조합의 두 번째 실패는 접힌다 — 오프라인 재시도가 표본을 독점하지 않는다.
+        assertEquals(1, reporter.failures.size)
     }
 
     @Test
