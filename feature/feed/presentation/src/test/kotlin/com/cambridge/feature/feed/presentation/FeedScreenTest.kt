@@ -17,6 +17,7 @@ import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -221,6 +222,47 @@ class FeedScreenTest {
     }
 
     @Test
+    fun listing_showsCollectedAtLabelBesideTheDeadline() {
+        composeRule.setFeedContent(state = sampleState(listing = sampleListing(collectedAtLabel = "수집 3일 전", isNew = false)))
+
+        composeRule.onNodeWithText("수집 3일 전").assertIsDisplayed()
+        composeRule.onNodeWithText("D-7").assertIsDisplayed()
+    }
+
+    /**
+     * 오늘 수집분은 초록 점이 **색으로만** 말하던 것을 문구가 대신 말한다 — 점은 훑어보기용 덧표시라
+     * 스크린 리더에서 지웠으므로, 「신규 공고」 대신 「오늘 수집」이 읽혀야 한다.
+     */
+    @Test
+    fun newListing_saysCollectedTodayInWordsInsteadOfTheGreenDotAlone() {
+        composeRule.setFeedContent(state = sampleState(listing = sampleListing(collectedAtLabel = "오늘 수집", isNew = true)))
+
+        composeRule.onNodeWithText("오늘 수집").assertIsDisplayed()
+        composeRule.onAllNodesWithContentDescription("신규 공고").assertCountEquals(0)
+    }
+
+    /**
+     * 읽음은 색·굵기 말고 **문구와 접근성 상태**로도 갈려야 한다 — 읽지 않은 카드도 침묵하지 않는다.
+     */
+    @Test
+    fun readListing_marksTheCardWithWordsAndAnAccessibilityState() {
+        composeRule.setFeedContent(state = sampleState(listing = sampleListing(isRead = true)))
+
+        composeRule
+            .onNode(hasText(SAMPLE_LISTING_TITLE) and hasStateDescription("읽음"))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun unreadListing_saysSoInsteadOfLeavingTheStateUnspoken() {
+        composeRule.setFeedContent(state = sampleState(listing = sampleListing(isRead = false)))
+
+        composeRule
+            .onNode(hasText(SAMPLE_LISTING_TITLE) and hasStateDescription("읽지 않음"))
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun profileNotice_isHiddenByDefault() {
         composeRule.setFeedContent(state = sampleState())
 
@@ -414,7 +456,12 @@ private fun sampleState(
                 ?: content,
     )
 
-private fun sampleListing(isBookmarked: Boolean = false): FeedListingUiModel =
+private fun sampleListing(
+    isBookmarked: Boolean = false,
+    collectedAtLabel: String = SAMPLE_COLLECTED_LABEL,
+    isNew: Boolean = true,
+    isRead: Boolean = false,
+): FeedListingUiModel =
     FeedListingUiModel(
         id = SAMPLE_LISTING_ID,
         title = SAMPLE_LISTING_TITLE,
@@ -424,9 +471,12 @@ private fun sampleListing(isBookmarked: Boolean = false): FeedListingUiModel =
         suitability = FeedSuitabilityState.Scored(88),
         deadlineLabel = "D-7",
         isDeadlineUrgent = false,
-        isNew = true,
+        collectedAtLabel = collectedAtLabel,
+        isNew = isNew,
+        isRead = isRead,
         isBookmarked = isBookmarked,
     )
 
+private const val SAMPLE_COLLECTED_LABEL = "오늘 수집"
 private const val SAMPLE_LISTING_ID = "listing-1"
 private const val SAMPLE_LISTING_TITLE = "2026 카카오 SW 인턴십 모집"

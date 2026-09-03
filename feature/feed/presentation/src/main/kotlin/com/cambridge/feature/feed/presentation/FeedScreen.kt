@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -51,6 +53,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -587,7 +590,23 @@ private fun FeedLoadMoreActionRow(
     }
 }
 
-/** A reusable listing card that emits separate card and bookmark events. */
+/**
+ * A reusable listing card that emits separate card and bookmark events.
+ *
+ * ### 무엇을 어디에 넣었나 (#140)
+ *
+ * 위 줄(배지·적합도 칩)에는 **아무것도 더하지 않았다.** 배지 둘과 칩이 이미 폭을 다투고 있어
+ * fontScale 2.0 에서 한 조각만 더해도 출처 배지가 잘린다. 수집일과 읽음 표시는 둘 다 여유가 있는
+ * 아래 메타 줄로 보내고, 그 줄을 [FlowRow] 로 바꿔 큰 글꼴에서는 잘리는 대신 **접히게** 했다 —
+ * 카드가 세로로 길어질 뿐 마감일·북마크가 밀려나지 않는다.
+ *
+ * ### 읽음을 무엇으로 가르나
+ *
+ * 색·굵기만으로 가르지 않는다(색각 이상·고대비 모드). 정보를 지는 것은 **문구(「읽음」)와 형태(체크
+ * 표시)** 이고, 제목의 흐린 색은 훑어볼 때를 돕는 덧칠일 뿐이다 — 적합도 축의 충족 배지(#141,
+ * `SuitabilityBreakdownRow`)와 같은 원칙이다. 스크린 리더에는 카드의 `stateDescription` 으로
+ * **읽음·읽지 않음을 모두** 실어, 표시가 없는 쪽(읽지 않음)도 침묵하지 않게 한다.
+ */
 @Composable
 public fun FeedListingCard(
     listing: FeedListingUiModel,
@@ -597,14 +616,17 @@ public fun FeedListingCard(
 ) {
     val colors = CareerCompassTheme.colors
     val cardShape = RoundedCornerShape(16.dp)
-    val newListingContentDescription =
-        stringResource(R.string.feed_new_listing_content_description)
+    val readStateDescription =
+        stringResource(
+            if (listing.isRead) R.string.feed_listing_read_state else R.string.feed_listing_unread_state,
+        )
 
     Surface(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clip(cardShape)
+                .semantics { stateDescription = readStateDescription }
                 .clickable(role = Role.Button, onClick = onSelected),
         shape = cardShape,
         color = colors.surface,
@@ -634,14 +656,14 @@ public fun FeedListingCard(
                         tone = CareerCompassBadgeTone.Neutral,
                     )
                     if (listing.isNew) {
+                        // 「오늘 수집」 문구가 아래 줄에서 같은 말을 하므로 점은 훑어보기용 덧표시다 —
+                        // 색만으로 지던 정보를 문구가 넘겨받았으니 읽히는 것까지 두 번 할 필요는 없다.
                         Box(
                             modifier =
                                 Modifier
                                     .size(6.dp)
                                     .background(colors.success, CareerCompassTheme.shapes.pill)
-                                    .semantics {
-                                        contentDescription = newListingContentDescription
-                                    },
+                                    .clearAndSetSemantics {},
                         )
                     }
                 }
@@ -652,7 +674,8 @@ public fun FeedListingCard(
             Text(
                 text = listing.title,
                 modifier = Modifier.padding(end = 12.dp),
-                color = colors.onSurface,
+                // 읽은 공고는 한 단계 흐리다 — 「읽음」 배지가 정보를 지고 이 색은 훑어볼 때만 거든다.
+                color = if (listing.isRead) colors.onSurfaceVariant else colors.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 style =
@@ -668,15 +691,9 @@ public fun FeedListingCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = listing.deadlineLabel,
-                    color = if (listing.isDeadlineUrgent) colors.actionDanger else colors.mutedContent,
-                    style =
-                        CareerCompassTheme.typography.caption.copy(
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        ),
+                FeedListingMeta(
+                    listing = listing,
+                    modifier = Modifier.weight(1f),
                 )
                 FeedBookmarkToggle(
                     title = listing.title,
@@ -687,6 +704,91 @@ public fun FeedListingCard(
         }
     }
 }
+
+/**
+ * 카드 아래 메타 줄 — 마감일·수집일·읽음 표시.
+ *
+ * [FlowRow] 인 이유는 큰 글꼴이다. 한 줄 [Row] 였다면 fontScale 2.0 에서 세 조각이 폭을 다투다
+ * 마감일이 잘리거나 북마크 버튼이 밀려난다. 접히면 카드가 세로로 길어질 뿐, 잃는 정보가 없다.
+ *
+ * 가운뎃점 같은 구분자를 두지 않는다 — 접힐 때 줄 앞머리에 남아 어색해지고, 마감일(굵은 강조)과
+ * 수집일(흐린 보조)은 굵기·색이 이미 다르므로 사이 여백만으로 갈린다.
+ */
+@Composable
+private fun FeedListingMeta(
+    listing: FeedListingUiModel,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CareerCompassTheme.colors
+    val metaTextStyle = feedMetaTextStyle
+
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = listing.deadlineLabel,
+            color = if (listing.isDeadlineUrgent) colors.actionDanger else colors.mutedContent,
+            style = metaTextStyle,
+        )
+        Text(
+            text = listing.collectedAtLabel,
+            color = colors.mutedContent,
+            style = metaTextStyle.copy(fontWeight = FontWeight.Normal),
+        )
+        if (listing.isRead) {
+            FeedReadBadge()
+        }
+    }
+}
+
+/**
+ * 읽은 공고 표시 — 체크 「형태」와 「읽음」 문구가 각각 홀로도 뜻을 지고, 회색은 거들기만 한다.
+ *
+ * 스크린 리더에서는 지운다([clearAndSetSemantics]). 카드의 `stateDescription` 이 이미 읽음·읽지 않음을
+ * 말하므로, 여기까지 읽히면 읽은 카드만 「읽음」을 두 번 듣게 된다.
+ *
+ * 체크 아이콘 크기를 sp 에서 뽑는 이유는 폰트 배율이다 — dp 로 못 박으면 글꼴이 2배가 될 때 문구
+ * 옆에 점처럼 남아, 형태로 말하겠다는 약속이 큰 글꼴에서만 깨진다.
+ */
+@Composable
+private fun FeedReadBadge() {
+    val colors = CareerCompassTheme.colors
+    val markerSize = with(LocalDensity.current) { FEED_READ_MARKER_SIZE.toDp() }
+
+    Row(
+        modifier =
+            Modifier
+                .clearAndSetSemantics {}
+                .background(colors.surfaceVariant, CareerCompassTheme.shapes.pill)
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = CareerCompassIcons.Check,
+            contentDescription = null,
+            modifier = Modifier.size(markerSize),
+            tint = colors.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.feed_listing_read_state),
+            color = colors.onSurfaceVariant,
+            style = feedMetaTextStyle,
+        )
+    }
+}
+
+/** 메타 줄 공통 글꼴 — 세 조각이 같은 크기로 서야 줄이 접혀도 한 덩어리로 읽힌다. */
+private val feedMetaTextStyle: TextStyle
+    @Composable get() =
+        CareerCompassTheme.typography.caption.copy(
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
 
 @Composable
 private fun FeedBookmarkToggle(
@@ -933,3 +1035,6 @@ private fun FeedListingCategory.badgeTone(): CareerCompassBadgeTone =
 
 /** Trigger the next page when this many items (or fewer) remain below the viewport. */
 private const val LOAD_MORE_THRESHOLD = 3
+
+/** 「읽음」 배지의 체크 표시 크기. dp 가 아니라 sp 라서 폰트 배율을 따라 함께 커진다. */
+private val FEED_READ_MARKER_SIZE = 14.sp

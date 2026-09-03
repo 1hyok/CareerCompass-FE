@@ -17,6 +17,7 @@ import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.NOON_TODAY
+import com.cambridge.feature.feed.presentation.SEOUL
 import com.cambridge.feature.feed.presentation.TODAY
 import com.cambridge.feature.feed.presentation.board
 import com.cambridge.feature.feed.presentation.board.BoardDetectionState
@@ -35,7 +36,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import java.time.Clock
 import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
 import com.cambridge.core.model.board.BoardStatus as DomainBoardStatus
 import com.cambridge.core.model.board.BoardType as DomainBoardType
 
@@ -83,6 +87,44 @@ class FeedUiMappersTest {
         assertEquals("D-2", listing.deadlineLabel)
         assertTrue(listing.isDeadlineUrgent)
         assertTrue(listing.isNew)
+        assertEquals("오늘 수집", listing.collectedAtLabel)
+        assertFalse(listing.isRead)
+    }
+
+    @Test
+    fun `수집일 문구는 오늘 것과 지난 것을 가른다`() {
+        assertEquals("오늘 수집", posting(id = 1, collectedAt = NOON_TODAY).collectedAtLabel(resources, FIXED_CLOCK))
+        assertEquals(
+            "수집 3일 전",
+            posting(id = 2, collectedAt = NOON_TODAY.minus(Duration.ofDays(3))).collectedAtLabel(resources, FIXED_CLOCK),
+        )
+        // 어제 밤 11시 수집분을 오늘 새벽 1시에 본다 — 날짜가 바뀌었으므로 상대 시각으로 말한다.
+        val afterMidnight = Clock.fixed(seoulInstant(TODAY, hour = 1), SEOUL)
+        val lastNight = posting(id = 3, collectedAt = seoulInstant(TODAY.minusDays(1), hour = 23))
+        assertEquals("수집 2시간 전", lastNight.collectedAtLabel(resources, afterMidnight))
+    }
+
+    /**
+     * 오늘 것만 상대 시각을 쓰지 않는 이유 — 새벽에 들어온 공고를 밤에 보면 「22시간 전」이 되어
+     * 초록 점(오늘 수집)과 문구가 다른 말을 한다. 날짜로 말하면 둘이 어긋날 수 없다.
+     */
+    @Test
+    fun `오늘 새벽 수집분도 밤에 오늘 수집으로 읽힌다`() {
+        val lateNight = Clock.fixed(seoulInstant(TODAY, hour = 23), SEOUL)
+        val dawn = posting(id = 1, collectedAt = seoulInstant(TODAY, hour = 1))
+
+        assertTrue(dawn.isCollectedToday(lateNight))
+        assertEquals("오늘 수집", dawn.collectedAtLabel(resources, lateNight))
+    }
+
+    /**
+     * 읽음은 [com.cambridge.core.model.posting.Posting] 하나에서만 온다 — 오프라인 스냅샷으로 복원한
+     * 공고도 같은 매퍼를 지나므로 온라인 목록과 같은 카드가 된다(스냅샷 DTO 가 두 값을 그대로 싣는다).
+     */
+    @Test
+    fun `읽음은 도메인 값 그대로 카드에 실린다`() {
+        assertTrue(posting(id = 1, isRead = true).toListingUiModel(resources, FIXED_CLOCK, profile()).isRead)
+        assertFalse(posting(id = 2, isRead = false).toListingUiModel(resources, FIXED_CLOCK, profile()).isRead)
     }
 
     @Test
@@ -251,3 +293,8 @@ class FeedUiMappersTest {
         assertEquals(com.cambridge.feature.feed.presentation.board.BoardCollectCycle.Daily, 7.toCollectCycle())
     }
 }
+
+private fun seoulInstant(
+    date: LocalDate,
+    hour: Int,
+): Instant = date.atTime(hour, 0).atZone(SEOUL).toInstant()

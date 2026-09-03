@@ -196,6 +196,29 @@ private fun daysUntil(
 public fun Posting.isCollectedToday(clock: Clock): Boolean = collectedAt.atZone(clock.zone).toLocalDate() == LocalDate.now(clock)
 
 /**
+ * 카드의 수집일 한 줄 — 「오늘 수집」·「수집 3일 전」(기능 스펙 F2-3 「카드 정보」).
+ *
+ * 오늘 것만 상대 시각을 쓰지 않는 이유는 초록 점과 **어긋나지 않게** 하려는 것이다. 점은 시간대 기준
+ * 날짜([isCollectedToday])로 켜지는데 상대 시각은 흐른 시간으로 세므로, 새벽 1시에 들어온 공고를
+ * 밤 11시에 보면 점은 켜져 있는데 문구는 「수집 22시간 전」이라 둘이 다른 말을 한다.
+ *
+ * 오늘이 아니면 상세 화면과 같은 [RelativeTimeFormatter] 를 쓴다 — 같은 공고를 목록과 상세에서
+ * 다른 말로 부르지 않는다.
+ */
+public fun Posting.collectedAtLabel(
+    resources: Resources,
+    clock: Clock,
+): String =
+    if (isCollectedToday(clock)) {
+        resources.getString(R.string.feed_collected_today)
+    } else {
+        resources.getString(
+            R.string.feed_collected_at,
+            RelativeTimeFormatter.format(resources, collectedAt, clock),
+        )
+    }
+
+/**
  * 카드의 점수 자리 — 판정([judgeSuitability])을 화면 계약으로 옮긴다.
  *
  * 「준비됨」인데 점수가 없는 모순은 「분석 중」으로 접는다(상세 화면과 같은 처분).
@@ -222,7 +245,9 @@ public fun Posting.toListingUiModel(
         suitability = toSuitabilityState(profile),
         deadlineLabel = deadlineLabel(resources, dueDate, today),
         isDeadlineUrgent = isDeadlineUrgent(dueDate, today),
+        collectedAtLabel = collectedAtLabel(resources, clock),
         isNew = isCollectedToday(clock),
+        isRead = isRead,
         isBookmarked = isBookmarked,
     )
 }
