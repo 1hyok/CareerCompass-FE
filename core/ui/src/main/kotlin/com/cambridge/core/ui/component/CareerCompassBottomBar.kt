@@ -56,6 +56,12 @@ public enum class CareerCompassBottomTab(
  *
  * [selectedTab] identifies the current destination. Selecting any tab invokes [onTabClick]
  * with that destination so navigation state remains owned by the caller.
+ *
+ * ### 큰 글꼴
+ * 탭 글리프는 [ImageVector] 라 `dp` 로 그려진다 — 글꼴 배율을 따라가지 않아야 맞고, 실제로
+ * 안 따라간다. 배율 2.0 골든에서 아이콘은 24dp 그대로이고 라벨만 커지며, 아이콘·라벨을 합친
+ * 세로 56dp 가 Material 기본 탭바 높이 80dp 안에 남는다. 라벨 타이포를 `caption`
+ * (11sp) 보다 키우면 이 여유가 사라지므로 함께 골든을 다시 본다.
  */
 @Composable
 public fun CareerCompassBottomBar(

@@ -35,6 +35,16 @@ public fun PostingDetailEmploymentDarkPreview() {
     )
 }
 
+/** 긴 한국어 제목·점수 칩·축 목록이 한 화면에 있는 최악의 경우. */
+@PreviewTest
+@Preview(name = "Posting detail employment - Large font", widthDp = 360, heightDp = 772, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun PostingDetailEmploymentLargeFontPreview() {
+    PostingDetailPreviewSurface(
+        state = PostingDetailUiState(PostingDetailContentState.Loaded(employmentPostingPreview())),
+    )
+}
+
 @PreviewTest
 @Preview(name = "Posting detail contest", widthDp = 360, heightDp = 772)
 @Composable

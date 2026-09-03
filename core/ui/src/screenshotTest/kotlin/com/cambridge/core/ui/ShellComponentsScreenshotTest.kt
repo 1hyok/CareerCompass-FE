@@ -66,6 +66,20 @@ public fun CareerCompassBottomBarMyPreview() {
     BottomBarPreview(selectedTab = CareerCompassBottomTab.My)
 }
 
+/**
+ * 하단 탭의 큰 글꼴 골든.
+ *
+ * 탭 글리프는 [androidx.compose.ui.graphics.vector.ImageVector] 라 `dp` 로 그려진다 — 글꼴 배율을
+ * 따라가지 않아야 맞다(#119). 이 골든은 그 «따라가지 않음» 을 라벨과 나란히 놓고 못 박는다. 아이콘만
+ * 그대로이고 라벨만 커지는 그림이 정답이고, 아이콘이 같이 커지면 골든이 깨진다.
+ */
+@PreviewTest
+@Preview(name = "Bottom bar - Feed - Large font", widthDp = 360, heightDp = 772, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun CareerCompassBottomBarFeedLargeFontPreview() {
+    BottomBarPreview(selectedTab = CareerCompassBottomTab.Feed)
+}
+
 @PreviewTest
 @Preview(name = "Top app bar - Back", widthDp = 360, heightDp = 772)
 @Composable
@@ -94,6 +108,20 @@ public fun CareerCompassTopAppBarNoBackPreview() {
 @Preview(name = "Top app bar - Subtitle", widthDp = 360, heightDp = 772)
 @Composable
 public fun CareerCompassTopAppBarSubtitlePreview() {
+    TopAppBarPreview {
+        CareerCompassTopAppBar(
+            title = "지원서 작성",
+            onBackClick = {},
+            subtitle = "자동 저장됨",
+        )
+    }
+}
+
+/** 제목 한 줄에 부제 한 줄 — 고정 높이 상단바에서 큰 글꼴이 가장 먼저 넘치는 조합이다. */
+@PreviewTest
+@Preview(name = "Top app bar - Subtitle - Large font", widthDp = 360, heightDp = 772, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun CareerCompassTopAppBarSubtitleLargeFontPreview() {
     TopAppBarPreview {
         CareerCompassTopAppBar(
             title = "지원서 작성",

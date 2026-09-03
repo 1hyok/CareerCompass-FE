@@ -21,6 +21,16 @@ public fun BoardListLoadedPreview() {
     )
 }
 
+/** 이름·URL·상태 배지·수집 시각이 한 줄씩 붙는 목록 — 큰 글꼴에서 행이 몇 배로 자란다. */
+@PreviewTest
+@Preview(name = "Board list loaded - Large font", widthDp = 360, heightDp = 772, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun BoardListLoadedLargeFontPreview() {
+    BoardListPreviewSurface(
+        state = BoardListUiState(content = BoardListContentState.Loaded(boardListPreviewBoards())),
+    )
+}
+
 @PreviewTest
 @Preview(name = "Board list empty", widthDp = 360, heightDp = 772)
 @Composable

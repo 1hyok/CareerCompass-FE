@@ -294,9 +294,13 @@ private fun FeedSearchField(
                 )
                 Box(modifier = Modifier.weight(1f)) {
                     if (value.isEmpty()) {
+                        // 큰 글꼴에서는 안내 문구가 48dp 입력칸 폭을 넘는다. 접히면 두 번째 줄이
+                        // 고정 높이에 잘려 사라지므로 한 줄로 두고 말줄임으로 끝맺는다.
                         Text(
                             text = stringResource(R.string.feed_search_placeholder),
                             color = colors.mutedContent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             style =
                                 CareerCompassTheme.typography.bodyMedium.copy(
                                     fontSize = 14.sp,
