@@ -7,7 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalContentColor
@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +41,11 @@ public enum class CareerCompassButtonVariant {
     Danger,
 }
 
-/** Fixed button sizes from the CareerCompass component library. */
+/**
+ * Button sizes from the CareerCompass component library.
+ *
+ * [height] is a floor, not a fixed height — see [CareerCompassButton].
+ */
 public enum class CareerCompassButtonSize(
     internal val height: Dp,
     internal val horizontalPadding: Dp,
@@ -78,6 +83,12 @@ public enum class CareerCompassButtonSize(
  * [leadingIcon] and [trailingIcon] receive [LocalContentColor] so the icon follows the variant's
  * content color without the caller repeating it. Both must render decorative icons
  * (`contentDescription = null`) — the button owns the accessible name.
+ *
+ * ### 큰 글꼴
+ * [CareerCompassButtonSize]의 높이는 하한이지 고정값이 아니다. 고정 높이일 때 글꼴 배율 2.0 에서
+ * 「원문 보기」가 「원문 보」로 잘려 무엇을 누르는 버튼인지 사라졌다 — 문구는 두 줄까지 접히고
+ * 넘치면 말줄임으로 잘렸다는 사실을 남긴다. 기본 배율에서는 문구가 한 줄에 들어가 높이가 종전과
+ * 같다.
  */
 @Composable
 public fun CareerCompassButton(
@@ -113,7 +124,7 @@ public fun CareerCompassButton(
     Row(
         modifier =
             modifier
-                .height(size.height)
+                .heightIn(min = size.height)
                 .clip(shape)
                 .background(containerColor)
                 .then(
@@ -140,7 +151,8 @@ public fun CareerCompassButton(
             Text(
                 text = text,
                 color = contentColor,
-                maxLines = 1,
+                maxLines = MAX_LABEL_LINES,
+                overflow = TextOverflow.Ellipsis,
                 style = size.textStyle(CareerCompassTheme.typography.labelMedium),
             )
 
@@ -151,6 +163,9 @@ public fun CareerCompassButton(
         }
     }
 }
+
+/** 두 줄을 넘기면 버튼이 화면을 다 먹는다 — 그 위는 말줄임으로 자른다. */
+private const val MAX_LABEL_LINES: Int = 2
 
 private fun CareerCompassButtonSize.textStyle(baseStyle: TextStyle): TextStyle =
     baseStyle.copy(

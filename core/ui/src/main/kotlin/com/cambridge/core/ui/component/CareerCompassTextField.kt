@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -73,6 +74,12 @@ public enum class CareerCompassTextFieldSize(
  * Error state text must be supplied by the caller through [errorMessage] or [supportingText] so
  * accessibility output is localized with the surrounding screen. Supplying [onClick] turns a
  * [readOnly] field into a button-like picker while preserving the same visual contract.
+ *
+ * ### 큰 글꼴
+ * [CareerCompassTextFieldSize.fieldHeight] 는 의도적으로 고정이다. 입력칸은 한 줄짜리라 글자가
+ * 늘어날 세로가 없고, 글꼴 배율 2.0 에서도 입력 글자(28sp·행높이 42dp)가 48dp 안에 들어오는 것을
+ * 골든으로 확인했다. 대신 라벨·플레이스홀더·읽기 전용 값은 가로로 넘칠 수 있어 말줄임을 붙인다 —
+ * 글자 한복판이 잘려 나가면 무슨 칸인지 읽을 수 없다. 도움말·오류 문구는 줄 수 제한이 없어 접힌다.
  */
 @Composable
 public fun CareerCompassTextField(
@@ -148,6 +155,7 @@ public fun CareerCompassTextField(
             modifier = Modifier.clearAndSetSemantics {},
             color = labelColor,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             style =
                 CareerCompassTheme.typography.labelMedium.copy(
                     fontSize = 13.sp,
@@ -217,6 +225,7 @@ public fun CareerCompassTextField(
                             text = value,
                             color = textColor,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             style = inputTextStyle,
                         )
                     }
@@ -276,6 +285,7 @@ private fun TextFieldContent(
                     text = placeholder,
                     color = placeholderColor,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style =
                         CareerCompassTheme.typography.bodyMedium.copy(
                             fontSize = size.fontSize,

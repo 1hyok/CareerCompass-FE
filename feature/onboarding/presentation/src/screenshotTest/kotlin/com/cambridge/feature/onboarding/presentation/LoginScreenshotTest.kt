@@ -23,6 +23,18 @@ public fun LoginDefaultDarkPreview() {
     LoginPreviewHost(state = LoginUiState(), darkTheme = true)
 }
 
+/**
+ * 앱의 첫 화면 — 여기서 버튼 문구가 잘리면 사용자가 로그인 방법을 못 고른다.
+ *
+ * 단말 높이를 그대로 둔다. 큰 글꼴에서 실제로 화면 밖으로 밀리는 것이 이 골든의 관측 대상이다.
+ */
+@PreviewTest
+@Preview(name = "Login default - Large font", widthDp = 360, heightDp = 800, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun LoginDefaultLargeFontPreview() {
+    LoginPreviewHost(state = LoginUiState())
+}
+
 @PreviewTest
 @Preview(name = "Login loading", widthDp = 360, heightDp = 800)
 @Composable

@@ -860,7 +860,14 @@ private fun OnboardingStep4Footer(
     }
 }
 
-/** Large-text fallback for the fixed-height design-system button used by the 1x Figma layout. */
+/**
+ * 큰 글꼴 전용 푸터 버튼.
+ *
+ * [CareerCompassButton] 도 이제 높이가 하한이라 큰 글꼴에서 문구를 두 줄까지 접는다(#122). 그래도
+ * 이 자리만 따로 두는 이유는 «폭» 이다. 이 푸터는 건너뛰기 : 완료를 1 : 2.2 로 나눠 건너뛰기 칸이
+ * 100dp 뿐인데, 디자인 시스템 버튼의 좌우 여백 22dp 를 빼면 배율 2.0 에서 글자 한 자도 온전히
+ * 못 들어간다. 여기서는 여백을 8dp 로 줄이고 줄 수 제한을 풀어 문구를 통째로 남긴다.
+ */
 @Composable
 private fun OnboardingStep4AdaptiveFooterButton(
     text: String,

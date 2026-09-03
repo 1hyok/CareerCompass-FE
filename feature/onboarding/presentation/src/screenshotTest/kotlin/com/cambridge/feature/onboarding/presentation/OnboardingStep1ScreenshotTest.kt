@@ -30,6 +30,19 @@ public fun OnboardingStep1FilledDarkPreview() {
     }
 }
 
+/** 라벨·입력·도움말이 한 화면에 겹겹이 쌓인 폼 — 고정 높이 입력칸이 큰 글꼴을 견디는지 본다. */
+@PreviewTest
+@Preview(name = "Onboarding Step 1 filled - Large font", widthDp = 360, heightDp = 800, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun OnboardingStep1FilledLargeFontPreview() {
+    CareerCompassTheme {
+        OnboardingStep1Screen(
+            state = onboardingStep1FilledState(),
+            onEvent = {},
+        )
+    }
+}
+
 @PreviewTest
 @Preview(name = "Onboarding Step 1 errors", widthDp = 360, heightDp = 800)
 @Composable

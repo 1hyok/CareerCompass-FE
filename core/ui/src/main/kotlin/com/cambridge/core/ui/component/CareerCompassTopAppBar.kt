@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -33,6 +33,15 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
  *
  * [title] must be non-blank. When provided, [subtitle] must also be non-blank.
  * Passing `null` for [onBackClick] removes the back control from the composition.
+ *
+ * ### 큰 글꼴
+ * 높이 56dp 는 하한이다. 고정이던 시절 글꼴 배율 2.0 에서 제목 아래 부제가 가로로 반 잘려
+ * 한글 받침이 통째로 사라졌다 — 읽을 수 없는 두 줄보다 조금 높은 상단바가 낫다. 기본 배율에서는
+ * 뒤로가기 버튼(48dp)과 글자 두 줄(40dp)이 모두 56dp 안에 들어와 높이가 종전과 같다.
+ *
+ * [title] 과 [subtitle] 은 배율과 무관하게 각각 한 줄로 유지하고 넘치면 말줄임한다. 제목이 접히면
+ * 상단바 높이가 제목 길이에 끌려다녀 화면마다 들쭉날쭉해진다 — 상단바가 차지하는 세로는 예측
+ * 가능한 편이 낫다.
  */
 @Composable
 public fun CareerCompassTopAppBar(
@@ -54,7 +63,7 @@ public fun CareerCompassTopAppBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .heightIn(min = 56.dp)
                 .background(colors.subtleSurface),
         verticalAlignment = Alignment.CenterVertically,
     ) {

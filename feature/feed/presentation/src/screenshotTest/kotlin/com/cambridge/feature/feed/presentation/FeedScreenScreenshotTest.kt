@@ -23,6 +23,17 @@ public fun FeedScreenDarkPreview() {
     FeedPreviewSurface(state = feedPreviewState(), darkTheme = true)
 }
 
+/**
+ * 앱에서 가장 오래 머무는 화면 — 검색칸·필터 칩 줄·카드가 한 화면에 겹쳐 있어 큰 글꼴에서 가장
+ * 잃을 것이 많다.
+ */
+@PreviewTest
+@Preview(name = "Main feed - Large font", widthDp = 360, heightDp = 772, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun FeedScreenLargeFontPreview() {
+    FeedPreviewSurface(state = feedPreviewState())
+}
+
 @PreviewTest
 @Preview(name = "Empty feed", widthDp = 360, heightDp = 772)
 @Composable

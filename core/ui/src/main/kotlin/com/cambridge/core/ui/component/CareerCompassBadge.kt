@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.theme.CareerCompassTheme
@@ -85,6 +86,7 @@ public fun CareerCompassBadge(
             text = label,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             style =
                 CareerCompassTheme.typography.caption.copy(
                     lineHeight = 16.5.sp,

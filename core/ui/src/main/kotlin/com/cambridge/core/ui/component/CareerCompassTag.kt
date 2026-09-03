@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.theme.CareerCompassTheme
@@ -109,6 +110,7 @@ public fun CareerCompassTag(
             Text(
                 text = label,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style =
                     CareerCompassTheme.typography.labelMedium.copy(
                         fontSize = 13.sp,
