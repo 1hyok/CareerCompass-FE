@@ -83,7 +83,7 @@ public fun FeedScreen(
         onEvent = onEvent,
         listState = rememberLazyListState(),
         onLoadMore = null,
-        isLoadingMore = false,
+        loadMore = FeedLoadMoreState.Ready,
         modifier = modifier,
     )
 }
@@ -92,7 +92,11 @@ public fun FeedScreen(
  * Stateless main feed with infinite-scroll hooks.
  *
  * [onLoadMore] is invoked when the last items of [listState] come into view; pass `null` when the
- * host has no further pages to offer. [isLoadingMore] appends a progress row below the listings.
+ * host has no further pages to offer.
+ *
+ * [loadMore] 는 목록 끝의 이어 읽기가 어디까지 왔는지다. 자동 트리거는 [FeedLoadMoreState.Ready] 일 때만
+ * 무장하고, 나머지 상태는 목록 끝에 진행 표시·「더 찾아보기」·「다시 시도」 한 줄로 드러난다 — 자동으로
+ * 가지 않는 자리를 비워 두면 목록이 끝난 것처럼 보인다.
  */
 @Composable
 public fun FeedScreen(
@@ -100,7 +104,7 @@ public fun FeedScreen(
     onEvent: (FeedUiEvent) -> Unit,
     listState: LazyListState,
     onLoadMore: (() -> Unit)?,
-    isLoadingMore: Boolean,
+    loadMore: FeedLoadMoreState,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -135,7 +139,7 @@ public fun FeedScreen(
                     onEvent = onEvent,
                     listState = listState,
                     onLoadMore = onLoadMore,
-                    isLoadingMore = isLoadingMore,
+                    loadMore = loadMore,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -431,16 +435,24 @@ private fun FeedSortRow(
     }
 }
 
+/**
+ * 목록과 그 끝의 이어 읽기 한 줄.
+ *
+ * **자동 트리거는 [FeedLoadMoreState.Ready] 일 때만 무장한다.** 멈춘 자리([FeedLoadMoreState.Paused])와
+ * 실패한 자리([FeedLoadMoreState.Failed])에서도 스크롤로 다시 걸리게 두면, 바닥에 머무른 사용자에게
+ * 같은 요청이 끝없이 되풀이된다 — 네트워크가 죽어 있으면 실패만 반복하고, 필터가 다 걸러 내는 구간이면
+ * 걸러질 페이지만 계속 받는다. 그 두 자리에서는 이어 갈 길을 [FeedLoadMoreFooter] 의 버튼 하나로만 연다.
+ */
 @Composable
 private fun FeedListingList(
     listings: List<FeedListingUiModel>,
     onEvent: (FeedUiEvent) -> Unit,
     listState: LazyListState,
     onLoadMore: (() -> Unit)?,
-    isLoadingMore: Boolean,
+    loadMore: FeedLoadMoreState,
     modifier: Modifier = Modifier,
 ) {
-    if (onLoadMore != null) {
+    if (onLoadMore != null && loadMore == FeedLoadMoreState.Ready) {
         val currentOnLoadMore by rememberUpdatedState(onLoadMore)
         LaunchedEffect(listState, listings.size) {
             snapshotFlow {
@@ -471,10 +483,50 @@ private fun FeedListingList(
                 onBookmarkToggled = { onEvent(FeedUiEvent.BookmarkToggled(listing.id)) },
             )
         }
-        if (isLoadingMore) {
-            item(key = "loading-more") {
-                FeedLoadingMoreRow()
+        if (onLoadMore != null && loadMore != FeedLoadMoreState.Ready) {
+            item(key = "load-more-footer") {
+                FeedLoadMoreFooter(
+                    loadMore = loadMore,
+                    onRetry = { onEvent(FeedUiEvent.LoadMoreSelected) },
+                )
             }
+        }
+    }
+}
+
+/**
+ * 목록 끝 한 줄 — 이어 읽기가 지금 무엇을 하고 있는지, 사용자가 무엇을 할 수 있는지.
+ *
+ * [FeedLoadMoreState.Ready] 는 여기 오지 않는다(자동으로 굴러가는 중이라 할 말이 없다).
+ */
+@Composable
+private fun FeedLoadMoreFooter(
+    loadMore: FeedLoadMoreState,
+    onRetry: () -> Unit,
+) {
+    when (loadMore) {
+        FeedLoadMoreState.Ready -> {
+            Unit
+        }
+
+        FeedLoadMoreState.Loading -> {
+            FeedLoadingMoreRow()
+        }
+
+        FeedLoadMoreState.Paused -> {
+            FeedLoadMoreActionRow(
+                message = stringResource(R.string.feed_load_more_paused),
+                actionText = stringResource(R.string.feed_load_more_action),
+                onClick = onRetry,
+            )
+        }
+
+        FeedLoadMoreState.Failed -> {
+            FeedLoadMoreActionRow(
+                message = stringResource(R.string.feed_load_more_failed),
+                actionText = stringResource(R.string.feed_error_retry),
+                onClick = onRetry,
+            )
         }
     }
 }
@@ -499,6 +551,38 @@ private fun FeedLoadingMoreRow() {
             text = stringResource(R.string.feed_loading_more),
             color = CareerCompassTheme.colors.onSurfaceVariant,
             style = CareerCompassTheme.typography.caption,
+        )
+    }
+}
+
+/**
+ * 멈춘 사유 한 줄과 이어 갈 버튼. 사유를 글자로 함께 내보내 버튼만 덩그러니 남지 않게 한다 — 왜 멈췄는지
+ * 모르면 눌러야 할 이유도 없다.
+ */
+@Composable
+private fun FeedLoadMoreActionRow(
+    message: String,
+    actionText: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = CareerCompassTheme.spacing.medium),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CareerCompassTheme.spacing.small),
+    ) {
+        Text(
+            text = message,
+            color = CareerCompassTheme.colors.onSurfaceVariant,
+            style = CareerCompassTheme.typography.caption,
+        )
+        CareerCompassButton(
+            text = actionText,
+            onClick = onClick,
+            variant = CareerCompassButtonVariant.Secondary,
+            size = CareerCompassButtonSize.Small,
         )
     }
 }
@@ -814,6 +898,18 @@ private fun FeedEmpty(
                 description = stringResource(R.string.feed_empty_offline_description),
                 actionText = null,
                 onActionClick = null,
+                modifier = modifier,
+            )
+        }
+
+        FeedEmptyReason.MoreAvailable -> {
+            // 유일하게 조건을 되돌리라고 하지 않는 「빈」 화면이다 — 되돌릴 조건이 잘못됐다는 근거가 없고,
+            // 아직 안 읽은 페이지가 남아 있다는 근거만 있다. 그래서 행동도 이어 읽기 하나다.
+            CareerCompassEmptyState(
+                title = stringResource(R.string.feed_empty_more_available_title),
+                description = stringResource(R.string.feed_empty_more_available_description),
+                actionText = stringResource(R.string.feed_load_more_action),
+                onActionClick = { onEvent(FeedUiEvent.LoadMoreSelected) },
                 modifier = modifier,
             )
         }

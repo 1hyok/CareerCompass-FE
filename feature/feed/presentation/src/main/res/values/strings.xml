@@ -32,6 +32,8 @@
     <string name="feed_empty_collect_notice_mixed">가장 자주 보는 게시판을 %1$s 확인하고 있어요</string>
     <string name="feed_empty_offline_title">저장해 둔 목록에는 공고가 없어요</string>
     <string name="feed_empty_offline_description">연결되면 최신 공고를 다시 불러와요</string>
+    <string name="feed_empty_more_available_title">여기까지는 찾지 못했어요</string>
+    <string name="feed_empty_more_available_description">최근 공고부터 차례로 훑어봤어요. 더 찾아보면 나올 수 있어요</string>
     <string name="feed_filter_content_description">필터</string>
     <string name="feed_filter_active_count_state">%1$d개 적용</string>
     <string name="feed_user_name_fallback">회원</string>
@@ -43,6 +45,8 @@
     <string name="feed_profile_notice_action">입력하기</string>
     <string name="feed_profile_notice_content_description">프로필을 입력하면 적합도를 확인할 수 있어요. 프로필 입력하기</string>
     <string name="feed_loading_more">공고를 더 불러오는 중이에요</string>
+    <string name="feed_load_more_paused">여기까지 찾았어요</string>
+    <string name="feed_load_more_action">더 찾아보기</string>
     <string name="feed_error_title">공고를 불러오지 못했어요</string>
     <string name="feed_error_description">잠시 후 다시 시도해 주세요</string>
     <string name="feed_error_retry">다시 시도</string>

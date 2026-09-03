@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import com.cambridge.core.model.board.Board
 import com.cambridge.feature.feed.presentation.FeedContentState
 import com.cambridge.feature.feed.presentation.FeedEmptyReason
+import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.FeedUiState
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.board.BoardCollectCycle
@@ -39,7 +40,13 @@ internal fun FeedViewState.toFeedUiState(
         content =
             when {
                 loadState == FeedLoadState.Loading -> FeedContentState.Loading
+
+                // 빈 목록에서 「더 찾아보기」를 누른 뒤에도 진행 표시가 있어야 한다 — 목록이 없으니
+                // 붙일 자리가 없고, 아무 반응이 없으면 버튼이 죽은 것으로 보인다.
+                postings.isEmpty() && isLoadingMore -> FeedContentState.Loading
+
                 postings.isEmpty() -> FeedContentState.Empty(toEmptyReason(resources))
+
                 else -> FeedContentState.Loaded(postings.map { it.toListingUiModel(resources, clock, profile) })
             },
         activeFilterCount = activeFilterCount,
@@ -53,11 +60,20 @@ internal fun FeedViewState.toFeedUiState(
  * 「게시판 0개」는 목록을 **받아 본 뒤에만** 말한다([FeedViewState.boardsLoaded]) — 게시판 조회는 피드
  * 조회와 별개로 실패할 수 있고(실패해도 피드는 막지 않는다), 그때 빈 목록을 0개로 읽으면 게시판을 20개
  * 등록해 둔 사용자에게 등록하라고 하게 된다. 아직 모르면 조건 쪽 사유로 내려간다.
+ *
+ * **커서가 남아 있으면([FeedViewState.hasNext]) 「없다」고 말하지 않는다.** 검색어·마감일은 받아 온
+ * 페이지 안에서만 걸러지므로, 앞쪽 몇 페이지가 통째로 걸러진 것과 서버에 정말 없는 것이 여기서는 똑같이
+ * 빈 목록으로 보인다. 그 둘을 가르는 유일한 근거가 커서다 — 남아 있으면 [FeedEmptyReason.MoreAvailable]
+ * 로 「아직 못 찾았다」고 말하고 이어 읽을 길을 준다.
+ *
+ * 그 자리에서 이어 읽기가 실패했을 때도([FeedLoadMoreState.Failed]) 같은 사유를 쓴다 — 실패는 이미
+ * 스낵바가 말했고, 화면이 할 말은 어느 쪽이든 「여기까지 찾았고, 더 찾아볼 수 있다」로 같다.
  */
 internal fun FeedViewState.toEmptyReason(resources: Resources): FeedEmptyReason =
     when {
         isOffline -> FeedEmptyReason.OfflineSnapshot
         boardsLoaded && boards.isEmpty() -> FeedEmptyReason.NoBoards
+        hasNext -> FeedEmptyReason.MoreAvailable
         query.hasSearchQuery -> FeedEmptyReason.Search(query.searchQuery)
         hasActiveFilter -> FeedEmptyReason.Filter
         else -> FeedEmptyReason.NotCollected(boards.toCollectNotice(resources))

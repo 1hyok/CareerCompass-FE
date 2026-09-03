@@ -84,13 +84,15 @@ public data class FeedListingUiModel(
  *
  * ### 여러 사유가 겹칠 때의 우선순위
  *
- * [OfflineSnapshot] > [NoBoards] > [Search] > [Filter] > [NotCollected] 중 하나만 고른다(사유 판정은
- * `FeedViewState.toEmptyReason`). 기준은 「그 조건을 되돌리면 결과가 달라지는가」다.
+ * [OfflineSnapshot] > [NoBoards] > [MoreAvailable] > [Search] > [Filter] > [NotCollected] 중 하나만
+ * 고른다(사유 판정은 `FeedViewState.toEmptyReason`). 기준은 「그 조건을 되돌리면 결과가 달라지는가」다.
  *
  * - **오프라인이 가장 앞이다.** 보고 있는 것이 저장해 둔 사본이라 「아직 수집 전」·「게시판 0개」처럼
  *   서버 상태를 단정할 근거가 없다. 게다가 조건을 되돌리는 행동은 곧 재조회라, 오프라인에서 권하면
  *   실패 화면으로 튄다 — 되돌릴 것을 권하지 않는 사유가 따로 있어야 한다.
  * - **게시판 0개가 그다음이다.** 모으는 곳이 없으면 검색어·필터를 어떻게 바꿔도 나올 공고가 없다.
+ * - **아직 더 읽을 게 남았으면([MoreAvailable]) 조건 탓을 하지 않는다.** 「없다」고 말할 근거가 아직
+ *   없기 때문이다 — 검색어·필터 사유는 서버에 있는 것을 다 훑어봤다는 전제 위에서만 참이다.
  * - **검색어가 필터보다 앞이다.** 셋 다 근거다 — ① 검색칸은 화면 위에 그대로 보여 사용자가 무엇이
  *   걸렸는지 이미 알지만 필터는 시트 안에 접혀 있다, ② 검색어는 문구에 그대로 실어(「'백엔드' 검색
  *   결과가 없어요」) 구체적으로 말할 수 있다, ③ 검색어는 한 글자로 걸리고 필터는 시트를 열어 「적용」
@@ -141,6 +143,43 @@ public sealed interface FeedEmptyReason {
      * 이미 말하고 있고, 여기서는 「저장해 둔 목록에 없다」는 것만 말한다.
      */
     public data object OfflineSnapshot : FeedEmptyReason
+
+    /**
+     * 여기까지 훑은 범위에는 없지만 **서버에는 더 남아 있다** — 「없음」이 아니라 「아직 못 찾음」이다.
+     *
+     * 검색어·마감일은 서버 파라미터가 없어 받아 온 페이지 안에서만 걸러진다. 그래서 뒤쪽 페이지에
+     * 조건에 맞는 공고가 있어도 앞쪽 몇 페이지가 통째로 걸러지면 화면이 빈다. 그 상태를 [Search]·
+     * [Filter] 로 말하면 「검색어를 바꿔 보라」고 하게 되는데, 정작 바꿀 필요가 없는 검색어일 수 있다.
+     *
+     * 그래서 이 사유만은 조건을 **되돌리라고 하지 않고 이어 읽으라고** 한다 —
+     * 행동은 [FeedUiEvent.LoadMoreSelected] 다.
+     */
+    public data object MoreAvailable : FeedEmptyReason
+}
+
+/**
+ * 목록 끝에서 이어 읽기가 어디까지 왔는가 — 자동으로 굴러가는지, 사용자 손이 필요한지를 가른다.
+ *
+ * 자동 페이징은 [Ready] 일 때만 돈다. 나머지 셋은 **자동으로는 더 가지 않는 자리**라, 화면이 목록 끝에
+ * 무슨 일이 있었는지 밝히고 이어 갈 버튼을 준다 — 조용히 멈추면 목록이 끝난 것처럼 보인다.
+ */
+public enum class FeedLoadMoreState {
+    /** 자동 페이징이 살아 있다. 바닥에 닿으면 다음 페이지를 읽는다. */
+    Ready,
+
+    /** 다음 페이지를 읽는 중. */
+    Loading,
+
+    /**
+     * 이어 읽었지만 한 건도 늘지 않았다 — 클라이언트 필터가 따라간 페이지를 통째로 걸렀다.
+     *
+     * 자동으로 계속 따라가면 걸러질 페이지만 끝없이 받게 되므로 여기서 멈추고 「더 찾아보기」를 준다.
+     * 「한 건도 늘지 않았을 때만」 멈추므로, 한 번의 이어 읽기는 반드시 목록을 늘리거나 여기서 선다.
+     */
+    Paused,
+
+    /** 다음 페이지가 실패했다 — 스크롤만으로 재시도가 돌면 무한 재시도가 되므로 「다시 시도」로만 이어 간다. */
+    Failed,
 }
 
 /** Mutually exclusive loading states for the listing portion of the feed. */
@@ -223,6 +262,16 @@ public sealed interface FeedUiEvent {
 
     /** 빈 목록의 「게시판 등록하기」 — 게시판이 0개라 모을 것이 없는 사용자의 유일한 길이다. */
     public data object BoardRegisterSelected : FeedUiEvent
+
+    /**
+     * 「더 찾아보기」·「다시 시도」 — 멈춰 선 이어 읽기를 사용자가 손으로 잇는다
+     * ([FeedLoadMoreState.Paused]·[FeedLoadMoreState.Failed], [FeedEmptyReason.MoreAvailable]).
+     *
+     * 자동 페이징(`FeedScreen` 의 `onLoadMore`)과 달리 **사용자 의도**라, 자동으로는 가지 않는 자리에서도
+     * 통한다. 둘을 한 통로로 합치지 않는 이유가 그것이다 — 자동 트리거까지 여기로 흘리면 멈춤 판정이
+     * 스크롤 한 번에 무의미해진다.
+     */
+    public data object LoadMoreSelected : FeedUiEvent
 
     public data object SortMenuRequested : FeedUiEvent
 
