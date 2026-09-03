@@ -60,6 +60,10 @@ public fun OnboardingStep4Screen(
         currentStep = state.currentStep,
         totalSteps = state.totalSteps,
         title = stringResource(R.string.onboarding_step4_title),
+        // 기능 스펙 F1-2 Step 4 는 「업로드하지 않아도 지원서 생성은 가능하나 품질이 낮을 수 있음을 안내」를
+        // 요구한다(#142). 안내는 여기 한 줄로 끝낸다 — 건너뛰기에 확인 대화상자를 세우면 「선택 입력」이 사실상
+        // 반강제가 되고, 푸터에 문구를 더하면 1 : 2.2 로 이미 좁은 그 자리가 큰 글꼴에서 화면을 잡아먹는다(#131).
+        // 「나중에 마이 탭에서 추가할 수 있다」는 넣지 않았다 — 그 경로가 아직 앱에 없다. 없는 길은 가리키지 않는다.
         description = stringResource(R.string.onboarding_step4_description),
         onBackClick = { onEvent(OnboardingStep4Event.BackClicked) },
         modifier = modifier,
