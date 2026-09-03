@@ -81,12 +81,63 @@ class FeedFailureContentTest {
 
         composeRule.runOnIdle { assertEquals(1, retryCount) }
     }
+
+    /**
+     * 조건 때문에 실패한 자리의 탈출구(#144). 실패 화면이 헤더를 통째로 대신하므로, 이 버튼이 없으면
+     * 조건을 되돌릴 조작이 화면에 하나도 남지 않는다.
+     */
+    @Test
+    fun queryReset_emitsResetAndKeepsRetryRoute() {
+        var resetCount = 0
+        var retryCount = 0
+        composeRule.setFailureContent(
+            reason = FeedFailureReason.Maintenance,
+            onRetryClick = { retryCount += 1 },
+            onOfflineClick = {},
+            onResetQueryClick = { resetCount += 1 },
+        )
+
+        composeRule.onNode(hasText("조건 지우고 다시 보기") and hasClickAction()).performClick()
+
+        // 조건을 지우는 길이 열려도 「지금 조건 그대로」 하는 길이 닫히지는 않는다 — 서버가 곧 살아날
+        // 수도 있고, 그때는 조건을 버릴 이유가 없다.
+        composeRule.onNode(hasText("새로고침") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("오프라인 모드로 보기") and hasClickAction()).assertIsDisplayed()
+
+        composeRule.runOnIdle {
+            assertEquals(1, resetCount)
+            assertEquals(1, retryCount)
+        }
+    }
+
+    @Test
+    fun withoutQueryReset_hidesResetAction() {
+        // null 은 「되돌릴 조건이 없거나 조건 탓이 아니다」는 뜻이다 — 눌러도 같은 실패로 돌아올
+        // 버튼을 그리지 않는다. 판정은 FeedViewState.canResetFailedQuery 가 한다.
+        composeRule.setFailureContent(reason = FeedFailureReason.Maintenance, onResetQueryClick = null)
+
+        composeRule.onAllNodesWithText("조건 지우고 다시 보기").assertCountEquals(0)
+    }
+
+    @Test
+    fun genericWithQueryReset_keepsReasonNoticeIntact() {
+        // 사유 화면은 탈출구가 붙어도 바뀌지 않는다 — 아래에 한 겹 덧붙일 뿐이다.
+        composeRule.setFailureContent(
+            reason = FeedFailureReason.Generic,
+            onResetQueryClick = {},
+        )
+
+        composeRule.onNodeWithText("공고를 불러오지 못했어요").assertIsDisplayed()
+        composeRule.onNode(hasText("다시 시도") and hasClickAction()).assertIsDisplayed()
+        composeRule.onNodeWithText("조건 지우고 다시 보기").assertIsDisplayed()
+    }
 }
 
 private fun ComposeContentTestRule.setFailureContent(
     reason: FeedFailureReason,
     onRetryClick: () -> Unit = {},
     onOfflineClick: (() -> Unit)? = null,
+    onResetQueryClick: (() -> Unit)? = null,
 ) {
     setContent {
         CareerCompassTheme {
@@ -94,6 +145,7 @@ private fun ComposeContentTestRule.setFailureContent(
                 reason = reason,
                 onRetryClick = onRetryClick,
                 onOfflineClick = onOfflineClick,
+                onResetQueryClick = onResetQueryClick,
             )
         }
     }

@@ -90,10 +90,16 @@ public fun FeedEntry(
             is FeedLoadState.Failed -> {
                 // 저장해 둔 스냅샷이 있을 때만 「오프라인 모드로 보기」를 연다 — 눌러도 보여 줄 것이 없는
                 // 버튼을 그리지 않는다. 점검 중에도 같은 길을 열어 둔다.
+                //
+                // 「조건 지우고 다시 보기」도 같은 규칙이다 — 되돌릴 조건이 실제로 걸려 있고 그 실패가
+                // 조건 탓일 여지가 있을 때만 연다(FeedViewState.canResetFailedQuery). 이 화면이
+                // FeedScreen 을 통째로 대신해 헤더의 조작이 전부 사라지므로, 이것이 조건에서 빠져나갈
+                // 유일한 길이다(#144).
                 FeedFailureContent(
                     reason = loadState.reason,
                     onRetryClick = viewModel::retry,
                     onOfflineClick = state.offlineSnapshot?.let { { viewModel.showOfflineSnapshot() } },
+                    onResetQueryClick = if (state.canResetFailedQuery) viewModel::resetQueryAndRetry else null,
                 )
             }
 

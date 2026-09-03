@@ -10,6 +10,7 @@ import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.cambridge.feature.feed.presentation.shared.model.isQueryAttributable
 import com.cambridge.feature.feed.presentation.shared.model.lacksSuitabilityInputs
 import com.cambridge.feature.feed.presentation.shared.util.toDomainDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toListingCategory
@@ -191,4 +192,20 @@ public data class FeedViewState(
      */
     public val hasActiveFilter: Boolean
         get() = activeFilterCount > 0 || selectedCategory != FeedListingCategory.All
+
+    /**
+     * 실패 화면에 「조건 지우고 다시 보기」를 열 것인가 — 근거 **둘이 함께** 서야 연다.
+     *
+     * ① **되돌릴 조건이 실제로 걸려 있다**([FeedQuery.isDefault] 가 아니다). 아무 조건도 없는 기본 조회가
+     *    실패한 자리에 초기화를 내밀면, 눌러도 똑같은 요청이 나가 똑같이 실패한다 — 「눌러도 아무 일 없는
+     *    버튼」이고, 사용자는 자기가 뭘 잘못했나 되짚느라 시간을 버린다.
+     * ② **그 실패가 조건 탓일 여지가 있다**([isQueryAttributable]). 사유를 안 가르면 연결이 끊긴 사람에게
+     *    조건을 지우라고 하게 된다.
+     *
+     * 이 판정이 [hasActiveFilter] 가 아니라 [FeedQuery.isDefault] 에 기대는 이유 — [hasActiveFilter] 는
+     * 「목록을 좁히는 조건」만 세느라 검색어와 정렬을 빼는데, 이슈 #144 의 재현은 **정렬**을 바꾼 것이었다.
+     * 여기서 묻는 것은 「좁히는 조건이 있는가」가 아니라 「조회를 기본과 다르게 만든 것이 있는가」다.
+     */
+    public val canResetFailedQuery: Boolean
+        get() = !query.isDefault && (loadState as? FeedLoadState.Failed)?.reason?.isQueryAttributable == true
 }

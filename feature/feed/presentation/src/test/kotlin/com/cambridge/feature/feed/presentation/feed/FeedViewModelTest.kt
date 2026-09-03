@@ -94,6 +94,25 @@ class FeedViewModelTest {
     private fun snapshot(vararg ids: Long) = FeedSnapshot(postings = ids.map { posting(id = it) }, savedAt = FIXED_CLOCK.instant())
 
     /**
+     * **조건이 걸린 조회에서만** 실패하는 서버 — 이슈 #144 의 재현이다.
+     *
+     * 적합도는 LLM 산출값이라, 정렬을 「적합도순」으로 바꾸거나 최소 적합도를 걸면 서버가 그 조건에서만
+     * 503 `LLM_UNAVAILABLE` 을 낸다. 기본 조회는 그대로 성공하므로 「조건을 지우면 살아난다」가 참이다.
+     */
+    private fun scoreConditionFails(
+        initial: List<Posting> = List(3) { posting(id = it + 1L) },
+        failure: () -> Throwable = { CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException()) },
+    ) = FakePostingRepository(initial = initial).apply {
+        onGetPostings = { query ->
+            if (query.sort == PostingSort.ScoreDesc || query.minScore != null) {
+                Result.failure(failure())
+            } else {
+                Result.success(CursorPage(items = initial, nextCursor = null))
+            }
+        }
+    }
+
+    /**
      * 마감이 지나 클라이언트 필터가 통째로 걸러 내는 페이지 — 커서만 `c1`·`c2`… 로 한 칸씩 나아간다.
      *
      * 「받은 것이 없다」와 「서버에 없다」가 갈리는 자리를 그대로 재현한다: 항목은 0건인데 커서는 남는다.
@@ -989,5 +1008,102 @@ class FeedViewModelTest {
                 .map(Posting::id),
         )
         assertTrue(reporter.stages.contains("feed_snapshot_save"))
+    }
+
+    @Test
+    fun `조건 때문에 실패하면 그 조건을 지우고 다시 보는 길을 연다`() {
+        val viewModel = viewModel(postingRepository = scoreConditionFails())
+
+        viewModel.onSortEvent(FeedSortMenuEvent.SortSelected(FeedSortOption.ScoreDesc))
+
+        val failed = viewModel.state.value
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.Maintenance), failed.loadState)
+        assertTrue(failed.canResetFailedQuery)
+    }
+
+    @Test
+    fun `조건 초기화는 검색어·필터·정렬을 함께 지우고 그 자리에서 다시 조회한다`() =
+        runTest {
+            // 되돌리기만 하고 멈추면 반쪽이다 — 실패 화면에는 목록이 없어 조건이 바뀐 것을 확인할 길이
+            // 없고, 남은 버튼(다시 시도)은 지금 조건을 그대로 다시 보낸다.
+            val viewModel = viewModel(postingRepository = scoreConditionFails())
+            viewModel.onEvent(FeedUiEvent.SearchQueryChanged("백엔드"))
+            advanceTimeBy(FeedViewModel.SEARCH_DEBOUNCE_MS + 1)
+            viewModel.onEvent(FeedUiEvent.FilterSelected(FeedListingCategory.Employment))
+            viewModel.onSortEvent(FeedSortMenuEvent.SortSelected(FeedSortOption.ScoreDesc))
+            assertEquals(FeedLoadState.Failed(FeedFailureReason.Maintenance), viewModel.state.value.loadState)
+
+            viewModel.resetQueryAndRetry()
+
+            val state = viewModel.state.value
+            assertTrue(state.query.isDefault)
+            assertEquals(PostingSort.CollectedDesc, state.query.sort)
+            assertEquals("", state.searchInput)
+            assertFalse(state.canResetFailedQuery)
+            // 사용자가 한 번 더 누르지 않아도 목록이 돌아와 있다.
+            assertEquals(FeedLoadState.Loaded, state.loadState)
+            assertEquals(listOf(1L, 2L, 3L), state.postings.map(Posting::id))
+        }
+
+    @Test
+    fun `조건 초기화는 아직 반영 전인 검색어까지 되살리지 않는다`() =
+        runTest {
+            // 디바운스를 끊지 않으면 300ms 뒤 applyQuery 가 방금 지운 검색어를 다시 실어, 초기화한
+            // 조회가 조용히 옛 조건으로 되돌아간다.
+            val viewModel = viewModel(postingRepository = scoreConditionFails())
+            viewModel.onSortEvent(FeedSortMenuEvent.SortSelected(FeedSortOption.ScoreDesc))
+            viewModel.onEvent(FeedUiEvent.SearchQueryChanged("백엔드"))
+
+            viewModel.resetQueryAndRetry()
+            advanceTimeBy(FeedViewModel.SEARCH_DEBOUNCE_MS + 1)
+
+            assertEquals("", viewModel.state.value.searchInput)
+            assertEquals("", viewModel.state.value.query.searchQuery)
+            assertEquals(FeedLoadState.Loaded, viewModel.state.value.loadState)
+        }
+
+    @Test
+    fun `원인을 모르는 실패도 조건이 걸려 있으면 초기화 길을 연다`() {
+        // Generic 은 「조건 탓이 아니다」가 아니라 「모른다」다 — 되돌릴 조건이 실제로 있으면,
+        // 헛다리를 짚어도 잃는 것이 없고 닫아 두면 빠져나갈 길 없는 화면이 남는다.
+        val viewModel = viewModel(postingRepository = scoreConditionFails(failure = { IllegalStateException("boom") }))
+
+        viewModel.onSortEvent(FeedSortMenuEvent.SortSelected(FeedSortOption.ScoreDesc))
+
+        val state = viewModel.state.value
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.Generic), state.loadState)
+        assertTrue(state.canResetFailedQuery)
+    }
+
+    @Test
+    fun `네트워크 단절에는 조건이 걸려 있어도 초기화를 내밀지 않는다`() {
+        // 요청이 서버에 닿지도 못했으니 조건이 답을 바꿀 여지가 없다 — 지워도 같은 실패로 돌아온다.
+        val viewModel = viewModel(postingRepository = offlinePostings())
+
+        viewModel.onEvent(FeedUiEvent.FilterSelected(FeedListingCategory.Employment))
+
+        val state = viewModel.state.value
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.NetworkUnavailable), state.loadState)
+        assertFalse(state.query.isDefault)
+        assertFalse(state.canResetFailedQuery)
+    }
+
+    @Test
+    fun `기본 조회가 실패하면 되돌릴 조건이 없어 초기화를 내밀지 않는다`() {
+        val state = viewModel(postingRepository = maintenancePostings()).state.value
+
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.Maintenance), state.loadState)
+        assertFalse(state.canResetFailedQuery)
+    }
+
+    @Test
+    fun `조회에 성공한 화면에는 조건이 걸려 있어도 초기화를 내밀지 않는다`() {
+        // 실패 화면에서만 여는 길이다 — 성공한 목록 위에서는 헤더의 검색칸·필터·정렬이 그대로 살아 있다.
+        val viewModel = viewModel()
+
+        viewModel.onSortEvent(FeedSortMenuEvent.SortSelected(FeedSortOption.ScoreDesc))
+
+        assertEquals(FeedLoadState.Loaded, viewModel.state.value.loadState)
+        assertFalse(viewModel.state.value.canResetFailedQuery)
     }
 }
