@@ -191,6 +191,8 @@ private fun sampleListing(
         suitability = FeedSuitabilityState.Scored(88),
         deadlineLabel = deadlineLabel,
         isDeadlineUrgent = false,
+        collectedAtLabel = "오늘 수집",
         isNew = true,
+        isRead = false,
         isBookmarked = false,
     )

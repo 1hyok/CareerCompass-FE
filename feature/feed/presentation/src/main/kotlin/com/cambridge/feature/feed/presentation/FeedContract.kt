@@ -54,7 +54,16 @@ public sealed interface FeedSuitabilityState {
     public data object ProfileIncomplete : FeedSuitabilityState
 }
 
-/** Display-only data for one listing card. */
+/**
+ * Display-only data for one listing card (기능 스펙 F2-3 「카드 정보」).
+ *
+ * @property collectedAtLabel 언제 모아 온 공고인지(「오늘 수집」·「수집 3일 전」). **비어 있을 수 없다** —
+ *  [isNew] 의 초록 점이 색으로만 말하던 「오늘 들어온 것」을 이 문구가 대신 말하므로, 없으면 색각 이상·
+ *  흑백 환경에서 수집 시점을 알 길이 사라진다.
+ * @property isNew 오늘 수집분. 문구가 이미 같은 말을 하므로 점은 **훑어보기를 돕는 덧표시**일 뿐이다.
+ * @property isRead 읽은 공고. 목록을 훑어 내려가며 「어디까지 봤더라」를 판단할 유일한 단서라, 필터를
+ *  꺼도 남아 있어야 한다. 화면은 이 값을 문구(「읽음」)·형태(체크 표시)·접근성 상태로 함께 낸다.
+ */
 public data class FeedListingUiModel(
     val id: String,
     val title: String,
@@ -64,7 +73,9 @@ public data class FeedListingUiModel(
     val suitability: FeedSuitabilityState,
     val deadlineLabel: String,
     val isDeadlineUrgent: Boolean,
+    val collectedAtLabel: String,
     val isNew: Boolean,
+    val isRead: Boolean,
     val isBookmarked: Boolean,
 ) {
     init {
@@ -73,6 +84,7 @@ public data class FeedListingUiModel(
         requireNonBlank("categoryLabel", categoryLabel)
         requireNonBlank("sourceLabel", sourceLabel)
         requireNonBlank("deadlineLabel", deadlineLabel)
+        requireNonBlank("collectedAtLabel", collectedAtLabel)
     }
 }
 

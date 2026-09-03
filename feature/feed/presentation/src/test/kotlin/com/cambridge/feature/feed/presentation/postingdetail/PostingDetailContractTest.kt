@@ -194,7 +194,9 @@ private fun sampleListing(id: String): FeedListingUiModel =
         suitability = FeedSuitabilityState.Scored(70),
         deadlineLabel = "D-10",
         isDeadlineUrgent = false,
+        collectedAtLabel = "수집 3일 전",
         isNew = false,
+        isRead = false,
         isBookmarked = false,
     )
 

@@ -258,7 +258,9 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             suitability = FeedSuitabilityState.Scored(88),
             deadlineLabel = "D-7",
             isDeadlineUrgent = false,
+            collectedAtLabel = "오늘 수집",
             isNew = true,
+            isRead = false,
             isBookmarked = false,
         ),
         FeedListingUiModel(
@@ -270,7 +272,9 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             suitability = FeedSuitabilityState.Scored(82),
             deadlineLabel = "D-2",
             isDeadlineUrgent = true,
+            collectedAtLabel = "오늘 수집",
             isNew = true,
+            isRead = true,
             isBookmarked = false,
         ),
         FeedListingUiModel(
@@ -282,7 +286,9 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             suitability = FeedSuitabilityState.Scored(76),
             deadlineLabel = "D-14",
             isDeadlineUrgent = false,
+            collectedAtLabel = "수집 3일 전",
             isNew = false,
+            isRead = true,
             isBookmarked = true,
         ),
         FeedListingUiModel(
@@ -294,7 +300,9 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             suitability = FeedSuitabilityState.Scored(64),
             deadlineLabel = "D-30",
             isDeadlineUrgent = false,
+            collectedAtLabel = "수집 12일 전",
             isNew = false,
+            isRead = false,
             isBookmarked = false,
         ),
         FeedListingUiModel(
@@ -306,7 +314,9 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             suitability = FeedSuitabilityState.Analyzing,
             deadlineLabel = "마감 미정",
             isDeadlineUrgent = false,
+            collectedAtLabel = "오늘 수집",
             isNew = true,
+            isRead = false,
             isBookmarked = false,
         ),
     )

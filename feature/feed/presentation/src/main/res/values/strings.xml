@@ -9,7 +9,10 @@
     <string name="feed_filter_unselected_state">선택 안 됨</string>
     <string name="feed_listing_count">%1$d개 공고</string>
     <string name="feed_sort_content_description">정렬: %1$s</string>
-    <string name="feed_new_listing_content_description">신규 공고</string>
+    <string name="feed_collected_today">오늘 수집</string>
+    <string name="feed_collected_at">수집 %1$s</string>
+    <string name="feed_listing_read_state">읽음</string>
+    <string name="feed_listing_unread_state">읽지 않음</string>
     <string name="feed_suitability_label">적합도</string>
     <string name="feed_suitability_content_description">적합도 %1$d점</string>
     <string name="feed_bookmark_content_description">%1$s 북마크</string>

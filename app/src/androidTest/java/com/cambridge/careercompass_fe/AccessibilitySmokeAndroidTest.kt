@@ -185,7 +185,7 @@ class AccessibilitySmokeAndroidTest {
                     ),
                 selectedFilter = FeedListingCategory.All,
                 selectedSort = FeedSortUiModel(id = "fit", label = "적합도 높은순"),
-                totalListingCount = 1,
+                totalListingCount = 2,
                 content =
                     FeedContentState.Loaded(
                         listOf(
@@ -198,7 +198,25 @@ class AccessibilitySmokeAndroidTest {
                                 suitability = FeedSuitabilityState.Scored(88),
                                 deadlineLabel = "D-7",
                                 isDeadlineUrgent = false,
+                                collectedAtLabel = "오늘 수집",
                                 isNew = true,
+                                isRead = false,
+                                isBookmarked = false,
+                            ),
+                            // 읽은 카드도 함께 그린다 — 「읽음」 배지와 흐려진 제목이 대비 기준을
+                            // 넘는지는 읽지 않은 카드만으로는 검사되지 않는다(#140).
+                            FeedListingUiModel(
+                                id = "listing-2",
+                                title = "네이버 부스트캠프 9기 모집",
+                                category = FeedListingCategory.Employment,
+                                categoryLabel = "채용",
+                                sourceLabel = "네이버 채용",
+                                suitability = FeedSuitabilityState.Scored(76),
+                                deadlineLabel = "D-14",
+                                isDeadlineUrgent = false,
+                                collectedAtLabel = "수집 3일 전",
+                                isNew = false,
+                                isRead = true,
                                 isBookmarked = false,
                             ),
                         ),
