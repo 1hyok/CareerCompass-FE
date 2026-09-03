@@ -206,12 +206,21 @@ private fun BoardCard(
                 )
             }
         }
+        if (board.status == BoardStatus.Deactivated) {
+            BoardDeactivatedNotice(failCount = board.failCount)
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-            if (board.status == BoardStatus.Failing) {
+            if (board.status == BoardStatus.Failing || board.status == BoardStatus.Deactivated) {
                 CareerCompassButton(
                     text = stringResource(R.string.feed_board_retry),
                     onClick = { onEvent(BoardListEvent.RetryClicked(board.id)) },
-                    variant = CareerCompassButtonVariant.Secondary,
+                    // 서버가 끈 게시판에서는 재시도가 권하는 행동이라 강조 버튼으로 낸다.
+                    variant =
+                        if (board.status == BoardStatus.Deactivated) {
+                            CareerCompassButtonVariant.Primary
+                        } else {
+                            CareerCompassButtonVariant.Secondary
+                        },
                     size = CareerCompassButtonSize.Small,
                     contentDescription = stringResource(R.string.feed_board_retry_content_description, board.name),
                 )
@@ -253,6 +262,45 @@ private fun BoardStatusBadge(
                 tone = CareerCompassBadgeTone.Error,
             )
         }
+
+        BoardStatus.Deactivated -> {
+            CareerCompassBadge(
+                label = stringResource(R.string.feed_board_status_deactivated),
+                tone = CareerCompassBadgeTone.Error,
+            )
+        }
+    }
+}
+
+/**
+ * 연속 실패로 서버가 끈 게시판에만 붙는 안내 — 왜 꺼졌는지와 무엇을 하면 되는지를 카드 안에서 끝낸다.
+ *
+ * 배지만으로는 사용자가 끈 「일시중지」와 구분되지 않는다. 첫 줄이 이유와 다음 행동(재시도·주소 확인·삭제)을,
+ * 둘째 줄이 토글과 재시도의 차이와 어느 쪽을 권하는지를 말한다.
+ */
+@Composable
+private fun BoardDeactivatedNotice(failCount: Int) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(colors.errorContainer, CareerCompassTheme.shapes.largeControl)
+                .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.xxSmall),
+    ) {
+        Text(
+            text = stringResource(R.string.feed_board_deactivated_reason, failCount),
+            color = colors.onErrorContainer,
+            style = CareerCompassTheme.typography.caption,
+        )
+        Text(
+            text = stringResource(R.string.feed_board_deactivated_action_hint),
+            color = colors.onErrorContainer,
+            style = CareerCompassTheme.typography.caption,
+        )
     }
 }
 

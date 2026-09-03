@@ -13,6 +13,7 @@ import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.board
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.cambridge.feature.feed.presentation.shared.util.toUiBoardStatus
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -122,6 +123,27 @@ class BoardListViewModelTest {
         assertEquals(DomainBoardStatus.Active, retried.status)
         assertEquals(0, retried.failCount)
         assertEquals(BoardListMessage.RetryRequested, viewModel.state.value.message)
+        // 서버가 끈 게시판을 되살리는 길 — 낙관적 갱신이 다시 켜 주므로 중단 안내가 사라진다.
+        assertTrue(retried.isActive)
+        assertEquals(BoardStatus.Active, retried.toUiBoardStatus())
+    }
+
+    @Test
+    fun `서버가 끈 게시판을 토글로 켜면 중단이 아니라 실패 중으로 돌아간다`() {
+        val repository = repository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardListEvent.BoardToggled("2"))
+
+        val toggled =
+            viewModel.state.value.boards
+                .first { it.id == 2L }
+        assertEquals(listOf(2L to BoardUpdate(isActive = true)), repository.updates.toList())
+        assertTrue(toggled.isActive)
+        // 토글은 수집 실패를 지우지 않는다 — 재시도와 달리 다음 수집 주기를 기다린다.
+        assertEquals(DomainBoardStatus.Failed, toggled.status)
+        assertEquals(3, toggled.failCount)
+        assertEquals(BoardStatus.Failing, toggled.toUiBoardStatus())
     }
 
     @Test

@@ -343,13 +343,24 @@ public fun BoardType.toDomainBoardType(): DomainBoardType =
         BoardType.Other -> DomainBoardType.Other
     }
 
-/** 서버 `status` 와 `isActive` 를 화면 상태 하나로 접는다. 모르는 상태는 활성 여부로만 판단한다. */
+/**
+ * 서버 `status` 와 `isActive` 를 화면 상태 하나로 접는다 — 이 판정이 사는 유일한 곳이다.
+ *
+ * `Failed` 이면서 꺼져 있으면 연속 수집 실패로 **서버가 끈** 게시판이다(기능 스펙 F2-2). 사용자가 끈
+ * [BoardStatus.Paused] 와 같은 그림이 되지 않게 [BoardStatus.Deactivated] 로 가른다. 같은 `Failed` 라도
+ * 켜져 있으면 아직 수집을 시도하는 중이므로 [BoardStatus.Failing] 이다.
+ *
+ * 모르는 상태는 예전대로 활성 여부로만 판단한다 — 서버가 `status` 를 늘려도 목록이 깨지지 않는다.
+ */
 public fun Board.toUiBoardStatus(): BoardStatus =
     when (status) {
-        DomainBoardStatus.Failed -> BoardStatus.Failing
+        DomainBoardStatus.Failed -> if (isActive) BoardStatus.Failing else BoardStatus.Deactivated
+
         DomainBoardStatus.Paused -> BoardStatus.Paused
-        DomainBoardStatus.Active -> if (isActive) BoardStatus.Active else BoardStatus.Paused
-        DomainBoardStatus.Unknown -> if (isActive) BoardStatus.Active else BoardStatus.Paused
+
+        DomainBoardStatus.Active,
+        DomainBoardStatus.Unknown,
+        -> if (isActive) BoardStatus.Active else BoardStatus.Paused
     }
 
 /** 주기(시간) → 선택지. 선택지에 없는 값은 기본 1일 1회로 보인다. */

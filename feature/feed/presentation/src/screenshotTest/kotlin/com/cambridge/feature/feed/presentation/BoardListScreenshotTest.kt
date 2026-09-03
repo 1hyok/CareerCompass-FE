@@ -28,6 +28,16 @@ public fun BoardListEmptyPreview() {
     BoardListPreviewSurface(state = BoardListUiState(content = BoardListContentState.Empty))
 }
 
+/** 연속 실패로 서버가 끈 게시판과 사용자가 끈 게시판을 나란히 둔다 — 둘이 같은 그림이 되면 골든이 잡는다. */
+@PreviewTest
+@Preview(name = "Board list deactivated", widthDp = 360, heightDp = 772)
+@Composable
+public fun BoardListDeactivatedPreview() {
+    BoardListPreviewSurface(
+        state = BoardListUiState(content = BoardListContentState.Loaded(boardListDeactivatedPreviewBoards())),
+    )
+}
+
 @Composable
 private fun BoardListPreviewSurface(state: BoardListUiState) {
     CareerCompassTheme {
@@ -70,9 +80,37 @@ private fun boardListPreviewBoards(): List<BoardUiModel> =
             type = BoardType.Contest,
             typeLabel = "공모전",
             status = BoardStatus.Failing,
+            isActive = true,
+            failCount = 2,
+            lastCollectedLabel = "6시간 전",
+            postingCount = 4,
+        ),
+        BoardUiModel(
+            id = "naver",
+            name = "네이버 채용",
+            url = "https://recruit.navercorp.com/rcrt/list.do",
+            type = BoardType.Employment,
+            typeLabel = "채용",
+            status = BoardStatus.Paused,
+            isActive = false,
+            failCount = 0,
+            lastCollectedLabel = null,
+            postingCount = 0,
+        ),
+    )
+
+private fun boardListDeactivatedPreviewBoards(): List<BoardUiModel> =
+    listOf(
+        BoardUiModel(
+            id = "wettheidol",
+            name = "공모전 사이트",
+            url = "https://wettheidol.com/contest/list",
+            type = BoardType.Contest,
+            typeLabel = "공모전",
+            status = BoardStatus.Deactivated,
             isActive = false,
             failCount = 3,
-            lastCollectedLabel = "6시간 전",
+            lastCollectedLabel = "3일 전",
             postingCount = 4,
         ),
         BoardUiModel(

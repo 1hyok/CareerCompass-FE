@@ -38,6 +38,9 @@
     <string name="feed_board_status_active">수집 중</string>
     <string name="feed_board_status_paused">일시중지</string>
     <string name="feed_board_status_failing">수집 실패 %1$d회</string>
+    <string name="feed_board_status_deactivated">수집 중단됨</string>
+    <string name="feed_board_deactivated_reason">수집이 %1$d회 연속 실패해 자동으로 중단됐어요. 재시도하거나 게시판 주소를 확인하고, 더 안 쓴다면 삭제해 주세요</string>
+    <string name="feed_board_deactivated_action_hint">재시도를 누르면 지금 바로 다시 수집해요. 토글만 켜면 다음 수집 주기까지 기다려요</string>
     <string name="feed_board_last_collected">마지막 수집 %1$s</string>
     <string name="feed_board_never_collected">아직 수집 전</string>
     <string name="feed_board_posting_count">공고 %1$d건</string>
