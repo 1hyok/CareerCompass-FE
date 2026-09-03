@@ -1126,13 +1126,18 @@ private fun OnboardingStep3FormState.restore(
  *
  * 상세 값이 하나라도 있으면 [ExperienceEditorState.isDetailExpanded] 를 켜서 펼친 채로 연다. 접힌 채 열면
  * 사용자는 그 값이 사라졌다고 읽는다.
+ *
+ * ### 시점 칸은 그 유형의 정밀도 그대로 연다 (#166)
+ * 연도만 있는 수상 카드를 「2025.01」로 열면, 사용자가 준 적 없는 1월이 화면에 뜨고 저장에 실린다.
+ * 그래서 수상은 연도를 **연도로**(「2025」) 열고, 자격증은 연월을 연월로 연다. 상세 필드가 그 유형의 정본이라
+ * `startDate` 보다 먼저 읽는다 — 카드 목록(`OnboardingStep3Entry.periodText`)과 같은 순서다.
  */
 internal fun Experience.toEditorState(): ExperienceEditorState {
     val details = details
     val start =
         when (details) {
-            is ExperienceDetails.Certificate -> startDate?.toEditorYearMonth() ?: details.acquiredYearMonth?.replace('-', '.') ?: ""
-            is ExperienceDetails.Award -> startDate?.toEditorYearMonth() ?: details.year?.let { "%04d.01".format(it) } ?: ""
+            is ExperienceDetails.Certificate -> details.acquiredYearMonth?.replace('-', '.') ?: startDate?.toEditorYearMonth() ?: ""
+            is ExperienceDetails.Award -> details.year?.let { "%04d".format(it) } ?: startDate?.toEditorYearMonth() ?: ""
             else -> startDate?.toEditorYearMonth() ?: ""
         }
     val primary =
@@ -1166,7 +1171,7 @@ internal fun Experience.toEditorState(): ExperienceEditorState {
         type = type,
         title = title,
         startDate = start,
-        endDate = if (ExperienceEditorRules.hasEndDate(type)) endDate?.toEditorYearMonth().orEmpty() else "",
+        endDate = if (ExperienceEditorRules.hasPeriod(type)) endDate?.toEditorYearMonth().orEmpty() else "",
         primary = primary.orEmpty(),
         secondary = secondary.orEmpty(),
         techs = techs,
@@ -1276,12 +1281,15 @@ internal fun validateExperienceEditor(editor: ExperienceEditorState): Experience
     val startDateError =
         when {
             editor.startDate.isBlank() -> if (ExperienceEditorRules.isStartDateRequired(type)) OnboardingFieldError.Required else null
-            start == null -> OnboardingFieldError.InvalidFormat
+
+            // 받는 형식은 유형마다 다르다 — 수상은 연도(`YYYY`)다.
+            !ExperienceEditorRules.isValidDateInput(type, editor.startDate) -> OnboardingFieldError.InvalidFormat
+
             else -> null
         }
     val endDateError =
         when {
-            !ExperienceEditorRules.hasEndDate(type) || editor.endDate.isBlank() -> null
+            !ExperienceEditorRules.hasPeriod(type) || editor.endDate.isBlank() -> null
             end == null -> OnboardingFieldError.InvalidFormat
             start != null && end.isBefore(start) -> OnboardingFieldError.OutOfRange
             else -> null
@@ -1343,11 +1351,21 @@ private fun validateOptionalText(
  *
  * 표에 없는 값은 **읽지 않는다**. 유형을 바꿔도 시트는 이전 유형에 친 글을 지우지 않으므로(칩을 잘못 눌렀다
  * 돌아온 사용자를 위해), 새 유형이 쓰지 않는 값이 서버로 새지 않는 것은 여기서 보장한다.
+ *
+ * ### 없는 값을 만들지 않는다 (#166)
+ * 시트를 열었다 저장만 해도 없던 값이 생기면 안 된다. 걸리는 곳은 **시점 한 칸이 유형마다 다른 정밀도의 필드로
+ * 가는** 수상·자격증이었다 — 연도 `2025` 를 `2025-01-01` 로, 취득 연월 `2025-06` 을 `2025-06-01` 로 넓혀
+ * [ExperienceDraft.startDate] 에 실었다. 그래서 기간이 없는 유형([ExperienceEditorRules.hasPeriod])은
+ * `startDate` 를 **비운다** — 그 유형의 시점은 `year`·`acquiredYearMonth` 한 곳에만 둔다. 근거는
+ * [ExperienceEditorRules.hasPeriod] KDoc(같은 사실의 다른 정밀도 · 좁히기는 도출, 넓히기는 날조).
+ *
+ * 반대 방향인 좁히기(`YYYY.MM` → 연도)는 그대로 한다 — 예전 카드가 남긴 일자에서 연도를 읽는 것은 새 정보를
+ * 만들지 않는다.
  */
 internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
     val trimmedTitle = title.trim()
     val start = ExperienceEditorRules.parseYearMonth(startDate)
-    val end = if (ExperienceEditorRules.hasEndDate(type)) ExperienceEditorRules.parseYearMonth(endDate) else null
+    val end = if (ExperienceEditorRules.hasPeriod(type)) ExperienceEditorRules.parseYearMonth(endDate) else null
     val primaryText = primary.trim().ifEmpty { null }
     val secondaryText = secondary.trim().ifEmpty { null }
     val linkText = if (ExperienceEditorRules.hasLink(type)) link.trim().ifEmpty { null } else null
@@ -1369,7 +1387,7 @@ internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
                 ExperienceDetails.Award(
                     contestName = trimmedTitle,
                     rank = requireNotNull(primaryText) { "award rank is required" },
-                    year = start?.year,
+                    year = ExperienceEditorRules.parseYear(startDate),
                     organizer = secondaryText,
                 )
             }
@@ -1397,5 +1415,10 @@ internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
                 )
             }
         }
-    return ExperienceDraft(title = trimmedTitle, startDate = start, endDate = end, details = details)
+    return ExperienceDraft(
+        title = trimmedTitle,
+        startDate = if (ExperienceEditorRules.hasPeriod(type)) start else null,
+        endDate = end,
+        details = details,
+    )
 }

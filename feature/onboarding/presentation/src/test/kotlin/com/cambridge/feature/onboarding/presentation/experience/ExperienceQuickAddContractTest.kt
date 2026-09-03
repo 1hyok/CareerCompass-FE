@@ -22,9 +22,10 @@ public class ExperienceQuickAddContractTest {
         assertTrue(ExperienceEditorRules.isStartDateRequired(ExperienceType.Project))
         assertTrue(ExperienceEditorRules.isStartDateRequired(ExperienceType.Intern))
         assertFalse(ExperienceEditorRules.isStartDateRequired(ExperienceType.Award))
-        assertFalse(ExperienceEditorRules.hasEndDate(ExperienceType.Award))
-        assertFalse(ExperienceEditorRules.hasEndDate(ExperienceType.Certificate))
-        assertTrue(ExperienceEditorRules.hasEndDate(ExperienceType.Activity))
+        // 수상·자격증은 기간이 아니라 시점 하나를 갖는다 — 종료 칸도 없고 `startDate` 도 쓰지 않는다(#166).
+        assertFalse(ExperienceEditorRules.hasPeriod(ExperienceType.Award))
+        assertFalse(ExperienceEditorRules.hasPeriod(ExperienceType.Certificate))
+        assertTrue(ExperienceEditorRules.hasPeriod(ExperienceType.Activity))
         assertTrue(ExperienceEditorRules.isPrimaryRequired(ExperienceType.Award))
         assertTrue(ExperienceEditorRules.isPrimaryRequired(ExperienceType.Intern))
         assertTrue(ExperienceEditorRules.isPrimaryRequired(ExperienceType.Activity))
@@ -94,5 +95,26 @@ public class ExperienceQuickAddContractTest {
         assertNull(ExperienceEditorRules.parseYearMonth("2025.13"))
         assertNull(ExperienceEditorRules.parseYearMonth("2025-09"))
         assertNull(ExperienceEditorRules.parseYearMonth(""))
+        // 연도만 친 글은 「연월」이 아니다 — 여기서 월을 채워 주면 없던 달이 생긴다(#166).
+        assertNull(ExperienceEditorRules.parseYearMonth("2025"))
+    }
+
+    @Test
+    public fun parseYear_readsYearAndNarrowsLegacyYearMonth() {
+        assertEquals(2025, ExperienceEditorRules.parseYear(" 2025 "))
+        // 예전 카드가 남긴 `YYYY.MM` 은 연도로 좁혀 읽는다 — 좁히기는 새 정보를 만들지 않는다.
+        assertEquals(2025, ExperienceEditorRules.parseYear("2025.09"))
+        assertNull(ExperienceEditorRules.parseYear("25"))
+        assertNull(ExperienceEditorRules.parseYear("2025.13"))
+        assertNull(ExperienceEditorRules.parseYear(""))
+    }
+
+    @Test
+    public fun isValidDateInput_acceptsYearOnlyForAward() {
+        assertTrue(ExperienceEditorRules.isValidDateInput(ExperienceType.Award, "2025"))
+        assertTrue(ExperienceEditorRules.isValidDateInput(ExperienceType.Award, "2025.09"))
+        assertFalse(ExperienceEditorRules.isValidDateInput(ExperienceType.Project, "2025"))
+        assertTrue(ExperienceEditorRules.isValidDateInput(ExperienceType.Certificate, "2025.09"))
+        assertFalse(ExperienceEditorRules.isValidDateInput(ExperienceType.Certificate, "2025"))
     }
 }

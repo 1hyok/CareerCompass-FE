@@ -122,12 +122,12 @@ public sealed interface ExperienceQuickAddEvent {
 /**
  * 유형별 필드 의미와 필수 규칙 — 기능 스펙 F1-3 「유형별 입력 필드」를 시트 필드에 대응시킨 표.
  *
- * | 유형 | primary | secondary | 시작 | 상세(접힘) |
+ * | 유형 | primary | secondary | 시점 칸 | 상세(접힘) |
  * |---|---|---|---|---|
- * | 프로젝트 | 역할 | 요약 | 필수 | 사용 기술 태그 + 성과·결과물 링크 |
- * | 수상 | 수상 등급 (필수) | 주관 기관 | 연도로 사용 | (없음) |
- * | 인턴 | 회사명 (필수) | 직무 (필수) | 필수 | 주요 업무 요약 |
- * | 대외활동 | 기관명 (필수) | 성과 요약 | 선택 | 역할 |
+ * | 프로젝트 | 역할 | 요약 | 시작 (필수) | 사용 기술 태그 + 성과·결과물 링크 |
+ * | 수상 | 수상 등급 (필수) | 주관 기관 | 수상 연도 `YYYY` | (없음) |
+ * | 인턴 | 회사명 (필수) | 직무 (필수) | 시작 (필수) | 주요 업무 요약 |
+ * | 대외활동 | 기관명 (필수) | 성과 요약 | 시작 (선택) | 역할 |
  * | 자격증 | 발급 기관 | (없음) | 취득 연월 | (없음) |
  *
  * 이 표가 `ExperienceDetails` 의 전 필드를 덮는다 — 시트가 모르는 필드는 이제 없다. 그래서 수정 저장은
@@ -138,6 +138,10 @@ public sealed interface ExperienceQuickAddEvent {
  * 가 그렇게 동작하고 있어 규칙을 두 벌로 만들지 않는다. 칩을 잘못 눌렀다가 되돌아온 사용자가 친 글을 잃지
  * 않는 쪽이기도 하다. 「저장 때 버린다」는 `ExperienceEditorState.toDraft()` 가 이 표만 보고 값을 읽어
  * 구조적으로 보장된다.
+ *
+ * ### 시점 칸 하나가 유형마다 다른 필드로 간다 (#166)
+ * 수상은 `year`(연 단위), 자격증은 `acquiredYearMonth`(월 단위), 나머지는 `startDate`(일 단위)로 간다.
+ * **정밀도가 다른 같은 사실**이라 방향이 중요하다 — 자세한 근거는 [hasPeriod] 와 `toDraft()` KDoc.
  */
 public object ExperienceEditorRules {
     public const val MAX_TITLE_LENGTH: Int = 50
@@ -165,7 +169,21 @@ public object ExperienceEditorRules {
 
     public fun isStartDateRequired(type: ExperienceType): Boolean = type == ExperienceType.Project || type == ExperienceType.Intern
 
-    public fun hasEndDate(type: ExperienceType): Boolean = type != ExperienceType.Award && type != ExperienceType.Certificate
+    /**
+     * 기간(시작~종료)을 갖는 유형인가 — 수상·자격증은 기간이 아니라 **시점 하나**를 갖는다(F1-3).
+     *
+     * ### `year`·`acquiredYearMonth` 와 `startDate` 는 같은 사실의 다른 정밀도다 (#166)
+     * 와이어(API_SPEC v0.1 §3)에서 `startDate` 는 카드 공통 컬럼이고 `year`(수상)·`acquiredYearMonth`
+     * (자격증)는 유형별 `data` 안에 있지만, 셋 다 「그 경험이 언제인가」 하나를 가리킨다. 다른 것은 **정밀도**뿐이다
+     * — `Int` 연도, `YYYY-MM` 연월, `LocalDate` 일자.
+     *
+     * 그래서 두 방향의 값이 다르다. **좁히기(일자 → 연도·연월)는 도출**이라 새 정보를 만들지 않지만,
+     * **넓히기(연도 → 일자)는 날조**다. 「2025」에서 「2025-01-01」을 만들면 사용자가 준 적 없는 월과 일이
+     * 사실로 굳어 정렬·표시가 그걸 근거로 삼는다. 이 값이 false 인 유형이 시점을 `startDate` 에 **적지 않는**
+     * 이유가 그것이다 — 같은 사실을 두 칸에 나눠 적으면 어긋나고, 어긋난 뒤에는 어느 쪽이 사실인지 알 수 없다.
+     * 카드 목록(`OnboardingStep3Entry.periodText`)도 이미 이 두 유형은 상세 필드를 먼저 읽는다.
+     */
+    public fun hasPeriod(type: ExperienceType): Boolean = type != ExperienceType.Award && type != ExperienceType.Certificate
 
     public fun isPrimaryRequired(type: ExperienceType): Boolean =
         type == ExperienceType.Award || type == ExperienceType.Intern || type == ExperienceType.Activity
@@ -212,5 +230,28 @@ public object ExperienceEditorRules {
         return YearMonth.of(year.toInt(), month.toInt()).atDay(1)
     }
 
+    /**
+     * 수상 연도 칸을 읽는다 — `YYYY`.
+     *
+     * 다른 클라이언트가 만든 카드나 이 시트의 예전 버전이 남긴 `YYYY.MM` 도 받아 **연도만** 남긴다.
+     * 좁히기는 도출이라 안전하다([hasPeriod]) — 반대로 연도에서 월을 채우지는 않는다.
+     */
+    public fun parseYear(value: String): Int? {
+        val trimmed = value.trim()
+        return YEAR
+            .matchEntire(trimmed)
+            ?.groupValues
+            ?.get(1)
+            ?.toInt() ?: parseYearMonth(trimmed)?.year
+    }
+
+    /** 시점 칸에 친 글이 그 유형이 받는 형식인가. 수상만 연도(`YYYY`)를 함께 받는다. */
+    public fun isValidDateInput(
+        type: ExperienceType,
+        value: String,
+    ): Boolean = if (type == ExperienceType.Award) parseYear(value) != null else parseYearMonth(value) != null
+
     private val YEAR_MONTH = Regex("""^(\d{4})\.(0[1-9]|1[0-2])$""")
+
+    private val YEAR = Regex("""^(\d{4})$""")
 }

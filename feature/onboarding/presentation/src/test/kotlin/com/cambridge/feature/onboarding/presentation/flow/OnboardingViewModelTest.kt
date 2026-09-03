@@ -631,6 +631,92 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `빈 카드는 시트를 왕복해도 없던 값이 생기지 않는다`() {
+        // #139 의 왕복은 「지우지 않는다」(무손실)를 지킨다. 이 왕복은 그 반대편인 「만들지 않는다」(무생성)를 지킨다 —
+        // 열었다 저장만 했는데 사용자가 준 적 없는 값이 서버에 남으면 이후 정렬·표시가 그걸 사실로 취급한다(#166).
+        // 프로젝트·인턴은 모델(`ExperienceDraft`)이 시작일을 필수로 두므로 빈 카드에도 시작일만은 있다.
+        val cards =
+            listOf(
+                sampleCard(
+                    startDate = LocalDate.of(2025, 6, 1),
+                    details = ExperienceDetails.Project(role = null, techs = emptyList(), summary = null, link = null),
+                ),
+                sampleCard(details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = null, organizer = null)),
+                // 이슈 #166 그 자체 — 연도만 있고 날짜가 없는 수상 카드.
+                sampleCard(details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = null)),
+                sampleCard(
+                    startDate = LocalDate.of(2025, 6, 1),
+                    details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
+                ),
+                sampleCard(details = ExperienceDetails.Activity(organization = "동아리", role = null, summary = null)),
+                sampleCard(details = ExperienceDetails.Certificate(issuer = null, acquiredYearMonth = null)),
+                // 취득 연월만 있는 자격증도 같은 함정이었다 — 연월을 그 달 1일로 넓혀 없던 날짜를 만들었다.
+                sampleCard(details = ExperienceDetails.Certificate(issuer = null, acquiredYearMonth = "2025-06")),
+            )
+
+        cards.forEach { card ->
+            val draft = card.toEditorState().toDraft()
+            assertEquals(card.details, draft.details)
+            assertEquals(card.details.type.toString(), card.startDate, draft.startDate)
+            assertNull(card.details.type.toString(), draft.endDate)
+        }
+    }
+
+    @Test
+    fun `연도만 있는 수상 카드는 열었다 저장해도 날짜가 생기지 않는다`() {
+        experienceRepository.experiences +=
+            sampleCard(id = 4L, details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = null))
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
+        val viewModel = createViewModel()
+
+        viewModel.onStep3Event(OnboardingStep3Event.ExperienceSelected("4"))
+
+        // 연도는 연도 그대로 연다 — 「2025.01」로 열면 사용자가 준 적 없는 1월이 화면에도 뜬다.
+        assertEquals(
+            "2025",
+            viewModel.uiState.value.experienceEditor
+                ?.startDate,
+        )
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("공모전 대상"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        val updated =
+            viewModel.uiState.value.step3.experiences
+                .single { it.id == 4L }
+        assertNull(updated.startDate)
+        assertEquals(2025, (updated.details as ExperienceDetails.Award).year)
+    }
+
+    @Test
+    fun `수상 시점은 연도 칸으로 받아 연도에만 적는다`() {
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TypeSelected(ExperienceType.Award))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("공모전"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.PrimaryChanged("대상"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025.13"))
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        assertEquals(
+            OnboardingFieldError.InvalidFormat,
+            viewModel.uiState.value.experienceEditor
+                ?.startDateError,
+        )
+        assertTrue(experienceRepository.createdDrafts.isEmpty())
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        val draft = experienceRepository.createdDrafts.single()
+        // 수상에는 기간이 없다 — 시점은 `year` 한 곳에만 둔다.
+        assertNull(draft.startDate)
+        assertNull(draft.endDate)
+        assertEquals(ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = null), draft.details)
+    }
+
+    @Test
     fun `상세 값이 있는 카드는 자세히를 펼친 채로 연다`() {
         experienceRepository.experiences += sampleExperience(id = 1L)
         experienceRepository.experiences +=
@@ -1364,6 +1450,22 @@ class OnboardingViewModelTest {
             details = ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin"), summary = null, link = null),
             createdAt = null,
         )
+
+    /** 시점 계약을 보는 테스트용 카드 — 기본은 「아무 시점도 없는」 카드다. */
+    private fun sampleCard(
+        id: Long = 7L,
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null,
+        details: ExperienceDetails,
+    ) = Experience(
+        id = id,
+        // 수상의 `contestName` 은 시트에서 제목 칸 그 자체라 제목을 공모전명으로 둔다.
+        title = "공모전",
+        startDate = startDate,
+        endDate = endDate,
+        details = details,
+        createdAt = null,
+    )
 
     private fun internExperience(id: Long) =
         Experience(

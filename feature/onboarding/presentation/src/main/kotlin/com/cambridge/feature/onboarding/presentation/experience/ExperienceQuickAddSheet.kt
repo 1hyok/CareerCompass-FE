@@ -136,14 +136,14 @@ public fun ExperienceQuickAddSheet(
                 onValueChange = { onEvent(ExperienceQuickAddEvent.StartDateChanged(it)) },
                 label = stringResource(startDateLabelResId(state.type)),
                 modifier = Modifier.weight(1f),
-                placeholder = stringResource(R.string.onboarding_experience_date_placeholder),
+                placeholder = stringResource(startDatePlaceholderResId(state.type)),
                 errorMessage = state.startDateError?.let { it.toMessage() },
                 isError = state.startDateError != null,
                 enabled = state.isInputEnabled,
                 size = CareerCompassTextFieldSize.Large,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
             )
-            if (ExperienceEditorRules.hasEndDate(state.type)) {
+            if (ExperienceEditorRules.hasPeriod(state.type)) {
                 CareerCompassTextField(
                     value = state.endDate,
                     onValueChange = { onEvent(ExperienceQuickAddEvent.EndDateChanged(it)) },
@@ -431,10 +431,18 @@ private fun submitLabelResId(
 
 private fun startDateLabelResId(type: ExperienceType): Int =
     when {
+        // 수상의 시점은 연 단위다 — 칸이 `YYYY.MM` 을 요구하면 사용자는 없는 월을 지어내 채운다(#166).
+        type == ExperienceType.Award -> R.string.onboarding_experience_award_year_label
+
         type == ExperienceType.Certificate -> R.string.onboarding_experience_acquired_label
+
         ExperienceEditorRules.isStartDateRequired(type) -> R.string.onboarding_experience_start_label_required
+
         else -> R.string.onboarding_experience_start_label
     }
+
+private fun startDatePlaceholderResId(type: ExperienceType): Int =
+    if (type == ExperienceType.Award) R.string.onboarding_experience_year_placeholder else R.string.onboarding_experience_date_placeholder
 
 private fun primaryLabelResId(type: ExperienceType): Int =
     when (type) {
