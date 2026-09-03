@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.board
 
+import androidx.lifecycle.SavedStateHandle
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeBoardRepository
 import com.cambridge.core.model.board.BoardDetection
@@ -26,11 +27,15 @@ class BoardRegisterViewModelTest {
 
     private val reporter = RecordingErrorReporter()
 
-    private fun viewModel(repository: FakeBoardRepository = FakeBoardRepository()): BoardRegisterViewModel =
+    private fun viewModel(
+        repository: FakeBoardRepository = FakeBoardRepository(),
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    ): BoardRegisterViewModel =
         BoardRegisterViewModel(
             detectBoard = DetectBoardUseCase(repository),
             registerBoard = RegisterBoardUseCase(repository),
             errorReporter = reporter,
+            savedStateHandle = savedStateHandle,
         )
 
     @Test

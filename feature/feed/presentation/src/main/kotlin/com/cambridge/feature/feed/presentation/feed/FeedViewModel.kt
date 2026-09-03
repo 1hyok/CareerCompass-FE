@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.feed
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
@@ -30,6 +31,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -45,6 +48,8 @@ import javax.inject.Inject
  * - 북마크는 먼저 뒤집고 실패하면 되돌린다.
  * - 프로필 캐시는 인사말뿐 아니라 적합도 표시 판정에도 쓴다([FeedViewState.isProfileNoticeVisible]).
  * - `401` 은 [FeedViewState.sessionEnded] 로 올리고, 네트워크 단절·서버 점검은 [FeedFailureReason] 으로 구분한다.
+ * - 검색어·필터·정렬은 [FeedInputDraft] 가 [SavedStateHandle] 에 남긴다 — 프로세스가 죽어도 조회 조건이 남고,
+ *   그 조건으로 목록을 **다시 조회한다**(#137). 목록·페이징을 되살리지 않는 이유는 그 클래스의 KDoc 에 있다.
  */
 @HiltViewModel
 public class FeedViewModel
@@ -59,9 +64,22 @@ public class FeedViewModel
         private val errorReporter: ErrorReporter,
         /** Entry 가 D-day·신규 판정에 같은 시계를 쓴다. */
         public val clock: Clock,
+        savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val _state = MutableStateFlow(FeedViewState())
+        private val draft = FeedInputDraft(savedStateHandle)
+
+        // 복원한 검색어·조건이 시작값이다. 목록은 비어 있고, 아래 init 의 load() 가 그 조건으로 첫 페이지를 읽는다.
+        private val _state = MutableStateFlow(draft.restoredState())
         public val state: StateFlow<FeedViewState> = _state.asStateFlow()
+
+        /**
+         * 죽기 전 열려 있던 필터 시트의 편집값 — 시트를 **다시 열 때** 한 번 쓰고 버린다.
+         *
+         * 시작할 때 읽어 두는 이유: 시트가 열려 있었는지는 복원하지 않으므로, 저장소에 남은 초안은 아래 구독이
+         * 「시트가 닫혀 있다」를 보는 순간 지워진다. 조건이 다시 적용되면([applyQuery]) 이 값도 버린다 —
+         * 칩·정렬로 바꾼 조건과 어긋난 초안으로 시트가 열리지 않게.
+         */
+        private var restoredFilterDraft: FeedFilterDraft? = draft.restoredFilterDraft()
 
         private var loadJob: Job? = null
         private var loadMoreJob: Job? = null
@@ -69,6 +87,14 @@ public class FeedViewModel
         private var boardsJob: Job? = null
 
         init {
+            // 조건을 바꾸는 자리가 여럿(검색·칩·시트·정렬)이라 상태 흐름 한 곳에서 남긴다. 목록이 흔들릴
+            // 때마다 다시 쓰지 않도록 저장 대상만 뽑아 비교한다.
+            viewModelScope.launch {
+                _state
+                    .map { FeedInputDraft.Input(searchInput = it.searchInput, query = it.query, filterDraft = it.filterDraft) }
+                    .distinctUntilChanged()
+                    .collect(draft::save)
+            }
             viewModelScope.launch {
                 userProfileRepository.profile.collect { profile ->
                     _state.update { it.copy(profile = profile) }
@@ -90,7 +116,10 @@ public class FeedViewModel
                 }
 
                 FeedUiEvent.FilterRequested -> {
-                    _state.update { it.copy(filterDraft = FeedFilterDraft.from(it.query)) }
+                    // 프로세스가 죽어 닫힌 시트는 저절로 열리지 않는다 — 대신 다시 열면 고르던 값이 그대로 있다(#137).
+                    val restored = restoredFilterDraft
+                    restoredFilterDraft = null
+                    _state.update { it.copy(filterDraft = restored ?: FeedFilterDraft.from(it.query)) }
                 }
 
                 FeedUiEvent.FilterResetSelected -> {
@@ -373,6 +402,7 @@ public class FeedViewModel
 
         private fun applyQuery(query: FeedQuery) {
             if (query == _state.value.query) return
+            restoredFilterDraft = null
             _state.update { it.copy(query = query) }
             load()
         }
