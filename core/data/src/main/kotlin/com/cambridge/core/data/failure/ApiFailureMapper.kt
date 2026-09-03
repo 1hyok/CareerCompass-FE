@@ -14,6 +14,10 @@ import java.io.IOException
  * `IOException` 을 전부 `NetworkUnavailable` 하나로 접는 것은 **화면용 분류**다 — 사용자에게는 cleartext 차단도
  * TLS 회귀도 「네트워크 오류」다. 관측용 분류는 그 안에 든 원본을 다시 읽는다
  * (`core:common` 의 `transportFailureKind`), 그래서 원본을 잃지 않도록 그대로 cause 에 실어 보낸다.
+ *
+ * 오래 걸리는 서버 작업을 기다리는 화면은 그 원본에서 타임아웃 하나만 더 갈라 본다
+ * (`CoreDataFailure.NetworkUnavailable.isTimeout`). 여기서 사유를 새로 만들지 않은 것은 의도다 — 사유를 늘리면
+ * 갈라 볼 이유가 없는 나머지 화면까지 `is NetworkUnavailable` 이 빗나가 일반 오류로 내려앉는다.
  */
 internal fun <T> Result<T>.mapDataFailure(): Result<T> =
     when (val exception = exceptionOrNull()) {

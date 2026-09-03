@@ -7,6 +7,7 @@
     <string name="feed_board_register_url_placeholder" translatable="false">https://...</string>
     <string name="feed_board_register_detect">구조 분석하기</string>
     <string name="feed_board_register_detecting">게시글 구조를 분석하고 있어요</string>
+    <string name="feed_board_register_detecting_hint">사이트 응답 속도에 따라 1분 넘게 걸릴 수 있어요</string>
     <string name="feed_board_register_detect_success">감지 성공 · 최근 게시글 %1$d개</string>
     <string name="feed_board_register_date_missing_warning">날짜를 찾지 못해 마감일 파싱 정확도가 낮을 수 있어요</string>
     <string name="feed_board_register_name_label">게시판 이름 *</string>
@@ -27,6 +28,8 @@
     <string name="feed_board_failure_spa">JavaScript 로 그려지는 게시판이라 자동 감지에 실패했어요. 수동 등록을 문의해 주세요</string>
     <string name="feed_board_failure_blocked">해당 사이트는 자동 수집이 허용되지 않습니다</string>
     <string name="feed_board_failure_failed">게시글 구조를 찾지 못했어요. 목록 페이지 주소인지 확인해 주세요</string>
+    <string name="feed_board_detect_timeout_title">분석이 오래 걸려 멈췄어요</string>
+    <string name="feed_board_detect_timeout_description">사이트 응답이 늦어 기다리기를 그만뒀어요. 지원되지 않는 게시판이라는 뜻은 아니니 잠시 후 다시 시도해 주세요</string>
     <string name="feed_board_list_title">내 게시판</string>
     <string name="feed_board_list_add">+ 추가</string>
     <string name="feed_board_list_add_content_description">게시판 추가</string>

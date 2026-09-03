@@ -4,9 +4,12 @@ import com.cambridge.core.domain.error.CoreAuthFailure
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.network.model.ApiException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.InterruptedIOException
+import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
 class ApiFailureMapperTest {
@@ -51,6 +54,18 @@ class ApiFailureMapperTest {
     fun `전송 실패는 NetworkUnavailable 로 옮긴다`() {
         assertTrue(Result.failure<Unit>(UnknownHostException()).mapDataFailure().exceptionOrNull() is CoreDataFailure.NetworkUnavailable)
         assertTrue(Result.failure<Unit>(UnknownHostException()).mapAuthFailure().exceptionOrNull() is CoreAuthFailure.NetworkUnavailable)
+    }
+
+    @Test
+    fun `타임아웃만 NetworkUnavailable 안에서 갈라 보인다`() {
+        val timedOut = Result.failure<Unit>(SocketTimeoutException()).mapDataFailure().exceptionOrNull()
+        val callTimedOut = Result.failure<Unit>(InterruptedIOException("timeout")).mapDataFailure().exceptionOrNull()
+        val offline = Result.failure<Unit>(UnknownHostException()).mapDataFailure().exceptionOrNull()
+
+        // 사유는 셋 다 같다 — 갈라 보는 것은 오래 걸리는 작업을 기다린 화면뿐이다.
+        assertTrue((timedOut as CoreDataFailure.NetworkUnavailable).isTimeout)
+        assertTrue((callTimedOut as CoreDataFailure.NetworkUnavailable).isTimeout)
+        assertFalse((offline as CoreDataFailure.NetworkUnavailable).isTimeout)
     }
 
     @Test

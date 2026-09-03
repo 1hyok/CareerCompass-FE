@@ -12,17 +12,19 @@ import com.cambridge.core.network.dto.BoardDetectRequestDto
 import com.cambridge.core.network.model.requireData
 import com.cambridge.core.network.model.requireOk
 import com.cambridge.core.network.service.BoardApiService
+import com.cambridge.core.network.service.BoardDetectApiService
 import javax.inject.Inject
 
 internal class BoardRepositoryImpl
     @Inject
     constructor(
         private val boardApiService: BoardApiService,
+        private val boardDetectApiService: BoardDetectApiService,
     ) : BoardRepository {
         override suspend fun detect(url: String): Result<BoardDetection> {
             require(url.isNotBlank()) { "url must not be blank" }
             return runCatchingCancellable {
-                BoardMapper.toDetection(boardApiService.detect(BoardDetectRequestDto(url.trim())).requireData())
+                BoardMapper.toDetection(boardDetectApiService.detect(BoardDetectRequestDto(url.trim())).requireData())
             }.mapDataFailure()
         }
 

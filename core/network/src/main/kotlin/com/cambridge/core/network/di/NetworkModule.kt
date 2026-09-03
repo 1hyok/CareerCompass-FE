@@ -25,26 +25,39 @@ private const val IO_TIMEOUT_SECONDS = 10L
 /** 한 호출의 전체 상한. OkHttp 기본값 0(무제한)에서는 read timeout 이 바이트 사이 간격에만 걸린다. */
 private const val CALL_TIMEOUT_SECONDS = 30L
 
-/** 업로드·LLM 처리(지원서 분류)는 본문 크기와 서버 처리 시간에 비례해 길어진다. */
-private const val UPLOAD_IO_TIMEOUT_SECONDS = 60L
-private const val UPLOAD_CALL_TIMEOUT_SECONDS = 5 * 60L
-
 /** Hilt 한정자 이름 — 클라이언트·Retrofit 파생 구분. */
 public object NetworkQualifiers {
     public const val BASE_CLIENT: String = "BaseClient"
     public const val MAIN_CLIENT: String = "MainClient"
     public const val REFRESH_CLIENT: String = "RefreshClient"
     public const val UPLOAD_CLIENT: String = "UploadClient"
+    public const val BOARD_DETECT_CLIENT: String = "BoardDetectClient"
     public const val MAIN_RETROFIT: String = "MainRetrofit"
     public const val REFRESH_RETROFIT: String = "RefreshRetrofit"
     public const val UPLOAD_RETROFIT: String = "UploadRetrofit"
+    public const val BOARD_DETECT_RETROFIT: String = "BoardDetectRetrofit"
 }
 
+/** 일반 API 의 타임아웃 — 우리 서버가 자기 DB 를 읽어 돌려주는 시간이 기준이다. */
 private fun OkHttpClient.Builder.withApiTimeouts(): OkHttpClient.Builder =
     connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .writeTimeout(IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+
+/**
+ * [operation] 의 타임아웃만 늘린 파생 클라이언트.
+ *
+ * 인증 인터셉터·재발급 authenticator·로깅·ConnectionPool·Dispatcher 는 뿌리와 그대로 공유한다 — 늘려야 하는
+ * 것은 기다리는 시간뿐이라, 전용 클라이언트를 처음부터 다시 조립하면 인증 배선이 한쪽만 낡는다.
+ * connect timeout 은 늘리지 않는다: TCP 연결이 안 잡히는 것은 서버가 오래 일하는 것과 다른 실패다.
+ */
+private fun OkHttpClient.newLongRunningClient(operation: LongRunningOperation): OkHttpClient =
+    newBuilder()
+        .readTimeout(operation.ioTimeoutSeconds, TimeUnit.SECONDS)
+        .writeTimeout(operation.ioTimeoutSeconds, TimeUnit.SECONDS)
+        .callTimeout(operation.callTimeoutSeconds, TimeUnit.SECONDS)
+        .build()
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -114,19 +127,26 @@ public object NetworkModule {
             .authenticator(tokenAuthenticator)
             .build()
 
-    /** 지원서 업로드 전용 — 인증은 같고 타임아웃만 넉넉하다. */
+    /** 지원서 업로드 전용 — 인증은 같고 타임아웃만 [LongRunningOperation.Upload] 로 넉넉하다. */
     @Provides
     @Singleton
     @Named(NetworkQualifiers.UPLOAD_CLIENT)
     public fun provideUploadOkHttpClient(
         @Named(NetworkQualifiers.MAIN_CLIENT) mainClient: OkHttpClient,
-    ): OkHttpClient =
-        mainClient
-            .newBuilder()
-            .readTimeout(UPLOAD_IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .writeTimeout(UPLOAD_IO_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .callTimeout(UPLOAD_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .build()
+    ): OkHttpClient = mainClient.newLongRunningClient(LongRunningOperation.Upload)
+
+    /**
+     * 게시판 구조 감지 전용 — 업로드와 같은 처방을 [LongRunningOperation.BoardDetect] 값으로 받는다.
+     *
+     * 감지만 떼어 클라이언트를 따로 두는 이유는 `/boards` 의 나머지 호출(목록·등록·삭제)이 평범한 API 이기
+     * 때문이다. 서비스 전체를 이 클라이언트에 태우면 응답이 멈춘 목록 조회까지 2분을 기다린다.
+     */
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.BOARD_DETECT_CLIENT)
+    public fun provideBoardDetectOkHttpClient(
+        @Named(NetworkQualifiers.MAIN_CLIENT) mainClient: OkHttpClient,
+    ): OkHttpClient = mainClient.newLongRunningClient(LongRunningOperation.BoardDetect)
 
     @Provides
     @Singleton
@@ -151,6 +171,15 @@ public object NetworkModule {
     @Named(NetworkQualifiers.UPLOAD_RETROFIT)
     public fun provideUploadRetrofit(
         @Named(NetworkQualifiers.UPLOAD_CLIENT) client: OkHttpClient,
+        json: Json,
+        apiErrorCallAdapterFactory: ApiErrorCallAdapterFactory,
+    ): Retrofit = retrofit(client, json, apiErrorCallAdapterFactory)
+
+    @Provides
+    @Singleton
+    @Named(NetworkQualifiers.BOARD_DETECT_RETROFIT)
+    public fun provideBoardDetectRetrofit(
+        @Named(NetworkQualifiers.BOARD_DETECT_CLIENT) client: OkHttpClient,
         json: Json,
         apiErrorCallAdapterFactory: ApiErrorCallAdapterFactory,
     ): Retrofit = retrofit(client, json, apiErrorCallAdapterFactory)

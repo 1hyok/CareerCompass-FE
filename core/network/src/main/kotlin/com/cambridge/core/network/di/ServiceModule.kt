@@ -2,6 +2,7 @@ package com.cambridge.core.network.di
 
 import com.cambridge.core.network.service.AuthApiService
 import com.cambridge.core.network.service.BoardApiService
+import com.cambridge.core.network.service.BoardDetectApiService
 import com.cambridge.core.network.service.ExperienceApiService
 import com.cambridge.core.network.service.PastApplicationApiService
 import com.cambridge.core.network.service.PostingApiService
@@ -43,6 +44,7 @@ public object ServiceModule {
         @Named(NetworkQualifiers.MAIN_RETROFIT) retrofit: Retrofit,
     ): ExperienceApiService = retrofit.create()
 
+    /** 업로드가 [LongRunningOperation.Upload] 로 도는 서비스 — 조회·삭제까지 같은 Retrofit 을 쓴다. */
     @Provides
     @Singleton
     public fun providePastApplicationApiService(
@@ -60,4 +62,11 @@ public object ServiceModule {
     public fun provideBoardApiService(
         @Named(NetworkQualifiers.MAIN_RETROFIT) retrofit: Retrofit,
     ): BoardApiService = retrofit.create()
+
+    /** 구조 감지만 [LongRunningOperation.BoardDetect] 로 도는 Retrofit 에서 만든다. */
+    @Provides
+    @Singleton
+    public fun provideBoardDetectApiService(
+        @Named(NetworkQualifiers.BOARD_DETECT_RETROFIT) retrofit: Retrofit,
+    ): BoardDetectApiService = retrofit.create()
 }

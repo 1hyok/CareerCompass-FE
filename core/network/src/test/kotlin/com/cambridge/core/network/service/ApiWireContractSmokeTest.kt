@@ -62,6 +62,7 @@ class ApiWireContractSmokeTest {
     private lateinit var pastApplicationService: PastApplicationApiService
     private lateinit var postingService: PostingApiService
     private lateinit var boardService: BoardApiService
+    private lateinit var boardDetectService: BoardDetectApiService
 
     @Before
     fun setUp() {
@@ -95,6 +96,7 @@ class ApiWireContractSmokeTest {
         pastApplicationService = publicRetrofit.create(PastApplicationApiService::class.java)
         postingService = publicRetrofit.create(PostingApiService::class.java)
         boardService = publicRetrofit.create(BoardApiService::class.java)
+        boardDetectService = publicRetrofit.create(BoardDetectApiService::class.java)
     }
 
     @Test
@@ -459,7 +461,7 @@ class ApiWireContractSmokeTest {
             installExpectation(method = "DELETE", path = "/api/v1/boards/3", responseBody = """{"ok":true}""")
             installExpectation(method = "POST", path = "/api/v1/boards/3/retry", responseBody = """{"ok":true}""")
 
-            val detection = requireNotNull(boardService.detect(BoardDetectRequestDto("https://konkuk.ac.kr/board/notice")).data)
+            val detection = requireNotNull(boardDetectService.detect(BoardDetectRequestDto("https://konkuk.ac.kr/board/notice")).data)
             val registered =
                 requireNotNull(
                     boardService.register(BoardRegisterRequestDto("https://konkuk.ac.kr/board/notice", "건국대 공지", "scholarship", 24)).data,
