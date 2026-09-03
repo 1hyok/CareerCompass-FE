@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -52,6 +53,14 @@ public enum class CareerCompassBottomTab(
 }
 
 /**
+ * 하단 탭 바의 테스트 태그.
+ *
+ * 앱 셸이 인셋을 한 번만 적용하는지(#145) 계측으로 재려면 「콘텐츠가 어디서 끝나고 탭 바가 어디서 시작하는가」를
+ * 화면 밖에서 잡을 수 있어야 한다. 탭 라벨 텍스트로 찾으면 안쪽 여백만큼 어긋나므로 바 자체에 태그를 둔다.
+ */
+internal const val CAREER_COMPASS_BOTTOM_BAR_TAG: String = "careercompass_bottom_bar"
+
+/**
  * CareerCompass primary bottom navigation.
  *
  * [selectedTab] identifies the current destination. Selecting any tab invokes [onTabClick]
@@ -79,7 +88,7 @@ public fun CareerCompassBottomBar(
             indicatorColor = Color.Transparent,
         )
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.testTag(CAREER_COMPASS_BOTTOM_BAR_TAG)) {
         NavigationBar(
             modifier = Modifier.fillMaxWidth(),
             containerColor = colors.surface,
