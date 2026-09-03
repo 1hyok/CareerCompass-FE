@@ -1,7 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.biometric
 
 import androidx.activity.compose.LocalActivity
-import androidx.biometric.BiometricManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,11 +70,6 @@ internal fun BiometricEnrollGate(
         )
     }
 }
-
-/** 등록을 제안할 수 있는 호스트인가 — FragmentActivity 이고 강한 생체를 지금 쓸 수 있어야 한다. */
-private fun FragmentActivity?.canEnrollBiometric(): Boolean =
-    this != null &&
-        BiometricManager.from(this).canAuthenticate(BIOMETRIC_ENROLL_AUTHENTICATORS) == BiometricManager.BIOMETRIC_SUCCESS
 
 private class BiometricEnrollPromptListener(
     private val viewModel: BiometricEnrollViewModel,

@@ -21,6 +21,16 @@ internal const val BIOMETRIC_LOGIN_AUTHENTICATORS: Int =
  */
 internal const val BIOMETRIC_ENROLL_AUTHENTICATORS: Int = BiometricManager.Authenticators.BIOMETRIC_STRONG
 
+/**
+ * 지문 **등록**을 지금 이 호스트·기기에서 할 수 있는가 — [FragmentActivity] 이고 강한 생체를 쓸 수 있어야 한다.
+ *
+ * 등록을 제안하는 관문([BiometricEnrollGate])과 앱 셸의 지문 로그인 스위치가 같은 답을 써야 한다. 한쪽만 기준이
+ * 달라지면 제안은 하지 않으면서 스위치는 켜지는(또는 그 반대) 기기가 생긴다.
+ */
+internal fun FragmentActivity?.canEnrollBiometric(): Boolean =
+    this != null &&
+        BiometricManager.from(this).canAuthenticate(BIOMETRIC_ENROLL_AUTHENTICATORS) == BiometricManager.BIOMETRIC_SUCCESS
+
 /** 생체 프롬프트 결과를 받는 쪽. 지문 로그인과 지문 등록 제안이 각자의 ViewModel 로 구현한다. */
 internal interface BiometricPromptListener {
     fun onStarted()
