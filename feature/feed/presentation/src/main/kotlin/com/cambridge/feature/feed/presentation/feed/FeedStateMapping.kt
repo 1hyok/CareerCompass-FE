@@ -13,6 +13,8 @@ import com.cambridge.feature.feed.presentation.board.labelRes
 import com.cambridge.feature.feed.presentation.feedfilter.FeedBoardFilterUiModel
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterUiState
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsReason
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsUiModel
 import com.cambridge.feature.feed.presentation.shared.util.feedCategoryFilters
 import com.cambridge.feature.feed.presentation.shared.util.toCollectCycle
 import com.cambridge.feature.feed.presentation.shared.util.toListingUiModel
@@ -101,18 +103,39 @@ private fun List<Board>.toCollectNotice(resources: Resources): String? {
     return resources.getString(noticeRes, resources.getString(shortest.labelRes()))
 }
 
-/** 시트 초안 → 시트 계약. 목록에 없는 게시판 선택은 버린다(계약 불변식). 건수 미리 계산은 없어 `null`. */
+/**
+ * 시트 초안 → 시트 계약. 건수 미리 계산은 없어 `null`.
+ *
+ * **목록에 없는 게시판 id 를 버리지 않는다**(이슈 #155). 조건에서 빼면 사용자가 모르는 사이 조회가
+ * 넓어지고, 태그로 그리지 않으면 배지에만 남아 끌 수 없는 조건이 된다 — [FeedFilterUiState.missingBoards]
+ * 로 넘겨 시트가 켜진 태그 하나로 보이고, 누르면 끄게 한다.
+ *
+ * [boardsLoaded] 로 「지워졌다」와 「모른다」를 가른다. 게시판 조회는 피드와 별개로 실패할 수 있고
+ * (실패해도 피드는 막지 않는다), 받아 본 적 없는 빈 목록을 근거로 「지워졌다」고 말하면 잠깐 연결이 끊긴
+ * 사용자에게 없는 사실을 알리게 된다. 어느 쪽이든 **조건은 그대로 둔다** — 지우는 것은 사용자의 몫이다.
+ */
 internal fun FeedFilterDraft.toFilterUiState(
     resources: Resources,
     boards: List<Board>,
+    boardsLoaded: Boolean,
 ): FeedFilterUiState {
     val boardModels = boards.map { FeedBoardFilterUiModel(id = it.id.toString(), name = it.name) }
-    val knownIds = boardModels.map(FeedBoardFilterUiModel::id).toSet()
+    val knownIds = boards.map(Board::id).toSet()
+    val missingCount = boardIds.count { it !in knownIds }
     return FeedFilterUiState(
         categories = feedCategoryFilters(resources),
         selectedCategory = category,
         boards = boardModels,
-        selectedBoardIds = boardIds.map(Long::toString).filter { it in knownIds }.toSet(),
+        selectedBoardIds = boardIds.filter { it in knownIds }.map(Long::toString).toSet(),
+        missingBoards =
+            if (missingCount == 0) {
+                null
+            } else {
+                FeedMissingBoardsUiModel(
+                    count = missingCount,
+                    reason = if (boardsLoaded) FeedMissingBoardsReason.Deleted else FeedMissingBoardsReason.Unverified,
+                )
+            },
         deadline = deadline,
         deadlineRange = deadlineRange.takeIf { deadline == FeedDeadlineFilter.Range },
         minScore = minScore.toMinScoreFilter(),

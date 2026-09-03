@@ -245,6 +245,57 @@ class FeedViewModelTest {
         assertEquals(listOf(1L), state.postings.map(Posting::id))
     }
 
+    /**
+     * 이슈 #155 — 목록에 없는 게시판 조건을 끄는 유일한 손짓. 「사라진 게시판」 태그를 누르면 **목록에
+     * 없는 id 만** 빠지고, 고른 게시판은 남는다. 시트의 다른 조건과 마찬가지로 적용해야 조회가 바뀐다.
+     */
+    @Test
+    fun `사라진 게시판을 끄면 목록에 없는 조건만 빠지고 적용해야 조회에 반영된다`() {
+        val repository = FakePostingRepository(initial = listOf(posting(id = 1, boardId = 1)))
+        // 게시판 9번은 그 사이 지워졌지만, 조건은 프로세스 사망을 건너 그대로 살아 왔다(#137).
+        val viewModel =
+            viewModel(
+                postingRepository = repository,
+                savedStateHandle = SavedStateHandle(mapOf("feed.draft.query.boardIds" to longArrayOf(1L, 9L))),
+            )
+        assertEquals(setOf(1L, 9L), viewModel.state.value.query.boardIds)
+        val queriesBefore = repository.queries.size
+
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        viewModel.onFilterEvent(FeedFilterEvent.MissingBoardsCleared)
+
+        assertEquals(setOf(1L), requireNotNull(viewModel.state.value.filterDraft).boardIds)
+        assertEquals(queriesBefore, repository.queries.size)
+
+        viewModel.onFilterEvent(FeedFilterEvent.ApplyClicked)
+
+        val state = viewModel.state.value
+        assertEquals(setOf(1L), state.query.boardIds)
+        assertEquals(1, state.activeFilterCount)
+        assertEquals(listOf(1L), repository.queries.last().boardIds)
+    }
+
+    /**
+     * 게시판 목록 조회가 실패해도 걸어 둔 조건은 저절로 사라지지 않는다(이슈 #155).
+     *
+     * 못 받은 목록을 「게시판이 없다」로 읽어 조건을 버리면, 지하철에서 앱을 켠 사용자의 필터가 저 혼자
+     * 풀린다. 앱은 조건을 그대로 두고, 시트가 「확인 못 한 게시판」으로 보여 사용자가 정하게 한다.
+     */
+    @Test
+    fun `게시판 목록 조회가 실패해도 걸어 둔 게시판 조건은 남는다`() {
+        val boardRepository = FakeBoardRepository.strict().apply { onGetBoards = { Result.failure(RuntimeException("boom")) } }
+
+        val state =
+            viewModel(
+                boardRepository = boardRepository,
+                savedStateHandle = SavedStateHandle(mapOf("feed.draft.query.boardIds" to longArrayOf(9L))),
+            ).state.value
+
+        assertFalse(state.boardsLoaded)
+        assertEquals(setOf(9L), state.query.boardIds)
+        assertEquals(1, state.activeFilterCount)
+    }
+
     @Test
     fun `직접 지정 범위는 날짜를 고른 뒤에야 적용되고 다시 열면 그대로 남는다`() {
         val repository =

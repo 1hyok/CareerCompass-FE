@@ -11,6 +11,8 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterSheetContent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterUiState
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsReason
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsUiModel
 import java.time.LocalDate
 
 @PreviewTest
@@ -46,6 +48,19 @@ public fun FeedFilterSheetDeadlineRangePreview() {
             feedFilterPreviewState().copy(
                 deadline = FeedDeadlineFilter.Range,
                 deadlineRange = FeedDeadlineRange(start = NOVEMBER_FIRST, end = NOVEMBER_LAST),
+            ),
+    )
+}
+
+/** 사라진 게시판(이슈 #155) — 이름 없는 태그가 켜진 채 이유와 함께 보이는 모습을 골든으로 남긴다. */
+@PreviewTest
+@Preview(name = "Feed filter sheet with missing boards", widthDp = 360, heightDp = 860)
+@Composable
+public fun FeedFilterSheetMissingBoardsPreview() {
+    FeedFilterPreviewSurface(
+        state =
+            feedFilterPreviewState().copy(
+                missingBoards = FeedMissingBoardsUiModel(count = 2, reason = FeedMissingBoardsReason.Deleted),
             ),
     )
 }
@@ -92,6 +107,7 @@ private fun feedFilterPreviewState(): FeedFilterUiState =
                 FeedBoardFilterUiModel(id = "contest", name = "공모전 사이트"),
             ),
         selectedBoardIds = setOf("school", "official"),
+        missingBoards = null,
         deadline = FeedDeadlineFilter.WithinWeek,
         deadlineRange = null,
         minScore = FeedMinScoreFilter.AtLeast70,

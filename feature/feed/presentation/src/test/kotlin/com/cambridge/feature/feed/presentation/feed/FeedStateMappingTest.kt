@@ -1,6 +1,7 @@
 package com.cambridge.feature.feed.presentation.feed
 
 import android.content.res.Resources
+import com.cambridge.core.model.board.Board
 import com.cambridge.core.model.posting.PostingType
 import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.feed.domain.model.FeedQuery
@@ -12,6 +13,8 @@ import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.NOON_TODAY
 import com.cambridge.feature.feed.presentation.board
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsReason
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsUiModel
 import com.cambridge.feature.feed.presentation.posting
 import com.cambridge.feature.feed.presentation.profile
 import org.junit.Assert.assertEquals
@@ -22,6 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter as DomainDeadlineFilter
 
 /** 상태 조합(프로필 미입력·입력됨·모름 × 점수 있음·없음)이 화면 계약으로 어떻게 옮겨지는지. */
 @RunWith(RobolectricTestRunner::class)
@@ -265,5 +269,109 @@ class FeedEmptyReasonTest {
             FeedEmptyReason.NotCollected(collectNotice = null),
             reasonOf(FeedViewState(boards = listOf(paused), boardsLoaded = true)),
         )
+    }
+}
+
+/**
+ * 필터 시트 계약으로 옮길 때 목록에 없는 게시판 id 를 어떻게 다루는가 — 이슈 #155.
+ *
+ * 결함은 **버린 것을 아무도 말하지 않은 데** 있었다. 시트는 계약 불변식을 지키려고 모르는 id 를 조용히
+ * 걸러 냈고, 배지는 조회 조건을 그대로 세느라 그 id 를 계속 세었다. 그래서 여기서 두 가지를 붙든다 —
+ * 사라진 id 를 조건에서 빼지 않는 것, 그리고 배지와 시트가 같은 수를 말하는 것.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class FeedFilterSheetMappingTest {
+    private val resources: Resources = RuntimeEnvironment.getApplication().resources
+
+    private fun sheetOf(state: FeedViewState) =
+        FeedFilterDraft.from(state.query).toFilterUiState(resources, state.boards, state.boardsLoaded)
+
+    @Test
+    fun `사라진 게시판은 조건에서 빼지 않고 켜진 채로 시트에 넘긴다`() {
+        val state =
+            FeedViewState(
+                query = FeedQuery(boardIds = setOf(1L, 9L)),
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+            )
+
+        val sheet = sheetOf(state)
+
+        assertEquals(setOf("1"), sheet.selectedBoardIds)
+        assertEquals(FeedMissingBoardsUiModel(count = 1, reason = FeedMissingBoardsReason.Deleted), sheet.missingBoards)
+        // 조회 조건은 그대로다 — 시트에 보여 주는 것과 조건을 바꾸는 것은 다른 일이고, 바꾸는 쪽은 사용자 몫이다.
+        assertEquals(setOf(1L, 9L), state.query.boardIds)
+    }
+
+    @Test
+    fun `게시판 목록을 못 받았으면 사라졌다고 단정하지 않는다`() {
+        // 네트워크가 잠깐 끊긴 것과 게시판이 지워진 것은 다른 사실이다. 못 받은 목록을 근거로 「지워졌다」고
+        // 말하면 없는 사실을 알리게 되고, 그 판단으로 조건을 버리면 필터가 저 혼자 사라진다.
+        val state =
+            FeedViewState(
+                query = FeedQuery(boardIds = setOf(9L)),
+                boards = emptyList(),
+                boardsLoaded = false,
+            )
+
+        val sheet = sheetOf(state)
+
+        assertEquals(FeedMissingBoardsUiModel(count = 1, reason = FeedMissingBoardsReason.Unverified), sheet.missingBoards)
+        assertEquals(emptySet<String>(), sheet.selectedBoardIds)
+        assertEquals(setOf(9L), state.query.boardIds)
+    }
+
+    @Test
+    fun `아는 게시판만 걸려 있으면 사라진 게시판은 없다`() {
+        val state =
+            FeedViewState(
+                query = FeedQuery(boardIds = setOf(1L)),
+                boards = listOf(board(id = 1), board(id = 2)),
+                boardsLoaded = true,
+            )
+
+        val sheet = sheetOf(state)
+
+        assertEquals(setOf("1"), sheet.selectedBoardIds)
+        assertEquals(null, sheet.missingBoards)
+    }
+
+    /** 배지가 「2개」라고 했는데 시트에는 1개만 켜져 있던 것이 이슈 #155 의 증상이다. */
+    @Test
+    fun `배지가 세는 조건 수와 시트에 켜져 보이는 조건 수는 언제나 같다`() {
+        val queries =
+            listOf(
+                FeedQuery(),
+                FeedQuery(boardIds = setOf(1L)),
+                FeedQuery(boardIds = setOf(9L)),
+                FeedQuery(boardIds = setOf(1L, 9L)),
+                FeedQuery(boardIds = setOf(9L), minScore = 70),
+                FeedQuery(
+                    boardIds = setOf(9L),
+                    deadline = DomainDeadlineFilter.WithinWeek,
+                    minScore = 80,
+                    unreadOnly = true,
+                ),
+                FeedQuery(deadline = DomainDeadlineFilter.IncludeExpired, searchQuery = "백엔드"),
+            )
+        val boardSetups =
+            listOf(
+                listOf(board(id = 1)) to true,
+                emptyList<Board>() to true,
+                emptyList<Board>() to false,
+            )
+
+        for (query in queries) {
+            for ((boards, loaded) in boardSetups) {
+                val state = FeedViewState(query = query, boards = boards, boardsLoaded = loaded)
+
+                assertEquals(
+                    "query=$query boards=${boards.map(Board::id)} boardsLoaded=$loaded",
+                    state.activeFilterCount,
+                    sheetOf(state).activeConditionCount,
+                )
+            }
+        }
     }
 }

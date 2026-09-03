@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.repository.UserProfileRepository
+import com.cambridge.core.model.board.Board
 import com.cambridge.core.model.posting.Posting
 import com.cambridge.feature.feed.domain.model.FeedPage
 import com.cambridge.feature.feed.domain.model.FeedQuery
@@ -173,6 +174,13 @@ public class FeedViewModel
                     updateDraft { draft ->
                         draft.copy(boardIds = if (boardId in draft.boardIds) draft.boardIds - boardId else draft.boardIds + boardId)
                     }
+                }
+
+                FeedFilterEvent.MissingBoardsCleared -> {
+                    // 목록에 없는 id 만 턴다. 여기서만 지우는 이유 — 목록을 못 받았을 수도 있어(#155)
+                    // 앱이 알아서 버리면 잠깐 끊긴 사이 사용자의 조건이 사라진다. 지우는 것은 이 손짓뿐이다.
+                    val knownIds = _state.value.boards.mapTo(mutableSetOf(), Board::id)
+                    updateDraft { draft -> draft.copy(boardIds = draft.boardIds.intersect(knownIds)) }
                 }
 
                 is FeedFilterEvent.DeadlineSelected -> {

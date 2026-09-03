@@ -5,6 +5,10 @@
     <string name="feed_filter_category_title">공고 유형</string>
     <string name="feed_filter_board_title">출처 게시판</string>
     <string name="feed_filter_board_empty">등록된 게시판이 없어요</string>
+    <string name="feed_filter_board_missing_deleted">사라진 게시판 %1$d개</string>
+    <string name="feed_filter_board_missing_deleted_notice">지워진 게시판이라 목록에 없어요. 눌러서 조건에서 뺄 수 있어요.</string>
+    <string name="feed_filter_board_missing_unverified">확인 못 한 게시판 %1$d개</string>
+    <string name="feed_filter_board_missing_unverified_notice">게시판 목록을 못 받아 조건을 그대로 뒀어요. 눌러서 뺄 수 있어요.</string>
     <string name="feed_filter_deadline_title">마감일</string>
     <string name="feed_filter_deadline_all">전체</string>
     <string name="feed_filter_deadline_within_week">7일 이내</string>

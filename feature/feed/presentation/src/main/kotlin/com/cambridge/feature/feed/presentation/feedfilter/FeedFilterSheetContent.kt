@@ -93,7 +93,9 @@ public fun FeedFilterSheetContent(
                 }
             }
             FeedFilterSection(title = stringResource(R.string.feed_filter_board_title)) {
-                if (state.boards.isEmpty()) {
+                // 목록이 비어 있어도 조건에 남은 게시판이 있으면 그것만은 그린다 — 그 태그가 조건을 끄는
+                // 유일한 손잡이라, 「등록된 게시판이 없어요」 한 줄로 덮으면 다시 끌 수 없는 조건이 된다.
+                if (state.boards.isEmpty() && state.missingBoards == null) {
                     Text(
                         text = stringResource(R.string.feed_filter_board_empty),
                         color = colors.mutedContent,
@@ -112,6 +114,22 @@ public fun FeedFilterSheetContent(
                                 role = Role.Checkbox,
                             )
                         }
+                        state.missingBoards?.let { missing ->
+                            FeedChoiceTag(
+                                label = stringResource(missing.labelRes(), missing.count),
+                                selected = true,
+                                onClick = { onEvent(FeedFilterEvent.MissingBoardsCleared) },
+                                role = Role.Checkbox,
+                            )
+                        }
+                    }
+                    // 왜 이름 없는 태그가 켜져 있는지는 태그 혼자 말하지 못한다 — 이유와 끄는 방법을 붙인다.
+                    state.missingBoards?.let { missing ->
+                        Text(
+                            text = stringResource(missing.noticeRes()),
+                            color = colors.mutedContent,
+                            style = CareerCompassTheme.typography.caption,
+                        )
                     }
                 }
             }
@@ -220,6 +238,18 @@ private fun FeedUnreadOnlyRow(
         )
     }
 }
+
+private fun FeedMissingBoardsUiModel.labelRes(): Int =
+    when (reason) {
+        FeedMissingBoardsReason.Deleted -> R.string.feed_filter_board_missing_deleted
+        FeedMissingBoardsReason.Unverified -> R.string.feed_filter_board_missing_unverified
+    }
+
+private fun FeedMissingBoardsUiModel.noticeRes(): Int =
+    when (reason) {
+        FeedMissingBoardsReason.Deleted -> R.string.feed_filter_board_missing_deleted_notice
+        FeedMissingBoardsReason.Unverified -> R.string.feed_filter_board_missing_unverified_notice
+    }
 
 private fun FeedDeadlineFilter.labelRes(): Int =
     when (this) {

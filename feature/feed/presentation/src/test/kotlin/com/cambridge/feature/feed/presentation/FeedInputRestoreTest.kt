@@ -22,9 +22,12 @@ import com.cambridge.feature.feed.presentation.board.BoardRegisterEvent
 import com.cambridge.feature.feed.presentation.board.BoardRegisterViewModel
 import com.cambridge.feature.feed.presentation.board.BoardType
 import com.cambridge.feature.feed.presentation.feed.FeedViewModel
+import com.cambridge.feature.feed.presentation.feed.toFilterUiState
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRangeEndpoint
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsReason
+import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsUiModel
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortOption
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +42,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.time.LocalDate
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter as DomainDeadlineFilter
@@ -201,6 +205,36 @@ class FeedInputRestoreTest {
         assertTrue(sent.unreadOnly)
         assertEquals(PostingSort.DueAsc, sent.sort)
         assertNull(sent.cursor)
+    }
+
+    /**
+     * 이슈 #155 × #137 — 살아 돌아온 조건에 그 사이 지워진 게시판이 섞여 있어도 시트에서 끌 수 있다.
+     *
+     * 조건이 프로세스 사망을 건너면서(#137) 이 결함이 더 오래 남게 됐다. 예전에는 앱을 다시 켜면 조건이
+     * 풀렸으므로, 복원되는 지금이야말로 끄는 길이 있어야 한다.
+     */
+    @Test
+    fun `복원된 조건에 사라진 게시판이 섞여 있어도 시트에서 끌 수 있다`() {
+        val handle = SavedStateHandle(mapOf("feed.draft.query.boardIds" to longArrayOf(1L, 9L)))
+
+        val after = feedViewModel(savedStateHandle = handle.acrossProcessDeath())
+        after.onEvent(FeedUiEvent.FilterRequested)
+
+        val restored = after.state.value
+        val sheet =
+            requireNotNull(restored.filterDraft).toFilterUiState(
+                RuntimeEnvironment.getApplication().resources,
+                restored.boards,
+                restored.boardsLoaded,
+            )
+        assertEquals(FeedMissingBoardsUiModel(count = 1, reason = FeedMissingBoardsReason.Deleted), sheet.missingBoards)
+        // 배지가 말한 조건 수와 시트가 켜 보인 조건 수가 같다 — 「필터 1개」를 보고 연 시트가 비어 있지 않다.
+        assertEquals(restored.activeFilterCount, sheet.activeConditionCount)
+
+        after.onFilterEvent(FeedFilterEvent.MissingBoardsCleared)
+        after.onFilterEvent(FeedFilterEvent.ApplyClicked)
+
+        assertEquals(setOf(1L), after.state.value.query.boardIds)
     }
 
     @Test
