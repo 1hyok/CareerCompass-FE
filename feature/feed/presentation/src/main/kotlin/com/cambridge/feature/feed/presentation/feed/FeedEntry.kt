@@ -138,7 +138,10 @@ public fun FeedEntry(
             containerColor = CareerCompassTheme.colors.surface,
         ) {
             FeedFilterSheetContent(
-                state = remember(filterDraft, state.boards, resources) { filterDraft.toFilterUiState(resources, state.boards) },
+                state =
+                    remember(filterDraft, state.boards, state.boardsLoaded, resources) {
+                        filterDraft.toFilterUiState(resources, state.boards, state.boardsLoaded)
+                    },
                 onEvent = viewModel::onFilterEvent,
             )
         }

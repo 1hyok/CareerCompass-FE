@@ -9,6 +9,7 @@ import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
+import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterUiState
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.isQueryAttributable
 import com.cambridge.feature.feed.presentation.shared.model.lacksSuitabilityInputs
@@ -174,7 +175,14 @@ public data class FeedViewState(
 
     public val selectedCategory: FeedListingCategory get() = query.types.toListingCategory()
 
-    /** 기본값과 다른 시트 조건의 수 — 헤더 필터 버튼의 배지. 카테고리 칩은 눈에 보이므로 세지 않는다. */
+    /**
+     * 기본값과 다른 시트 조건의 수 — 헤더 필터 버튼의 배지. 카테고리 칩은 눈에 보이므로 세지 않는다.
+     *
+     * **여기서 센 수는 시트에 켜져 보이는 수와 같아야 한다**([FeedFilterUiState.activeConditionCount],
+     * 이슈 #155). 게시판은 몇 개를 골랐든 조건 하나로 세고, 그중에 목록에서 사라진 id 가 섞여 있어도
+     * 조회를 좁히는 것은 그대로이므로 계속 센다 — 대신 시트가 그 id 를 「사라진 게시판」 태그로 보여
+     * 끌 수 있게 한다.
+     */
     public val activeFilterCount: Int
         get() =
             listOf(

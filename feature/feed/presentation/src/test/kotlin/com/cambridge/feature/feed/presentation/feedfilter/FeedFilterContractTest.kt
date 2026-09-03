@@ -130,6 +130,48 @@ class FeedFilterContractTest {
     }
 
     @Test
+    fun missingBoards_rejectNonPositiveCounts() {
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedMissingBoardsUiModel(count = 0, reason = FeedMissingBoardsReason.Deleted)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedMissingBoardsUiModel(count = -1, reason = FeedMissingBoardsReason.Deleted)
+        }
+    }
+
+    /**
+     * 배지와 시트가 어긋나던 자리(이슈 #155) — 목록에서 사라진 게시판만 걸려 있어도 시트는 조건 하나를
+     * 켜 놓고 있다고 세야 한다. 세기만 하고 그리지 않으면 끌 수 없는 조건이 된다.
+     */
+    @Test
+    fun activeConditionCount_countsMissingBoardsAsTheBoardCondition() {
+        assertEquals(0, sampleState().activeConditionCount)
+        assertEquals(1, sampleState(selectedBoardIds = setOf("school")).activeConditionCount)
+        assertEquals(
+            1,
+            sampleState(missingBoards = FeedMissingBoardsUiModel(count = 2, reason = FeedMissingBoardsReason.Deleted))
+                .activeConditionCount,
+        )
+        // 고른 게시판과 사라진 게시판이 함께 있어도 게시판은 조건 하나다 — 배지가 세는 규칙과 같다.
+        assertEquals(
+            1,
+            sampleState(
+                selectedBoardIds = setOf("school"),
+                missingBoards = FeedMissingBoardsUiModel(count = 1, reason = FeedMissingBoardsReason.Unverified),
+            ).activeConditionCount,
+        )
+        assertEquals(
+            4,
+            sampleState(
+                selectedBoardIds = setOf("school"),
+                deadline = FeedDeadlineFilter.WithinWeek,
+                minScore = FeedMinScoreFilter.AtLeast70,
+                unreadOnly = true,
+            ).activeConditionCount,
+        )
+    }
+
+    @Test
     fun uiState_acceptsSelectionsPresentInOptions() {
         val state = sampleState(selectedBoardIds = setOf("school"))
 
@@ -150,8 +192,11 @@ private fun sampleState(
     boards: List<FeedBoardFilterUiModel> =
         listOf(FeedBoardFilterUiModel(id = "school", name = "학교 게시판")),
     selectedBoardIds: Set<String> = emptySet(),
+    missingBoards: FeedMissingBoardsUiModel? = null,
     deadline: FeedDeadlineFilter = FeedDeadlineFilter.All,
     deadlineRange: FeedDeadlineRange? = null,
+    minScore: FeedMinScoreFilter = FeedMinScoreFilter.All,
+    unreadOnly: Boolean = false,
     matchingCount: Int? = 12,
 ): FeedFilterUiState =
     FeedFilterUiState(
@@ -159,10 +204,11 @@ private fun sampleState(
         selectedCategory = selectedCategory,
         boards = boards,
         selectedBoardIds = selectedBoardIds,
+        missingBoards = missingBoards,
         deadline = deadline,
         deadlineRange = deadlineRange,
-        minScore = FeedMinScoreFilter.All,
-        unreadOnly = false,
+        minScore = minScore,
+        unreadOnly = unreadOnly,
         matchingCount = matchingCount,
     )
 

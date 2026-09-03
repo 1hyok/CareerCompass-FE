@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -68,6 +69,58 @@ class FeedFilterSheetContentTest {
         composeRule.setFilterContent(state = sampleState(boards = emptyList()))
 
         composeRule.onNodeWithText("등록된 게시판이 없어요").assertIsDisplayed()
+    }
+
+    /** 이슈 #155 — 목록에 없는 게시판도 켜진 태그로 보여야 끌 수 있다. */
+    @Test
+    fun missingBoards_areShownAsAnOnTagThatCanBeCleared() {
+        val events = mutableListOf<FeedFilterEvent>()
+        composeRule.setFilterContent(
+            state =
+                sampleState(
+                    selectedBoardIds = setOf("school"),
+                    missingBoards = FeedMissingBoardsUiModel(count = 2, reason = FeedMissingBoardsReason.Deleted),
+                ),
+            onEvent = events::add,
+        )
+
+        composeRule
+            .onNodeWithText("사라진 게시판 2개")
+            .assertIsOn()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
+        composeRule.onNodeWithText("지워진 게시판이라 목록에 없어요. 눌러서 조건에서 뺄 수 있어요.").assertIsDisplayed()
+        composeRule.onNodeWithText("사라진 게시판 2개").performClick()
+
+        composeRule.runOnIdle { assertEquals(listOf(FeedFilterEvent.MissingBoardsCleared), events) }
+    }
+
+    /** 목록 조회가 실패한 것과 정말 지워진 것은 다른 말을 한다 — 없는 사실을 알리지 않는다. */
+    @Test
+    fun unverifiedBoards_sayTheListWasNotLoadedInsteadOfDeleted() {
+        composeRule.setFilterContent(
+            state = sampleState(missingBoards = FeedMissingBoardsUiModel(count = 1, reason = FeedMissingBoardsReason.Unverified)),
+        )
+
+        composeRule.onNodeWithText("확인 못 한 게시판 1개").assertIsOn()
+        composeRule.onNodeWithText("게시판 목록을 못 받아 조건을 그대로 뒀어요. 눌러서 뺄 수 있어요.").assertIsDisplayed()
+    }
+
+    /**
+     * 목록이 비어 있어도 「등록된 게시판이 없어요」로 덮지 않는다 — 그 한 줄이 태그를 가리면 조건을 끄는
+     * 손잡이가 사라져, 게시판 조회가 실패한 사용자가 필터를 영영 못 푼다.
+     */
+    @Test
+    fun missingBoards_surviveAnEmptyBoardList() {
+        composeRule.setFilterContent(
+            state =
+                sampleState(
+                    boards = emptyList(),
+                    missingBoards = FeedMissingBoardsUiModel(count = 1, reason = FeedMissingBoardsReason.Unverified),
+                ),
+        )
+
+        composeRule.onAllNodesWithText("등록된 게시판이 없어요").assertCountEquals(0)
+        composeRule.onNodeWithText("확인 못 한 게시판 1개").assertIsOn()
     }
 
     @Test
@@ -237,6 +290,7 @@ private fun sampleState(
             FeedBoardFilterUiModel(id = "naver", name = "네이버 채용"),
         ),
     selectedBoardIds: Set<String> = emptySet(),
+    missingBoards: FeedMissingBoardsUiModel? = null,
     unreadOnly: Boolean = false,
     matchingCount: Int? = 12,
     deadline: FeedDeadlineFilter = FeedDeadlineFilter.All,
@@ -252,6 +306,7 @@ private fun sampleState(
         selectedCategory = FeedListingCategory.Employment,
         boards = boards,
         selectedBoardIds = selectedBoardIds,
+        missingBoards = missingBoards,
         deadline = deadline,
         deadlineRange = deadlineRange,
         minScore = FeedMinScoreFilter.All,
