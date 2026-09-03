@@ -38,6 +38,23 @@ public sealed interface BoardRegisterMessage {
 
     public data object RegisterFailed : BoardRegisterMessage
 
+    /**
+     * 제출 중에 화면을 벗어나려 했을 때의 안내.
+     *
+     * 뒤로가기를 삼키기만 하면 사용자에게는 앱이 굳은 것과 구별되지 않아 더 세게 누른다. 왜 안 나가지는지와
+     * 곧 끝난다는 사실을 그 자리에서 말해 준다.
+     */
+    public data object SubmitInProgress : BoardRegisterMessage
+
+    /**
+     * 이미 등록된 게시판이라 등록이 거절됐다는 안내.
+     *
+     * 같은 사실을 URL 입력란 아래에도 남기지만([BoardUrlError.Duplicate]) 그것만으로는 닿지 않는다 — 등록
+     * 버튼은 화면 맨 아래에 있고 URL 입력란은 정보 카드 위쪽이라, 폼이 길면 오류가 화면 밖에 그려진다.
+     * 사용자에게는 스피너가 조용히 사라진 것으로만 보인다(#146). 스낵바는 누른 자리 옆에 뜬다.
+     */
+    public data object AlreadyRegistered : BoardRegisterMessage
+
     public data class LimitReached(
         val limit: Int,
     ) : BoardRegisterMessage
@@ -129,7 +146,31 @@ public class BoardRegisterViewModel
                 }
 
                 BoardRegisterEvent.BackClicked -> {
-                    _state.update { it.copy(isBackRequested = true) }
+                    onBackRequested()
+                }
+            }
+        }
+
+        /**
+         * 제출 중에는 화면을 벗어나지 않는다 — 상단 화살표든 시스템 뒤로가기든 여기로 모인다.
+         *
+         * 나가게 두면 백스택 엔트리와 함께 [viewModelScope] 가 정리되며 진행 중이던 등록 요청이 끊긴다.
+         * 서버가 이미 처리를 마쳤다면 게시판은 만들어졌는데 화면은 아무 말도 못 하고, 사용자는 다시 등록하다
+         * 「이미 등록된 게시판」을 만난다(#146). 「나가게 두고 결과를 나중에 알린다」는 쪽은 고르지 않았다 —
+         * 그러려면 화면보다 오래 사는 스코프와 결과를 전할 자리(다른 화면의 안내)가 함께 필요한데, 그 스코프는
+         * 이 모듈이 소유한 것이 아니다. 대신 [BoardRegisterMessage.SubmitInProgress] 로 이유를 말한다.
+         *
+         * **갇히지 않는다**: 등록 요청은 일반 API OkHttp 클라이언트(`NetworkModule`)를 타고, call 타임아웃
+         * 30초가 걸려 있다. 상한 확인·등록으로 호출이 둘이라 최악이 약 1분이며, 어느 경로로 끝나든
+         * `isSubmitting` 은 풀린다. 게시판 구조 감지(`LongRunningOperation.BoardDetect`, 2분)와 달리 등록은
+         * 우리 서버가 자기 DB 에 쓰는 호출이라 이 상한을 늘릴 이유도 없다.
+         */
+        private fun onBackRequested() {
+            _state.update {
+                if (it.isSubmitting) {
+                    it.copy(message = BoardRegisterMessage.SubmitInProgress)
+                } else {
+                    it.copy(isBackRequested = true)
                 }
             }
         }
@@ -209,6 +250,14 @@ public class BoardRegisterViewModel
             }
         }
 
+        /**
+         * 등록 제출. 진행 중임은 [BoardRegisterViewState.isSubmitting] 하나로 말한다 — 화면의 진행 표시,
+         * 입력·버튼 잠금, 이탈 차단([onBackRequested])이 모두 이 값을 본다.
+         *
+         * 요청은 [viewModelScope] 에 그대로 둔다. 이탈을 막았으므로 화면이 먼저 사라져 요청이 끊기는 길이
+         * 사라졌고, 남은 것은 프로세스 사망뿐인데 그때는 어떤 스코프도 살아남지 못한다. 화면보다 오래 사는
+         * 스코프는 `core` 소유라 여기서 새로 만들지 않는다(후속 과제).
+         */
         private fun register() {
             val current = _state.value
             val type = current.type ?: return
@@ -235,13 +284,38 @@ public class BoardRegisterViewModel
             _state.update { state ->
                 val cleared = state.copy(isSubmitting = false)
                 when (throwable) {
-                    is FeedFailure.InvalidBoardUrl -> cleared.copy(urlError = BoardUrlError.Invalid)
-                    is CoreDataFailure.DuplicateBoard -> cleared.copy(urlError = BoardUrlError.Duplicate)
-                    is FeedFailure.BoardLimitReached -> cleared.copy(message = BoardRegisterMessage.LimitReached(throwable.limit))
-                    is CoreDataFailure.LimitExceeded -> cleared.copy(message = BoardRegisterMessage.LimitReached(MAX_BOARDS))
-                    is CoreDataFailure.NetworkUnavailable -> cleared.copy(message = BoardRegisterMessage.NetworkUnavailable)
-                    is CoreDataFailure.Unauthorized -> cleared.copy(sessionEnded = true)
-                    else -> cleared.copy(message = BoardRegisterMessage.RegisterFailed)
+                    is FeedFailure.InvalidBoardUrl -> {
+                        cleared.copy(urlError = BoardUrlError.Invalid)
+                    }
+
+                    // 입력란 아래 오류와 스낵바를 함께 남긴다 — 오류는 어느 값이 문제인지 가리키고,
+                    // 스낵바는 화면 밖으로 밀려난 그 오류를 사용자 눈앞으로 가져온다.
+                    is CoreDataFailure.DuplicateBoard -> {
+                        cleared.copy(
+                            urlError = BoardUrlError.Duplicate,
+                            message = BoardRegisterMessage.AlreadyRegistered,
+                        )
+                    }
+
+                    is FeedFailure.BoardLimitReached -> {
+                        cleared.copy(message = BoardRegisterMessage.LimitReached(throwable.limit))
+                    }
+
+                    is CoreDataFailure.LimitExceeded -> {
+                        cleared.copy(message = BoardRegisterMessage.LimitReached(MAX_BOARDS))
+                    }
+
+                    is CoreDataFailure.NetworkUnavailable -> {
+                        cleared.copy(message = BoardRegisterMessage.NetworkUnavailable)
+                    }
+
+                    is CoreDataFailure.Unauthorized -> {
+                        cleared.copy(sessionEnded = true)
+                    }
+
+                    else -> {
+                        cleared.copy(message = BoardRegisterMessage.RegisterFailed)
+                    }
                 }
             }
         }

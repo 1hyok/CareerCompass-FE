@@ -221,6 +221,54 @@ class BoardRegisterScreenTest {
     }
 
     @Test
+    fun submitting_showsProgressAboveTheButtonItWasStartedFrom() {
+        composeRule.setRegisterContent(
+            state =
+                sampleState(
+                    detection = sampleSuccess(),
+                    name = "건국대 공지사항",
+                    type = BoardType.Employment,
+                    isSubmitting = true,
+                ),
+        )
+
+        // 스크롤 없이 보여야 한다 — performScrollTo 를 쓰면 「본문 어딘가에 있다」만 확인하게 된다.
+        composeRule.onNodeWithText("게시판을 등록하고 있어요").assertIsDisplayed()
+        composeRule.onNodeWithText("끝나면 게시판 목록으로 돌아가요").assertIsDisplayed()
+    }
+
+    @Test
+    fun notSubmitting_hidesSubmitProgress() {
+        composeRule.setRegisterContent(
+            state =
+                sampleState(
+                    detection = sampleSuccess(),
+                    name = "건국대 공지사항",
+                    type = BoardType.Employment,
+                ),
+        )
+
+        composeRule.onNodeWithText("게시판을 등록하고 있어요").assertDoesNotExist()
+    }
+
+    @Test
+    fun largeFontScale_keepsSubmitProgressAndButtonVisible() {
+        composeRule.setRegisterContent(
+            state =
+                sampleState(
+                    detection = sampleSuccess(),
+                    name = "건국대 공지사항",
+                    type = BoardType.Employment,
+                    isSubmitting = true,
+                ),
+            fontScale = 2f,
+        )
+
+        composeRule.onNodeWithText("게시판을 등록하고 있어요").assertIsDisplayed()
+        registerButton().assertIsDisplayed()
+    }
+
+    @Test
     fun largeFontScale_keepsRegisterButtonVisible() {
         composeRule.setRegisterContent(
             state =

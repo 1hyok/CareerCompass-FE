@@ -1,6 +1,7 @@
 package com.cambridge.feature.feed.presentation.board
 
 import android.content.res.Resources
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarHost
@@ -31,6 +32,11 @@ public fun BoardRegisterEntry(
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
 
+    // 제출 중 이탈 차단은 상단 화살표만 막아서는 반쪽이다 — 시스템 뒤로가기와 가장자리 제스처가 그대로
+    // 남으면 사용자는 늘 쓰던 손짓으로 나가고 요청은 그대로 끊긴다(#146). 두 길을 같은 이벤트로 모아
+    // ViewModel 이 한자리에서 판정하게 한다. 제출 중이 아니면 꺼져 있어 평소 뒤로가기는 그대로 동작한다.
+    BackHandler(enabled = state.isSubmitting) { viewModel.onEvent(BoardRegisterEvent.BackClicked) }
+
     val isBackRequested = state.isBackRequested
     LaunchedEffect(isBackRequested) {
         if (isBackRequested) {
@@ -49,7 +55,12 @@ public fun BoardRegisterEntry(
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
         viewModel.onMessageConsumed()
-        snackbarScope.launch { snackbarHostState.showSnackbar(message.toLabel(resources)) }
+        snackbarScope.launch {
+            // 제출 중 뒤로가기는 조급한 사용자가 연달아 누른다. 그대로 두면 안내가 줄을 서서 등록이 끝난
+            // 뒤에도 계속 뜨므로, 새 안내가 앞의 안내를 대신하게 한다.
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(message.toLabel(resources))
+        }
     }
 
     val uiState = remember(state, resources) { state.toUiState(resources) }
@@ -87,5 +98,7 @@ internal fun BoardRegisterMessage.toLabel(resources: Resources): String =
         BoardRegisterMessage.NetworkUnavailable -> resources.getString(R.string.feed_board_network_unavailable)
         BoardRegisterMessage.DetectFailed -> resources.getString(R.string.feed_board_register_detect_failed)
         BoardRegisterMessage.RegisterFailed -> resources.getString(R.string.feed_board_register_failed)
+        BoardRegisterMessage.SubmitInProgress -> resources.getString(R.string.feed_board_register_submit_in_progress)
+        BoardRegisterMessage.AlreadyRegistered -> resources.getString(R.string.feed_board_register_duplicate_notice)
         is BoardRegisterMessage.LimitReached -> resources.getString(R.string.feed_board_register_limit_reached, limit)
     }

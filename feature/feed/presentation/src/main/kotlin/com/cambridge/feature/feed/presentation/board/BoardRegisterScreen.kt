@@ -2,7 +2,6 @@ package com.cambridge.feature.feed.presentation.board
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -127,7 +126,7 @@ public fun BoardRegisterScreen(
             }
         }
         if (state.detection is BoardDetectionState.Success) {
-            Box(
+            Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -138,7 +137,11 @@ public fun BoardRegisterScreen(
                             end = spacing.large,
                             bottom = spacing.large,
                         ),
+                verticalArrangement = Arrangement.spacedBy(spacing.small),
             ) {
+                if (state.isSubmitting) {
+                    BoardRegisterSubmittingRow()
+                }
                 CareerCompassButton(
                     text = stringResource(R.string.feed_board_register_submit),
                     onClick = { onEvent(BoardRegisterEvent.RegisterClicked) },
@@ -220,6 +223,54 @@ private fun BoardDetectingRow() {
             )
             Text(
                 text = stringResource(R.string.feed_board_register_detecting_hint),
+                color = colors.mutedContent,
+                style = CareerCompassTheme.typography.caption,
+            )
+        }
+    }
+}
+
+/**
+ * 등록 제출 진행 표시.
+ *
+ * **감지 표시([BoardDetectingRow])와 자리를 나눠 쓰지 않는다.** 감지 표시는 스크롤되는 본문 위쪽에 있고,
+ * 「등록하기」를 누른 사용자의 눈은 화면 맨 아래 버튼에 있다. 본문에 세우면 미리보기·폼을 지나 위로
+ * 올려야 보이고, 그 사이 사용자는 아무 반응이 없다고 읽는다(#146). 그래서 누른 버튼 **바로 위**,
+ * 스크롤되지 않는 하단 영역에 둔다.
+ *
+ * 문구를 두 줄로 나눈 것도 같은 이유다 — 둘째 줄이 「끝나면 목록으로 돌아간다」를 미리 알려, 멈춘 줄
+ * 알고 뒤로가기를 누르는 일을 줄인다. 큰 글꼴(fontScale 2.0)에서는 글자가 잘리는 대신 줄이 늘어나고,
+ * 본문이 `weight(1f)` 로 줄어 버튼은 그대로 보인다.
+ */
+@Composable
+private fun BoardRegisterSubmittingRow() {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(20.dp),
+            color = colors.primaryEmphasis,
+            strokeWidth = 2.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.feed_board_register_submitting),
+                color = colors.onSurfaceVariant,
+                style = CareerCompassTheme.typography.bodyMedium,
+            )
+            Text(
+                text = stringResource(R.string.feed_board_register_submitting_hint),
                 color = colors.mutedContent,
                 style = CareerCompassTheme.typography.caption,
             )

@@ -15,6 +15,9 @@
     <string name="feed_board_register_type_title">공고 유형 *</string>
     <string name="feed_board_register_cycle_title">수집 주기</string>
     <string name="feed_board_register_submit">등록하기</string>
+    <string name="feed_board_register_submitting">게시판을 등록하고 있어요</string>
+    <string name="feed_board_register_submitting_hint">끝나면 게시판 목록으로 돌아가요</string>
+    <string name="feed_board_register_submit_in_progress">등록을 끝내는 중이에요. 잠시만 기다려 주세요</string>
     <string name="feed_board_register_retry">다시 시도</string>
     <string name="feed_board_type_scholarship">장학금</string>
     <string name="feed_board_type_employment">채용</string>
@@ -54,6 +57,7 @@
     <string name="feed_board_delete_content_description">%1$s 삭제</string>
     <string name="feed_board_register_url_invalid">올바른 URL 형식이 아니에요</string>
     <string name="feed_board_register_url_duplicate">이미 등록된 게시판이에요</string>
+    <string name="feed_board_register_duplicate_notice">이미 등록된 게시판이에요. 내 게시판 목록에서 확인해 주세요</string>
     <string name="feed_board_register_limit_reached">게시판은 최대 %1$d개까지 등록할 수 있어요</string>
     <string name="feed_board_register_detect_failed">구조를 분석하지 못했어요. 잠시 후 다시 시도해 주세요</string>
     <string name="feed_board_register_failed">게시판을 등록하지 못했어요. 잠시 후 다시 시도해 주세요</string>
