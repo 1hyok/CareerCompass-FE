@@ -243,14 +243,29 @@ class FeedScreenTest {
 
     /**
      * 읽음은 색·굵기 말고 **문구와 접근성 상태**로도 갈려야 한다 — 읽지 않은 카드도 침묵하지 않는다.
+     *
+     * 배지가 유사 공고 카드와 한 벌로 합쳐졌으므로(#170) 목록 쪽에서도 계약을 못 박아 둔다 — 문구가
+     * 그려지되(unmerged 트리) 그 문구가 스크린 리더까지 새어 나가지는 않아야 한다.
      */
     @Test
     fun readListing_marksTheCardWithWordsAndAnAccessibilityState() {
         composeRule.setFeedContent(state = sampleState(listing = sampleListing(isRead = true)))
 
+        composeRule.onNodeWithText("읽음", useUnmergedTree = true).assertIsDisplayed()
         composeRule
             .onNode(hasText(SAMPLE_LISTING_TITLE) and hasStateDescription("읽음"))
             .assertIsDisplayed()
+    }
+
+    /**
+     * 배지는 `clearAndSetSemantics` 로 스스로를 지운다 — 카드가 이미 상태로 말하므로 배지까지 읽히면
+     * 읽은 카드만 「읽음」을 두 번 듣는다. 병합 트리에 배지 문구가 없어야 그 약속이 지켜진 것이다.
+     */
+    @Test
+    fun readListingBadge_isClearedFromTheSemanticsTree() {
+        composeRule.setFeedContent(state = sampleState(listing = sampleListing(isRead = true)))
+
+        composeRule.onAllNodesWithText("읽음").assertCountEquals(0)
     }
 
     @Test
@@ -260,6 +275,7 @@ class FeedScreenTest {
         composeRule
             .onNode(hasText(SAMPLE_LISTING_TITLE) and hasStateDescription("읽지 않음"))
             .assertIsDisplayed()
+        composeRule.onAllNodesWithText("읽음", useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

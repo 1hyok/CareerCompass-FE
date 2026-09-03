@@ -24,6 +24,11 @@ import com.cambridge.feature.feed.presentation.R
 /**
  * 「✓ 읽음」 배지 — 이미 열어 본 공고임을 카드 위에서 말한다(#140 이 목록 카드에 세운 규칙).
  *
+ * 목록 카드(`FeedListingCard`)와 유사 공고 카드(`SimilarPostingCard`)가 **이 하나를 함께 쓴다.**
+ * #165 가 유사 공고용으로 이 자리를 만들 때 `FeedScreen.kt` 는 #144 가 고치는 중이라 손대지 못해 같은
+ * 배지가 두 벌로 갈려 있었고, #170 에서 이쪽으로 합쳤다 — 아래 세 가지가 이 배지의 계약인데, 두 벌로
+ * 두면 한쪽만 고쳐져 두 화면이 다른 말을 하게 된다.
+ *
  * 정보를 지는 것은 **문구(「읽음」)와 형태(체크 표시)** 이고 회색 알약은 거들기만 한다 — 색각 이상·
  * 흑백 환경에서 색만 남으면 아무것도 아니게 되기 때문이다(#141 의 충족 배지와 같은 원칙).
  *
@@ -61,7 +66,12 @@ internal fun FeedReadBadge(modifier: Modifier = Modifier) {
     }
 }
 
-/** 카드 메타 줄(마감일·수집일·읽음) 공통 글꼴 — 조각들이 같은 크기로 서야 줄이 접혀도 한 덩어리로 읽힌다. */
+/**
+ * 카드 메타 줄(마감일·수집일·읽음) 공통 글꼴 — 조각들이 같은 크기로 서야 줄이 접혀도 한 덩어리로 읽힌다.
+ *
+ * 배지와 같은 이유로 두 카드가 이 하나를 함께 쓴다(#170) — 글꼴이 갈리면 같은 줄에 선 조각들의
+ * 기준선이 화면마다 달라진다.
+ */
 internal val feedMetaTextStyle: TextStyle
     @Composable get() =
         CareerCompassTheme.typography.caption.copy(
