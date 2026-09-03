@@ -50,6 +50,8 @@
     <string name="feed_error_title">공고를 불러오지 못했어요</string>
     <string name="feed_error_description">잠시 후 다시 시도해 주세요</string>
     <string name="feed_error_retry">다시 시도</string>
+    <string name="feed_failure_query_reset_notice">검색어·필터·정렬을 걸어 둔 조회예요. 그 조건 때문일 수 있어요</string>
+    <string name="feed_failure_query_reset_action">조건 지우고 다시 보기</string>
     <string name="feed_bookmark_failed">북마크를 저장하지 못했어요</string>
     <string name="feed_load_more_failed">공고를 더 불러오지 못했어요</string>
     <string name="feed_refresh_failed">공고를 새로고침하지 못했어요</string>

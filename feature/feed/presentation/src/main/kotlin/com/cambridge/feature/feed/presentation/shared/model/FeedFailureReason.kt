@@ -22,3 +22,32 @@ public fun Throwable.toFeedFailureReason(): FeedFailureReason =
         is CoreDataFailure.ServiceUnavailable -> FeedFailureReason.Maintenance
         else -> FeedFailureReason.Generic
     }
+
+/**
+ * 이 실패를 **조회 조건 탓으로 볼 여지가 있는가** — 실패 화면에 「조건 지우고 다시 보기」를 열지의 근거다.
+ *
+ * 사유를 갈라 놓고도 처방을 하나로 뭉치면, 지하철에서 연결이 끊긴 사용자에게 「조건을 지워 보라」고 하게
+ * 된다. 지워도 요청은 여전히 서버에 닿지 못하므로 눌러도 아무 일 없는 버튼이다.
+ *
+ * - [FeedFailureReason.NetworkUnavailable] — **아니다.** 요청이 서버에 닿지도 못했으니 조건이 답을 바꿀
+ *   여지가 없다. 여기서 할 일은 연결을 되살리거나 저장해 둔 스냅샷을 보는 것이다.
+ * - [FeedFailureReason.Maintenance] — **그렇다.** 503 `LLM_UNAVAILABLE` 은 서버가 「그 조건은 지금 못
+ *   한다」고 답한 자리다. 적합도는 LLM 산출값이라 정렬을 「적합도순」으로 바꾸거나 최소 적합도를 걸면
+ *   실제로 갈린다(이슈 #144 의 재현).
+ * - [FeedFailureReason.Generic] — **그렇다.** 원인을 특정하지 못했다는 것이 조건 탓이 아니라는 뜻은
+ *   아니다(잘못된 조합에 대한 400·500 이 모두 여기로 접힌다). 되돌릴 조건이 실제로 걸려 있을 때에
+ *   한해서만 열리므로(`FeedViewState.canResetFailedQuery`) 헛다리를 짚어도 잃는 것이 없고, 닫아 두면
+ *   빠져나갈 길이 없는 화면이 남는다.
+ *
+ * 401(세션 만료)이 여기 없는 이유 — 그 실패는 실패 화면을 그리지 않고 곧장 로그인으로 보낸다
+ * (`FeedViewState.sessionEnded`). 사유 목록에 없는 것이 곧 답이다.
+ */
+public val FeedFailureReason.isQueryAttributable: Boolean
+    get() =
+        when (this) {
+            FeedFailureReason.NetworkUnavailable -> false
+
+            FeedFailureReason.Maintenance,
+            FeedFailureReason.Generic,
+            -> true
+        }

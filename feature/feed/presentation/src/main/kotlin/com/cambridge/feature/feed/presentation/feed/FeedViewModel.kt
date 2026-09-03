@@ -302,8 +302,36 @@ public class FeedViewModel
                 }
         }
 
-        /** 오류 화면의 「다시 시도」 — 처음부터 다시 읽는다. */
+        /** 오류 화면의 「다시 시도」 — **지금 조건 그대로** 처음부터 다시 읽는다. */
         public fun retry() {
+            load()
+        }
+
+        /**
+         * 오류 화면의 「조건 지우고 다시 보기」 — 조회 조건을 기본값으로 되돌리고 **그 자리에서 다시 읽는다**.
+         *
+         * 되돌리기와 재조회를 한 번에 하는 이유: 실패 화면에는 목록이 없어 조건이 바뀐 것을 확인할 방법이
+         * 없고, 남은 버튼은 [retry] 뿐인데 그것은 지금 조건을 그대로 다시 보낸다. 조건만 지우고 멈추면
+         * 화면은 여전히 옛 조건의 실패를 말한 채 사용자가 한 번 더 누르기를 기다리게 된다 — 반쪽이다.
+         *
+         * 빈 목록의 [FeedUiEvent.FilterResetSelected] 와 달리 **검색어·정렬까지** 지운다. 저기는 조회
+         * 자체는 성공한 자리라 조건을 한 겹씩 벗겨 주면 되지만, 여기서는 무엇이 실패를 불렀는지 화면이
+         * 모른다. 게다가 #144 의 재현은 정렬(「적합도순」)과 최소 적합도였으므로 정렬을 남겨 두면 같은
+         * 실패로 돌아온다. 되돌아갈 곳은 한 곳뿐이다 — 성공한 적이 있는 기본 조회다.
+         */
+        public fun resetQueryAndRetry() {
+            // 아직 반영 전인 검색어 디바운스를 먼저 끊는다. 살려 두면 [SEARCH_DEBOUNCE_MS] 뒤에
+            // applyQuery 가 방금 지운 검색어를 다시 실어 조건이 되살아난다.
+            searchJob?.cancel()
+            restoredFilterDraft = null
+            _state.update {
+                it.copy(
+                    searchInput = "",
+                    query = FeedQuery(),
+                    filterDraft = null,
+                    isSortMenuVisible = false,
+                )
+            }
             load()
         }
 

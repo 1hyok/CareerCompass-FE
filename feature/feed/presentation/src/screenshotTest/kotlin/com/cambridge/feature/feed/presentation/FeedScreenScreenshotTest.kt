@@ -174,12 +174,60 @@ public fun ProfileNoticeFeedScreenPreview() {
 @Composable
 public fun MaintenanceFeedScreenPreview() {
     // 서버 점검(503) — 스냅샷이 있으면 점검 중에도 「오프라인 모드로 보기」가 함께 열린다.
+    // 기본 조회가 실패한 자리라 「조건 지우고 다시 보기」는 열지 않는다(되돌릴 조건이 없다).
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
             FeedFailureContent(
                 reason = FeedFailureReason.Maintenance,
                 onRetryClick = {},
                 onOfflineClick = {},
+                onResetQueryClick = null,
+            )
+        }
+    }
+}
+
+/**
+ * 조건 때문에 실패한 자리 — 실패 화면이 헤더를 통째로 대신하므로, 조건에서 빠져나갈 길은 여기밖에 없다(#144).
+ *
+ * 사유 화면의 행동(새로고침·오프라인 모드)과 「조건 지우고 다시 보기」가 한 화면에 함께 서는 유일한 골든이라
+ * 따로 둔다 — 셋이 겹쳐 눌릴 자리를 잃지 않는지, 안내 한 줄이 버튼과 붙어 읽히는지를 여기서만 볼 수 있다.
+ */
+@PreviewTest
+@Preview(name = "Maintenance feed - query reset", widthDp = 360, heightDp = 772)
+@Composable
+public fun MaintenanceFeedQueryResetPreview() {
+    CareerCompassTheme {
+        Surface(color = CareerCompassTheme.colors.subtleSurface) {
+            FeedFailureContent(
+                reason = FeedFailureReason.Maintenance,
+                onRetryClick = {},
+                onOfflineClick = {},
+                onResetQueryClick = {},
+            )
+        }
+    }
+}
+
+/**
+ * 큰 글꼴에서 탈출구가 살아남는가 — 안내 한 줄과 버튼 셋이 세로로 쌓이는 화면이라 가장 먼저 잘린다.
+ */
+@PreviewTest
+@Preview(
+    name = "Maintenance feed - query reset - Large font",
+    widthDp = 360,
+    heightDp = 772,
+    fontScale = LARGE_FONT_SCALE,
+)
+@Composable
+public fun MaintenanceFeedQueryResetLargeFontPreview() {
+    CareerCompassTheme {
+        Surface(color = CareerCompassTheme.colors.subtleSurface) {
+            FeedFailureContent(
+                reason = FeedFailureReason.Maintenance,
+                onRetryClick = {},
+                onOfflineClick = {},
+                onResetQueryClick = {},
             )
         }
     }
