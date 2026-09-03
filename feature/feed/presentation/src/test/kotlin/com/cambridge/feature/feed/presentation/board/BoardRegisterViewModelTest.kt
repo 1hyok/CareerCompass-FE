@@ -3,6 +3,7 @@ package com.cambridge.feature.feed.presentation.board
 import androidx.lifecycle.SavedStateHandle
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeBoardRepository
+import com.cambridge.core.model.board.Board
 import com.cambridge.core.model.board.BoardDetection
 import com.cambridge.core.model.board.BoardDetectionStatus
 import com.cambridge.core.model.board.MAX_BOARDS
@@ -11,6 +12,7 @@ import com.cambridge.feature.feed.domain.usecase.RegisterBoardUseCase
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.board
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -158,7 +160,7 @@ class BoardRegisterViewModelTest {
     }
 
     @Test
-    fun `중복 게시판은 URL 오류로 표시한다`() {
+    fun `중복 게시판은 URL 오류와 함께 스낵바로도 알린다`() {
         val repository =
             FakeBoardRepository().apply {
                 onRegister = { Result.failure(CoreDataFailure.DuplicateBoard("DUPLICATE_BOARD", RuntimeException())) }
@@ -168,9 +170,45 @@ class BoardRegisterViewModelTest {
         viewModel.onEvent(BoardRegisterEvent.RegisterClicked)
 
         assertEquals(BoardUrlError.Duplicate, viewModel.state.value.urlError)
+        // URL 입력란은 폼 위쪽이라 등록 버튼을 누른 자리에서는 화면 밖이다. 안내가 눈앞에도 닿아야 한다.
+        assertEquals(BoardRegisterMessage.AlreadyRegistered, viewModel.state.value.message)
         assertFalse(viewModel.state.value.isSubmitting)
         assertFalse(viewModel.state.value.isBackRequested)
         assertEquals(listOf("board_register"), reporter.stages)
+    }
+
+    @Test
+    fun `제출 중 뒤로가기는 화면을 벗어나지 않고 이유를 알린다`() {
+        val gate = CompletableDeferred<Result<Board>>()
+        val repository = FakeBoardRepository().apply { onRegister = { gate.await() } }
+        val viewModel = viewModel(repository).readyToRegister()
+
+        viewModel.onEvent(BoardRegisterEvent.RegisterClicked)
+        assertTrue(viewModel.state.value.isSubmitting)
+
+        viewModel.onEvent(BoardRegisterEvent.BackClicked)
+
+        assertFalse(viewModel.state.value.isBackRequested)
+        assertEquals(BoardRegisterMessage.SubmitInProgress, viewModel.state.value.message)
+        // 요청은 살아 있다 — 나가지 않았으므로 끊길 이유가 없다.
+        assertTrue(viewModel.state.value.isSubmitting)
+        assertEquals(1, repository.registrations.size)
+    }
+
+    @Test
+    fun `제출이 끝나면 뒤로가기가 다시 통한다`() {
+        val gate = CompletableDeferred<Result<Board>>()
+        val repository = FakeBoardRepository().apply { onRegister = { gate.await() } }
+        val viewModel = viewModel(repository).readyToRegister()
+
+        viewModel.onEvent(BoardRegisterEvent.RegisterClicked)
+        gate.complete(Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())))
+
+        assertFalse(viewModel.state.value.isSubmitting)
+
+        viewModel.onEvent(BoardRegisterEvent.BackClicked)
+
+        assertTrue(viewModel.state.value.isBackRequested)
     }
 
     @Test
