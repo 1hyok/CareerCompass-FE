@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -250,6 +251,56 @@ class PostingDetailScreenTest {
         }
     }
 
+    /**
+     * 읽음은 목록 카드와 **같은 규칙**으로 갈린다(#140·#165) — 문구(「읽음」)와 형태(체크)가 정보를 지고
+     * 색은 거들 뿐이다. 배지 자체는 스크린 리더에서 지워져 있으므로 상태는 카드에서 읽혀야 한다.
+     */
+    @Test
+    fun readSimilarPosting_marksTheCardWithWordsAndAnAccessibilityState() {
+        composeRule.setDetailContent(state = loadedState(posting = samplePosting(similarIsRead = true)))
+
+        // 배지는 clearAndSetSemantics 로 지워져 병합 트리에 없다 — 그려졌는지는 unmerged 로 본다.
+        composeRule.onNodeWithText("읽음", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule
+            .onNode(hasText(SIMILAR_TITLE) and hasStateDescription("읽음"))
+            .assertExists()
+    }
+
+    /** 표시가 없는 쪽도 침묵하지 않는다 — 읽지 않은 유사 공고는 접근성 상태로 그렇게 말한다. */
+    @Test
+    fun unreadSimilarPosting_saysSoInsteadOfLeavingTheStateUnspoken() {
+        composeRule.setDetailContent(state = loadedState())
+
+        composeRule
+            .onNode(hasText(SIMILAR_TITLE) and hasStateDescription("읽지 않음"))
+            .assertExists()
+        composeRule.onAllNodesWithText("읽음", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    /**
+     * 유사 공고 카드는 수집일을 싣지 않는다 — 「다음에 뭘 열까」를 가르는 것은 마감일과 읽음이고,
+     * 목록 카드에서 수집일을 넣게 만든 초록 점이 이 카드엔 애초에 없다(근거는 `SimilarPostingCard`).
+     */
+    @Test
+    fun similarPosting_leavesCollectedAtToTheFeedListAndKeepsTheDeadline() {
+        composeRule.setDetailContent(state = loadedState(posting = samplePosting(similarIsRead = true)))
+
+        composeRule.onNodeWithText("D-14").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText(SIMILAR_COLLECTED_LABEL).assertCountEquals(0)
+    }
+
+    /** 큰 글꼴에서 메타 줄이 접힐 뿐, 마감일도 읽음 배지도 잘려 사라지지 않는다. */
+    @Test
+    fun similarPosting_keepsDeadlineAndReadBadgeAtLargeFontScale() {
+        composeRule.setDetailContent(
+            state = loadedState(posting = samplePosting(similarIsRead = true)),
+            fontScale = 2f,
+        )
+
+        composeRule.onNodeWithText("D-14").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("읽음", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+    }
+
     @Test
     fun chromeAndFooter_emitSeparateIntents() {
         val events = mutableListOf<PostingDetailEvent>()
@@ -327,6 +378,7 @@ private fun samplePosting(
     categoryLabel: String = "채용",
     canCreateDraft: Boolean = true,
     isBookmarked: Boolean = false,
+    similarIsRead: Boolean = false,
     suitability: PostingSuitabilityState = PostingSuitabilityState.Ready(sampleSuitability()),
     formQuestions: List<PostingFormQuestionUiModel> =
         listOf(
@@ -363,9 +415,9 @@ private fun samplePosting(
                     suitability = FeedSuitabilityState.Scored(76),
                     deadlineLabel = "D-14",
                     isDeadlineUrgent = false,
-                    collectedAtLabel = "수집 3일 전",
+                    collectedAtLabel = SIMILAR_COLLECTED_LABEL,
                     isNew = false,
-                    isRead = false,
+                    isRead = similarIsRead,
                     isBookmarked = false,
                 ),
             ),
@@ -389,6 +441,7 @@ private fun sampleSuitability(): SuitabilityUiModel =
     )
 
 private const val SIMILAR_ID = "boostcamp"
+private const val SIMILAR_COLLECTED_LABEL = "수집 3일 전"
 private const val SIMILAR_TITLE = "네이버 부스트캠프 9기 모집"
 private const val STRENGTH_COMMENT = "Spring-JPA 프로젝트 경험이 우대 조건과 일치합니다"
 private const val WEAKNESS_COMMENT = "어학 성적 정보가 프로필에 없습니다"
