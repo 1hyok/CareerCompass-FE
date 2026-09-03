@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.board
 
+import androidx.lifecycle.SavedStateHandle
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeBoardRepository
 import com.cambridge.core.model.board.BoardUpdate
@@ -43,6 +44,8 @@ class BoardListViewModelTest {
             updateBoard = UpdateBoardUseCase(repository),
             errorReporter = reporter,
             clock = FIXED_CLOCK,
+            // 수정 시트 초안의 복원 계약은 BoardEditInputRestoreTest 가 본다 — 여기서는 빈 저장소로 둔다.
+            savedStateHandle = SavedStateHandle(),
         )
 
     private fun repository() =
