@@ -110,6 +110,23 @@ public class ExperienceQuickAddContractTest {
     }
 
     @Test
+    public fun resolveDate_keepsOriginDayWhenMonthUnchanged() {
+        val origin = LocalDate.of(2025, 6, 15)
+        // 칸이 `YYYY.MM` 이라 같은 달을 그대로 둔 글은 일(day)에 대해 아무 말도 하지 않는다 —
+        // 아는 일은 원본의 것뿐이므로 그것을 돌려준다(#171).
+        assertEquals(origin, ExperienceEditorRules.resolveDate("2025.06", origin))
+        assertEquals(origin, ExperienceEditorRules.resolveDate(" 2025.06 ", origin))
+        // 달을 고쳤으면 원본은 더 이상 같은 시점이 아니다 — 사용자가 준 정밀도인 그 달 1일로 읽는다.
+        assertEquals(LocalDate.of(2025, 7, 1), ExperienceEditorRules.resolveDate("2025.07", origin))
+        assertEquals(LocalDate.of(2024, 6, 1), ExperienceEditorRules.resolveDate("2024.06", origin))
+        // 신규 등록에는 지킬 원본이 없다.
+        assertEquals(LocalDate.of(2025, 6, 1), ExperienceEditorRules.resolveDate("2025.06", null))
+        // 읽을 수 없는 글은 원본이 있어도 날짜가 아니다 — 되살리기가 검증을 우회하지 않는다.
+        assertNull(ExperienceEditorRules.resolveDate("2025", origin))
+        assertNull(ExperienceEditorRules.resolveDate("", origin))
+    }
+
+    @Test
     public fun isValidDateInput_acceptsYearOnlyForAward() {
         assertTrue(ExperienceEditorRules.isValidDateInput(ExperienceType.Award, "2025"))
         assertTrue(ExperienceEditorRules.isValidDateInput(ExperienceType.Award, "2025.09"))

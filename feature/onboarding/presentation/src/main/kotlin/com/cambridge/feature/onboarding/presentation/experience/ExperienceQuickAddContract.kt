@@ -24,6 +24,10 @@ import java.time.YearMonth
  * @property techs 확정된 기술 태그. 입력칸([techInput])의 글자는 아직 태그가 아니다.
  * @property isDetailExpanded 상세 입력 영역을 펼쳤는가. 접혀 있어도 값은 상태에 그대로 살아 저장에 실린다 —
  * 접기는 보이기만 줄이는 것이지 값을 버리는 것이 아니다.
+ * @property startDateOrigin 이 카드가 원래 갖고 있던 시작 일자 — 신규 등록이면 null 이다. 시점 칸([startDate])은
+ * `YYYY.MM` 이라 일(day)을 담지 못하므로, **사용자가 손대지 않은 일을 되돌리는 데에만** 쓴다. 화면에는 그리지
+ * 않는다. 근거는 [ExperienceEditorRules.resolveDate].
+ * @property endDateOrigin 종료 일자의 같은 것. 기간이 없는 유형([ExperienceEditorRules.hasPeriod])은 둘 다 null 이다.
  */
 @Immutable
 public data class ExperienceEditorState(
@@ -32,6 +36,8 @@ public data class ExperienceEditorState(
     public val title: String = "",
     public val startDate: String = "",
     public val endDate: String = "",
+    public val startDateOrigin: LocalDate? = null,
+    public val endDateOrigin: LocalDate? = null,
     public val primary: String = "",
     public val secondary: String = "",
     public val techs: List<String> = emptyList(),
@@ -142,6 +148,17 @@ public sealed interface ExperienceQuickAddEvent {
  * ### 시점 칸 하나가 유형마다 다른 필드로 간다 (#166)
  * 수상은 `year`(연 단위), 자격증은 `acquiredYearMonth`(월 단위), 나머지는 `startDate`(일 단위)로 간다.
  * **정밀도가 다른 같은 사실**이라 방향이 중요하다 — 자세한 근거는 [hasPeriod] 와 `toDraft()` KDoc.
+ *
+ * ### 칸이 담지 못하는 정밀도는 지킨다 (#171)
+ * 시점 칸이 `YYYY.MM` 이라, 서버나 다른 클라이언트가 만든 `2025-06-15` 짜리 카드를 열었다 제목만 고쳐 저장하면
+ * 시작일이 `2025-06-01` 로 **깎였다.** 사용자가 손대지 않은 값이 조용히 달라지는 것이다. 그래서 시트는 원본
+ * 일자를 함께 들고 다니다가([ExperienceEditorState.startDateOrigin]) 사용자가 그 칸의 달을 바꾸지 않았으면
+ * 원본의 일을 그대로 돌려준다 — [resolveDate].
+ *
+ * **칸의 정밀도를 일 단위로 올리는 길은 고르지 않았다.** 그러면 이 문제는 사라지지만, F1-3 의 시점은 대부분
+ * 「언제쯤」이라 대다수 사용자가 모르는 일자를 지어내 채우게 된다 — [hasPeriod] 가 금지한 넓히기를 이번에는
+ * **사용자에게 시키는** 셈이다. 정밀도가 부족해서 생긴 문제가 아니라 **손대지 않은 값을 다시 쓴** 것이 문제이므로,
+ * 고치는 자리도 입력 칸이 아니라 저장 경로다.
  */
 public object ExperienceEditorRules {
     public const val MAX_TITLE_LENGTH: Int = 50
@@ -221,6 +238,27 @@ public object ExperienceEditorRules {
         if (scheme != "http" && scheme != "https") return false
         // 한글 도메인은 host 가 null 이고 authority 에만 남는다 — 둘 중 하나라도 있으면 주소로 본다.
         return !(uri.host ?: uri.authority).isNullOrBlank()
+    }
+
+    /**
+     * 시점 칸의 글을 날짜로 읽되, **원본과 같은 달이면 원본의 일(day)을 그대로 돌려준다** (#171).
+     *
+     * ### 왜 「이 칸을 고쳤는가」를 표시하지 않고 값으로 판정하는가
+     * 이 칸은 `YYYY.MM` 이라 **일을 표현할 수단이 아예 없다.** 그래서 사용자가 친 글이 원본과 같은 달이면 그
+     * 글에는 일에 대한 정보가 하나도 담기지 않았고, 우리가 아는 유일한 일은 원본의 것뿐이다. 「고쳤음」 표시를
+     * 따로 두는 길도 있었지만(#156 이 게시판 수정 시트에서 쓴 diff 가 그 계열이다), 그 표시는 값을 바꾸는 모든
+     * 경로가 빠짐없이 세워 줘야 유지되고 한 군데만 빠뜨리면 조용히 되돌아간다. 값으로 판정하면 들고 다닐 상태가
+     * 없다 — 「2025.07 로 고쳤다가 2025.06 으로 되돌린」 사용자가 일을 잃지 않는 것도 덤이다.
+     *
+     * 달이 다르면 원본은 더 이상 같은 시점이 아니므로 그 달 1일로 읽는다. 없는 값을 지어내는 것이 아니라
+     * 사용자가 방금 준 정밀도 그대로다.
+     */
+    public fun resolveDate(
+        value: String,
+        origin: LocalDate?,
+    ): LocalDate? {
+        val parsed = parseYearMonth(value) ?: return null
+        return origin?.takeIf { it.year == parsed.year && it.monthValue == parsed.monthValue } ?: parsed
     }
 
     /** `YYYY.MM` 을 그 달 1일로 읽는다. 형식이 다르면 null. */

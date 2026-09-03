@@ -663,6 +663,105 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `카드의 날짜는 시트를 왕복해도 일까지 그대로다`() {
+        // #139 의 왕복은 「있던 값을 지우지 않는다」를, #166 의 왕복은 「없던 값을 만들지 않는다」를 지킨다.
+        // 이 왕복은 셋째 축인 **「있던 값을 바꾸지 않는다」**다 — 시점 칸이 월 정밀도라 서버가 준 15일이 저장 때
+        // 1일로 깎였다(#171). 다섯 유형을 전부 돌린다.
+        val start = LocalDate.of(2025, 6, 15)
+        val end = LocalDate.of(2025, 8, 20)
+        val cards =
+            listOf(
+                ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin"), summary = "요약", link = "https://a.io"),
+                ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = "주관사"),
+                ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = "주요 업무"),
+                ExperienceDetails.Activity(organization = "동아리", role = "기획팀장", summary = "성과"),
+                ExperienceDetails.Certificate(issuer = "한국산업인력공단", acquiredYearMonth = "2025-06"),
+            ).map { sampleCard(startDate = start, endDate = end, details = it) }
+
+        cards.forEach { card ->
+            val draft = card.toEditorState().toDraft()
+            val label = card.type.toString()
+            assertEquals(label, card.details, draft.details)
+            // 수상·자격증의 시점은 상세 필드 한 곳에만 둔다(#166) — 그쪽은 `startDate` 를 비우는 것이 계약이다.
+            val expected = if (ExperienceEditorRules.hasPeriod(card.type)) card.startDate else null
+            assertEquals(label, expected, draft.startDate)
+            assertEquals(label, if (ExperienceEditorRules.hasPeriod(card.type)) card.endDate else null, draft.endDate)
+        }
+    }
+
+    @Test
+    fun `일자가 있는 카드는 제목만 고쳐 저장해도 날짜의 일이 깎이지 않는다`() {
+        // 이슈 #171 그 자체 — 서버나 다른 클라이언트가 만든 `2025-06-15` 짜리 카드를 열었다 저장만 하는 경로다.
+        experienceRepository.experiences +=
+            sampleCard(
+                id = 5L,
+                startDate = LocalDate.of(2025, 6, 15),
+                endDate = LocalDate.of(2025, 8, 20),
+                details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
+            )
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
+        val viewModel = createViewModel()
+
+        viewModel.onStep3Event(OnboardingStep3Event.ExperienceSelected("5"))
+        // 칸은 `YYYY.MM` 이라 15일을 그릴 수단이 없다 — 화면은 달까지만 보여 준다.
+        assertEquals(
+            "2025.06",
+            viewModel.uiState.value.experienceEditor
+                ?.startDate,
+        )
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("카카오 인턴"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        val updated =
+            viewModel.uiState.value.step3.experiences
+                .single { it.id == 5L }
+        assertEquals(LocalDate.of(2025, 6, 15), updated.startDate)
+        assertEquals(LocalDate.of(2025, 8, 20), updated.endDate)
+    }
+
+    @Test
+    fun `시점 칸을 실제로 고치면 사용자가 준 정밀도로 바뀐다`() {
+        // 지키는 것은 「손대지 않은 값」뿐이다. 달을 고쳤으면 원본의 일은 더 이상 같은 시점이 아니라 버린다.
+        experienceRepository.experiences +=
+            sampleCard(
+                id = 6L,
+                startDate = LocalDate.of(2025, 6, 15),
+                endDate = LocalDate.of(2025, 8, 20),
+                details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
+            )
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
+        val viewModel = createViewModel()
+
+        viewModel.onStep3Event(OnboardingStep3Event.ExperienceSelected("6"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025.07"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        val updated =
+            viewModel.uiState.value.step3.experiences
+                .single { it.id == 6L }
+        assertEquals(LocalDate.of(2025, 7, 1), updated.startDate)
+        // 손대지 않은 종료일의 20일은 그대로 남는다.
+        assertEquals(LocalDate.of(2025, 8, 20), updated.endDate)
+    }
+
+    @Test
+    fun `지켜 낸 일이 새로 친 기간과 어긋나면 사용자의 입력이 이긴다`() {
+        // 6월 20일 시작을 그대로 두고 종료만 6월로 당기면, 지켜 낸 일 때문에 종료가 시작보다 빨라진다.
+        // 화면에 보이는 것은 달 하나뿐이라 되물을 수도 없다 — 지키려던 일을 놓아 주고 월 정밀도로 남긴다.
+        val editor =
+            sampleCard(
+                startDate = LocalDate.of(2025, 6, 20),
+                endDate = LocalDate.of(2025, 8, 10),
+                details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
+            ).toEditorState()
+
+        val draft = editor.copy(endDate = "2025.06").toDraft()
+
+        assertEquals(LocalDate.of(2025, 6, 1), draft.startDate)
+        assertEquals(LocalDate.of(2025, 6, 1), draft.endDate)
+    }
+
+    @Test
     fun `연도만 있는 수상 카드는 열었다 저장해도 날짜가 생기지 않는다`() {
         experienceRepository.experiences +=
             sampleCard(id = 4L, details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = null))
