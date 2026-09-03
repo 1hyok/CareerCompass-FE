@@ -3,17 +3,22 @@ package com.cambridge.careercompass_fe.navigation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,12 +29,18 @@ import com.cambridge.core.ui.component.CareerCompassButtonVariant
 import com.cambridge.core.ui.component.CareerCompassCard
 import com.cambridge.core.ui.component.CareerCompassEmptyState
 import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.cambridge.feature.onboarding.presentation.biometric.BiometricEnrollPromptResult
+import com.cambridge.feature.onboarding.presentation.biometric.rememberBiometricEnrollPrompt
+
+/** 지문 로그인 스위치를 찾는 시맨틱 태그 — 라벨은 스위치의 토글 상태까지 병합하지 않아 계측 테스트가 이걸 쓴다. */
+internal const val MY_TAB_BIOMETRIC_SWITCH_TAG = "my_tab_biometric_switch"
 
 /**
  * 마이 탭 자리표시자의 진입점 — profile 모듈이 마이 탭을 인수하면 [Route.MyTab] 과 함께 통째로 지운다.
  *
- * 여기 있는 것은 세션 카드와 로그아웃뿐이다. 지문 로그인 끄기·알림 설정·경험 카드 같은 나머지 마이 탭 항목은
- * profile·notification 모듈 몫이라 자리표시자에 넣지 않는다.
+ * 여기 있는 것은 세션 카드와 지문 로그인 스위치·로그아웃뿐이다. 알림 설정·경험 카드 같은 나머지 마이 탭 항목은
+ * profile·notification 모듈 몫이라 자리표시자에 넣지 않는다. 지문 스위치가 예외인 이유는 켜는 길(#98)만 있고 끄는
+ * 길이 없으면 기기에 남은 등록을 되돌릴 자리가 아예 없기 때문이다(#113).
  *
  * @param onSessionEnded 로그아웃이 끝났다 — 셸이 시작 목적지를 다시 계산해 로그인 화면으로 되돌린다(#82 의 경로).
  */
@@ -46,6 +57,30 @@ internal fun MyTabPlaceholderEntry(
         if (!sessionEnded) return@LaunchedEffect
         viewModel.onSessionEndedConsumed()
         onSessionEnded()
+    }
+
+    // 켜는 방향은 #98 의 등록 프롬프트를 그대로 쓴다. null 이면 이 기기·호스트에서 지문을 등록할 수 없다는 뜻이다.
+    val launchEnrollPrompt =
+        rememberBiometricEnrollPrompt { result ->
+            when (result) {
+                BiometricEnrollPromptResult.Succeeded -> viewModel.onBiometricEnrollSucceeded()
+                BiometricEnrollPromptResult.Cancelled -> viewModel.onBiometricEnrollCancelled()
+                is BiometricEnrollPromptResult.Failed -> viewModel.onBiometricEnrollFailed(result.cause)
+            }
+        }
+    val canEnrollBiometric = launchEnrollPrompt != null
+    LaunchedEffect(canEnrollBiometric) {
+        viewModel.onBiometricAvailabilityChanged(canEnrollBiometric)
+    }
+
+    val enrollPromptRequested = state.isEnrollPromptRequested
+    LaunchedEffect(enrollPromptRequested) {
+        if (!enrollPromptRequested) return@LaunchedEffect
+        viewModel.onEnrollPromptRequestConsumed()
+        // 등록할 수 없는 기기에서는 스위치가 잠겨 있어 요청이 오지 않는다. 그래도 오면 잠금이 풀리지 않으므로
+        // 취소와 같게 되돌린다.
+        val launch = launchEnrollPrompt
+        if (launch != null) launch() else viewModel.onBiometricEnrollCancelled()
     }
 
     MyTabPlaceholderScreen(
@@ -95,6 +130,10 @@ internal fun MyTabPlaceholderScreen(
                 style = CareerCompassTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
             )
+
+            Spacer(modifier = Modifier.height(spacing.medium))
+            HorizontalDivider(color = colors.subtleOutline)
+            BiometricLoginSetting(state = state, onEvent = onEvent)
         }
 
         CareerCompassEmptyState(
@@ -139,6 +178,46 @@ internal fun MyTabPlaceholderScreen(
             containerColor = colors.surface,
             titleContentColor = colors.onSurface,
             textContentColor = colors.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * 지문 빠른 로그인 스위치.
+ *
+ * 스위치가 그리는 값은 저장소의 등록 상태 하나뿐이라, 프롬프트를 취소했거나 등록이 실패하면 아무것도 되돌리지
+ * 않아도 원래 자리에 남는다. 안내 문구는 등록할 수 없는 기기에서만 한 줄 붙는다 — 켜져 있는데 지문을 지운 기기는
+ * 스위치를 끌 수 있어야 하므로 그때는 잠그지도 안내하지도 않는다.
+ */
+@Composable
+private fun BiometricLoginSetting(
+    state: MyTabPlaceholderUiState,
+    onEvent: (MyTabPlaceholderEvent) -> Unit,
+) {
+    val colors = CareerCompassTheme.colors
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.placeholder_my_biometric_label),
+            style = CareerCompassTheme.typography.bodyMedium,
+            color = colors.onSurface,
+        )
+        Switch(
+            checked = state.isBiometricEnabled,
+            onCheckedChange = { enabled -> onEvent(MyTabPlaceholderEvent.BiometricToggled(enabled)) },
+            modifier = Modifier.testTag(MY_TAB_BIOMETRIC_SWITCH_TAG),
+            enabled = state.isBiometricSwitchEnabled,
+        )
+    }
+    if (state.isBiometricUnavailableNoticeVisible) {
+        Text(
+            text = stringResource(R.string.placeholder_my_biometric_unavailable),
+            style = CareerCompassTheme.typography.caption,
+            color = colors.mutedContent,
         )
     }
 }

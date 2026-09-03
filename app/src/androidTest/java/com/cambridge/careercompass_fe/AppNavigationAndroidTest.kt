@@ -4,6 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -115,6 +119,53 @@ class AppNavigationAndroidTest {
         assertEquals(1, fakeAuthRepository.logoutCalls)
     }
 
+    /**
+     * 지문을 등록할 수 없는 기기(관리형 에뮬레이터엔 등록된 지문이 없다) — 스위치는 꺼진 채 잠기고 이유가 한 줄 붙는다.
+     */
+    @Test
+    fun myTabBiometricSwitch_withoutDeviceBiometrics_isOffAndDisabled() {
+        fakeAuthRepository.loggedIn = true
+        fakeUserProfileRepository.profileState.value = profile(onboardingDone = true)
+
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+
+        composeRule.onNodeWithText("마이").performClick()
+        composeRule.onNodeWithText("지문 로그인").assertIsDisplayed()
+        composeRule.onNodeWithTag(BIOMETRIC_SWITCH_TAG, useUnmergedTree = true).assertIsOff().assertIsNotEnabled()
+        composeRule.onNodeWithText(BIOMETRIC_UNAVAILABLE_TEXT).assertIsDisplayed()
+    }
+
+    /**
+     * 끄는 경로(#113) — 이 기기에 등록이 남아 있으면 지문을 쓸 수 없는 기기에서도 스위치가 열려 있고, 끄면 등록
+     * 기록이 지워진다. 켜는 방향은 실기 지문이 있어야 프롬프트가 뜨므로 계측이 아니라 ViewModel 테스트가 덮는다.
+     */
+    @Test
+    fun myTabBiometricSwitch_turnsOffQuickLogin() {
+        fakeAuthRepository.loggedIn = true
+        fakeUserProfileRepository.profileState.value = profile(onboardingDone = true)
+
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+
+        composeRule.onNodeWithText("마이").performClick()
+        // 등록 상태를 마이 탭에 들어온 뒤에 켠다 — 처음부터 켜져 있으면 시작 목적지가 지문 화면이라 여기 못 온다.
+        fakeAuthRepository.biometricEnabledState.value = true
+        composeRule.waitUntil(timeoutMillis = BIOMETRIC_TIMEOUT_MILLIS) {
+            composeRule
+                .onAllNodesWithText(BIOMETRIC_UNAVAILABLE_TEXT)
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .isEmpty()
+        }
+        composeRule
+            .onNodeWithTag(BIOMETRIC_SWITCH_TAG, useUnmergedTree = true)
+            .assertIsOn()
+            .assertIsEnabled()
+            .performClick()
+
+        composeRule.waitUntil(timeoutMillis = BIOMETRIC_TIMEOUT_MILLIS) { !fakeAuthRepository.biometricEnabledState.value }
+        composeRule.onNodeWithTag(BIOMETRIC_SWITCH_TAG, useUnmergedTree = true).assertIsOff()
+        assertEquals(1, fakeAuthRepository.setBiometricEnabledCalls)
+    }
+
     @Test
     fun withSessionButOnboardingNotDone_startsAtOnboardingStep1() {
         fakeAuthRepository.loggedIn = true
@@ -198,5 +249,10 @@ class AppNavigationAndroidTest {
         const val DEEP_LINK_POSTING_TITLE = "딥링크로 연 2026 하반기 공채"
         const val DEEP_LINK_TIMEOUT_MILLIS = 10_000L
         const val LOGOUT_TIMEOUT_MILLIS = 10_000L
+        const val BIOMETRIC_TIMEOUT_MILLIS = 10_000L
+
+        /** `MyTabPlaceholderScreen` 의 `MY_TAB_BIOMETRIC_SWITCH_TAG` — 라벨은 스위치의 토글 상태를 병합하지 않는다. */
+        const val BIOMETRIC_SWITCH_TAG = "my_tab_biometric_switch"
+        const val BIOMETRIC_UNAVAILABLE_TEXT = "이 기기에서는 지문 로그인을 켤 수 없어요"
     }
 }
