@@ -6,6 +6,7 @@ import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.presentation.FeedListingCategory
+import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
@@ -122,6 +123,8 @@ public data class FeedFilterDraft(
  * @property boardsLoaded 게시판 목록을 실제로 받아 봤는가 — 조회에 실패해 비어 있는 것과 정말 0개인 것을
  *  가른다. 이 구분이 없으면 게시판 조회만 실패한 사용자에게 「등록한 게시판이 없어요」라고 하게 된다.
  * @property postings 지금까지 받은 페이지의 누적 목록. 오프라인 모드에서는 스냅샷의 목록.
+ * @property nextCursor 다음 페이지 커서. null 이면 서버에 더 남은 것이 없다([hasNext]).
+ * @property loadMore 목록 끝의 이어 읽기 상태 — 자동 페이징이 도는지, 사용자 손이 필요한지.
  * @property filterDraft 필터 시트가 열려 있으면 편집 중인 조건, 닫혀 있으면 null.
  * @property offlineSnapshot 네트워크 단절 실패 직후 읽어 둔 스냅샷 — 있으면 오류 화면에 「오프라인 모드로 보기」가 열린다.
  * @property isOffline 스냅샷 목록을 보여 주는 중. 더 불러오기·북마크는 잠긴다.
@@ -138,7 +141,7 @@ public data class FeedViewState(
     val nextCursor: String? = null,
     val loadState: FeedLoadState = FeedLoadState.Loading,
     val isRefreshing: Boolean = false,
-    val isLoadingMore: Boolean = false,
+    val loadMore: FeedLoadMoreState = FeedLoadMoreState.Ready,
     val filterDraft: FeedFilterDraft? = null,
     val isSortMenuVisible: Boolean = false,
     val pendingNavigation: FeedDestination? = null,
@@ -150,7 +153,16 @@ public data class FeedViewState(
 ) {
     public val userName: String? get() = profile?.name
 
+    /**
+     * 서버에 아직 더 남았는가 — **목록이 비어 있어도** 커서가 남았으면 끝이 아니다.
+     *
+     * 검색어·마감일은 서버 파라미터가 없어 받아 온 페이지 안에서만 걸러진다([FeedQuery.filterClientSide]).
+     * 그래서 「받은 것이 없다」와 「서버에 없다」가 다르고, 이 값이 둘을 가른다 — 빈 목록의 사유 판정
+     * (`toEmptyReason`)과 이어 읽기 잠금(`FeedEntry`)이 모두 여기에 기댄다.
+     */
     public val hasNext: Boolean get() = nextCursor != null
+
+    public val isLoadingMore: Boolean get() = loadMore == FeedLoadMoreState.Loading
 
     /**
      * 목록 위에 프로필 입력 안내를 얹을지 — 프로필이 비어 있고, 그 때문에 점수를 못 보이는 항목이 실제로

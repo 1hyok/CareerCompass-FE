@@ -110,8 +110,10 @@ public fun FeedEntry(
                         state = uiState,
                         onEvent = viewModel::onEvent,
                         listState = listState,
-                        onLoadMore = viewModel::onLoadMore,
-                        isLoadingMore = state.isLoadingMore,
+                        // 커서가 남았을 때만 자동 페이징을 연다 — 「받은 것이 없다」와 「서버에 없다」를
+                        // 가르는 근거가 커서뿐이라, 목록이 비어 있어도 커서가 남았으면 아직 끝이 아니다.
+                        onLoadMore = if (state.hasNext) viewModel::onLoadMore else null,
+                        loadMore = state.loadMore,
                     )
                 }
             }

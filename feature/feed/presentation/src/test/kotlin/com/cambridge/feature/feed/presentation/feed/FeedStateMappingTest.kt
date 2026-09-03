@@ -8,6 +8,7 @@ import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.FeedContentState
 import com.cambridge.feature.feed.presentation.FeedEmptyReason
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
+import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.NOON_TODAY
 import com.cambridge.feature.feed.presentation.board
@@ -67,6 +68,19 @@ class FeedStateMappingTest {
             suitabilities(null),
         )
         assertFalse(uiState(null).isProfileNoticeVisible)
+    }
+
+    @Test
+    fun `빈 목록에서 더 찾아보는 중에는 빈 상태 대신 진행 표시를 낸다`() {
+        // 목록이 없으면 진행 표시를 붙일 자리도 없다 — 아무 반응이 없으면 「더 찾아보기」가 죽은 버튼이 된다.
+        val state =
+            FeedViewState(
+                loadState = FeedLoadState.Loaded,
+                nextCursor = "100",
+                loadMore = FeedLoadMoreState.Loading,
+            )
+
+        assertEquals(FeedContentState.Loading, state.toFeedUiState(resources, FIXED_CLOCK).content)
     }
 
     @Test
@@ -185,6 +199,57 @@ class FeedEmptyReasonTest {
             FeedEmptyReason.NotCollected("가장 자주 보는 게시판을 1일 2회 확인하고 있어요"),
             reasonOf(state),
         )
+    }
+
+    @Test
+    fun `커서가 남았으면 검색어나 필터 탓으로 돌리지 않는다`() {
+        // 검색어·마감일은 받아 온 페이지 안에서만 걸러진다 — 앞쪽 페이지가 통째로 걸러진 것과 서버에
+        // 정말 없는 것이 똑같이 빈 목록이다. 그 둘을 가르는 근거는 커서뿐이다.
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                nextCursor = "100",
+                query = FeedQuery(searchQuery = "백엔드", unreadOnly = true),
+            )
+
+        assertEquals(FeedEmptyReason.MoreAvailable, reasonOf(state))
+    }
+
+    @Test
+    fun `커서가 남아도 게시판이 0개면 등록이 먼저다`() {
+        // 모을 곳이 없으면 아무리 이어 읽어도 나올 공고가 없다.
+        val state = FeedViewState(boards = emptyList(), boardsLoaded = true, nextCursor = "100")
+
+        assertEquals(FeedEmptyReason.NoBoards, reasonOf(state))
+    }
+
+    @Test
+    fun `오프라인 스냅샷에는 커서가 없어 판정이 어긋나지 않는다`() {
+        // showOfflineSnapshot 이 nextCursor 를 비운다 — 저장본을 보면서 「더 찾아보기」를 권하면
+        // 눌러도 갈 곳이 없다.
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                isOffline = true,
+                offlineSavedAt = NOON_TODAY,
+            )
+
+        assertEquals(FeedEmptyReason.OfflineSnapshot, reasonOf(state))
+    }
+
+    @Test
+    fun `커서가 없으면 조건 사유로 내려간다`() {
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                nextCursor = null,
+                query = FeedQuery(searchQuery = "백엔드"),
+            )
+
+        assertEquals(FeedEmptyReason.Search("백엔드"), reasonOf(state))
     }
 
     @Test

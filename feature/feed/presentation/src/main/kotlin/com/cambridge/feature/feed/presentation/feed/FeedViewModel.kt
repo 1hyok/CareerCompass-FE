@@ -15,6 +15,7 @@ import com.cambridge.feature.feed.domain.usecase.CountTodayNewPostingsUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.GetFeedPageUseCase
 import com.cambridge.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
+import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.FeedUiEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
@@ -45,6 +46,8 @@ import javax.inject.Inject
  *
  * - 검색어는 입력 즉시 상태에 반영하고 [SEARCH_DEBOUNCE_MS] 뒤에 재조회한다.
  * - 페이지가 비어도 `nextCursor` 가 남아 있으면 끝이 아니다([FeedPage]) — 항목이 나올 때까지 몇 페이지를 이어 읽는다.
+ *   한 번에 [MAX_EMPTY_PAGE_FOLLOW_UPS] 페이지까지만 따라가고, 그러고도 목록이 늘지 않았으면
+ *   [FeedLoadMoreState.Paused] 로 서서 「더 찾아보기」를 사용자에게 넘긴다([loadMoreStateAfter]).
  * - 북마크는 먼저 뒤집고 실패하면 되돌린다.
  * - 프로필 캐시는 인사말뿐 아니라 적합도 표시 판정에도 쓴다([FeedViewState.isProfileNoticeVisible]).
  * - `401` 은 [FeedViewState.sessionEnded] 로 올리고, 네트워크 단절·서버 점검은 [FeedFailureReason] 으로 구분한다.
@@ -130,6 +133,10 @@ public class FeedViewModel
 
                 FeedUiEvent.BoardRegisterSelected -> {
                     onBoardRegisterRequested()
+                }
+
+                FeedUiEvent.LoadMoreSelected -> {
+                    onLoadMore()
                 }
 
                 FeedUiEvent.SortMenuRequested -> {
@@ -226,28 +233,35 @@ public class FeedViewModel
             }
         }
 
-        /** 목록 끝에 닿았다. 다음 커서가 없거나 이미 읽는 중이면 무시한다. */
+        /**
+         * 이어 읽기 — 목록 끝에 닿았거나(자동) 「더 찾아보기」·「다시 시도」를 눌렀다(수동, [FeedUiEvent.LoadMoreSelected]).
+         *
+         * 다음 커서가 없거나 이미 읽는 중이면 무시한다. [FeedLoadMoreState.Paused]·[FeedLoadMoreState.Failed]
+         * 는 **막지 않는다** — 그 둘은 자동 페이징만 서 있는 자리이고, 여기까지 오는 길은 사용자가 누른
+         * 버튼뿐이기 때문이다(자동 트리거는 화면에서 [FeedLoadMoreState.Ready] 일 때만 무장한다).
+         */
         public fun onLoadMore() {
             val current = _state.value
             if (current.isOffline) return
             val cursor = current.nextCursor ?: return
             if (current.isLoadingMore || current.isRefreshing || current.loadState != FeedLoadState.Loaded) return
             val query = current.query
-            _state.update { it.copy(isLoadingMore = true) }
+            _state.update { it.copy(loadMore = FeedLoadMoreState.Loading) }
             loadMoreJob =
                 viewModelScope.launch {
                     fetchUntilNonEmpty(query, cursor)
                         .onSuccess { page ->
                             _state.update {
+                                val merged = (it.postings + page.postings).distinctBy(Posting::id)
                                 it.copy(
-                                    postings = (it.postings + page.postings).distinctBy(Posting::id),
+                                    postings = merged,
                                     nextCursor = page.nextCursor,
-                                    isLoadingMore = false,
+                                    loadMore = page.loadMoreStateAfter(gained = merged.size > it.postings.size),
                                 )
                             }
                         }.onFailure { throwable ->
                             recordFailure(FeedFailureStage.FeedLoadMore, throwable)
-                            _state.update { it.copy(isLoadingMore = false, message = FeedMessage.LoadMoreFailed) }
+                            _state.update { it.copy(loadMore = FeedLoadMoreState.Failed, message = FeedMessage.LoadMoreFailed) }
                         }
                 }
         }
@@ -258,7 +272,7 @@ public class FeedViewModel
             loadJob?.cancel()
             loadMoreJob?.cancel()
             val query = _state.value.query
-            _state.update { it.copy(isRefreshing = true, isLoadingMore = false) }
+            _state.update { it.copy(isRefreshing = true, loadMore = FeedLoadMoreState.Ready) }
             loadTodayCount()
             loadJob =
                 viewModelScope.launch {
@@ -271,6 +285,7 @@ public class FeedViewModel
                                         nextCursor = page.nextCursor,
                                         loadState = FeedLoadState.Loaded,
                                         isRefreshing = false,
+                                        loadMore = page.loadMoreStateAfter(gained = page.postings.isNotEmpty()),
                                     ).online()
                             }
                             saveSnapshotIfDefault(query, page.postings)
@@ -324,7 +339,7 @@ public class FeedViewModel
                     nextCursor = null,
                     loadState = FeedLoadState.Loaded,
                     isRefreshing = false,
-                    isLoadingMore = false,
+                    loadMore = FeedLoadMoreState.Ready,
                     isOffline = true,
                     offlineSavedAt = snapshot.savedAt,
                 )
@@ -417,7 +432,7 @@ public class FeedViewModel
                     postings = emptyList(),
                     nextCursor = null,
                     isRefreshing = false,
-                    isLoadingMore = false,
+                    loadMore = FeedLoadMoreState.Ready,
                 )
             }
             loadJob =
@@ -430,6 +445,7 @@ public class FeedViewModel
                                         postings = page.postings,
                                         nextCursor = page.nextCursor,
                                         loadState = FeedLoadState.Loaded,
+                                        loadMore = page.loadMoreStateAfter(gained = page.postings.isNotEmpty()),
                                     ).online()
                             }
                             saveSnapshotIfDefault(query, page.postings)
@@ -442,6 +458,21 @@ public class FeedViewModel
                         }
                 }
         }
+
+        /**
+         * 이번 조회 뒤 이어 읽기를 자동으로 굴릴지, 사용자에게 넘길지 정한다.
+         *
+         * 기준은 「이번에 목록이 늘었는가」 하나다. 커서가 남았는데 한 건도 늘지 않았다면
+         * [fetchUntilNonEmpty] 가 상한([MAX_EMPTY_PAGE_FOLLOW_UPS])까지 따라가고도 빈손으로 온 것이므로
+         * [FeedLoadMoreState.Paused] 로 선다. 여기서 자동으로 계속 따라가면 걸러질 페이지만 끝없이 받게
+         * 되고(데이터·배터리), 반대로 조용히 멈추면 화면이 「끝」이라고 거짓말을 한다 — 그래서 멈추되
+         * 멈췄다고 말하고 이어 갈 버튼을 준다.
+         *
+         * 「늘었는가」로 재는 이유는 **되풀이를 끝내기 위해서**다. 페이지가 겹쳐 와 중복만 실려 와도
+         * (`distinctBy`) 목록은 늘지 않으므로 여기서 선다 — 자동 이어 읽기는 반드시 목록을 늘리거나 멈춘다.
+         */
+        private fun FeedPage.loadMoreStateAfter(gained: Boolean): FeedLoadMoreState =
+            if (hasNext && !gained) FeedLoadMoreState.Paused else FeedLoadMoreState.Ready
 
         /**
          * 클라이언트 필터로 페이지가 통째로 비면 다음 커서를 따라 최대 [MAX_EMPTY_PAGE_FOLLOW_UPS]페이지까지 이어 읽는다.
@@ -525,7 +556,15 @@ public class FeedViewModel
             /** 검색어 입력 뒤 재조회까지 기다리는 시간. */
             public const val SEARCH_DEBOUNCE_MS: Long = 300L
 
-            /** 빈 페이지가 이어질 때 따라가는 페이지 수 상한 — 기본 페이지 크기 기준 100건. */
+            /**
+             * 한 번의 이어 읽기가 빈 페이지를 따라가는 상한 — 기본 페이지 크기 기준 100건.
+             *
+             * **한 번에**가 핵심이다. 이 상한은 「거기까지가 전부」라는 뜻이 아니라 「사용자를 한 번 이상
+             * 기다리게 하지 않는다」는 뜻이다. 5회면 왕복 다섯 번(체감 1~2초)이라 진행 표시 없이도 버틸
+             * 만하고, 그 이상 늘리면 아무 반응 없이 멈춘 화면이 된다. 상한에 닿으면 멈추되
+             * [FeedLoadMoreState.Paused] 로 그렇다고 말하고, 사용자가 「더 찾아보기」를 누르면 거기서부터
+             * 다시 5회를 따라간다 — 상한이 총량이 아니라 한 걸음의 크기라, 100건에 갇히지 않는다.
+             */
             public const val MAX_EMPTY_PAGE_FOLLOW_UPS: Int = 5
         }
     }

@@ -1,6 +1,7 @@
 package com.cambridge.feature.feed.presentation
 
 import android.content.res.Configuration
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
@@ -94,8 +95,43 @@ public fun EmptyFeedOfflineSnapshotPreview() {
     )
 }
 
+@PreviewTest
+@Preview(name = "Empty feed - more available", widthDp = 360, heightDp = 772)
+@Composable
+public fun EmptyFeedMoreAvailablePreview() {
+    // 유일하게 조건을 되돌리라고 하지 않는 빈 화면이다 — 검색어가 걸려 있어도 「검색어 지우기」가 아니라
+    // 「더 찾아보기」가 나와야 한다. 골든이 지킬 것은 그 행동 하나다.
+    FeedPreviewSurface(
+        state =
+            emptyFeedPreviewState(FeedEmptyReason.MoreAvailable).copy(
+                searchQuery = "백엔드",
+                activeFilterCount = 2,
+            ),
+    )
+}
+
 // 빈 상태의 큰 글꼴 골든은 두지 않는다 — 같은 부품(core:ui `CareerCompassEmptyState`)의 2.0 배율
 // 골든이 이미 있고, 글자 수는 loaded 화면이 최악이다(docs/testing/screenshot.md 「무엇을 넣고 무엇을 뺐나」).
+
+/**
+ * 목록 끝에서 자동 이어 읽기가 선 자리 — 멈춘 사유 한 줄과 이어 갈 버튼.
+ *
+ * 카드를 둘만 두어 목록 아래가 접히지 않게 한다. 골든이 지킬 것은 카드가 아니라 **끝줄**이다.
+ */
+@PreviewTest
+@Preview(name = "Feed - load more paused", widthDp = 360, heightDp = 772)
+@Composable
+public fun FeedLoadMorePausedPreview() {
+    FeedPagingPreviewSurface(loadMore = FeedLoadMoreState.Paused)
+}
+
+@PreviewTest
+@Preview(name = "Feed - load more failed", widthDp = 360, heightDp = 772)
+@Composable
+public fun FeedLoadMoreFailedPreview() {
+    // 스낵바는 지나가 버린다 — 목록 안에 남는 「다시 시도」가 실제로 그려지는지가 골든의 몫이다.
+    FeedPagingPreviewSurface(loadMore = FeedLoadMoreState.Failed)
+}
 
 @PreviewTest
 @Preview(name = "Loading feed", widthDp = 360, heightDp = 772)
@@ -157,6 +193,21 @@ private fun FeedPreviewSurface(
     CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
             FeedScreen(state = state, onEvent = {})
+        }
+    }
+}
+
+@Composable
+private fun FeedPagingPreviewSurface(loadMore: FeedLoadMoreState) {
+    CareerCompassTheme {
+        Surface(color = CareerCompassTheme.colors.subtleSurface) {
+            FeedScreen(
+                state = feedPreviewState().copy(content = FeedContentState.Loaded(feedPreviewListings().take(2))),
+                onEvent = {},
+                listState = rememberLazyListState(),
+                onLoadMore = {},
+                loadMore = loadMore,
+            )
         }
     }
 }

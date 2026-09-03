@@ -20,6 +20,7 @@ import com.cambridge.feature.feed.domain.usecase.GetFeedPageUseCase
 import com.cambridge.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.FeedListingCategory
+import com.cambridge.feature.feed.presentation.FeedLoadMoreState
 import com.cambridge.feature.feed.presentation.FeedUiEvent
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
@@ -91,6 +92,21 @@ class FeedViewModelTest {
         }
 
     private fun snapshot(vararg ids: Long) = FeedSnapshot(postings = ids.map { posting(id = it) }, savedAt = FIXED_CLOCK.instant())
+
+    /**
+     * 마감이 지나 클라이언트 필터가 통째로 걸러 내는 페이지 — 커서만 `c1`·`c2`… 로 한 칸씩 나아간다.
+     *
+     * 「받은 것이 없다」와 「서버에 없다」가 갈리는 자리를 그대로 재현한다: 항목은 0건인데 커서는 남는다.
+     */
+    private fun expiredPage(cursor: String?): Result<CursorPage<Posting>> {
+        val followed = cursor?.removePrefix("c")?.toInt() ?: 0
+        return Result.success(
+            CursorPage(
+                items = listOf(posting(id = followed + 1L, dueDate = TODAY.minusDays(1))),
+                nextCursor = "c${followed + 1}",
+            ),
+        )
+    }
 
     @Test
     fun `초기 로드는 첫 페이지·오늘 신규 개수·이름·게시판을 함께 채운다`() {
@@ -401,6 +417,99 @@ class FeedViewModelTest {
         assertEquals(FeedLoadState.Loaded, state.loadState)
         assertEquals(listOf(2L), state.postings.map(Posting::id))
         assertNull(state.nextCursor)
+    }
+
+    @Test
+    fun `상한까지 따라가고도 빈손이면 커서를 남기고 더 찾아보기로 선다`() {
+        // 100건을 훑고도 조건에 맞는 것이 없었다 — 「없음」이 아니라 「아직 못 찾음」이다.
+        val repository = FakePostingRepository(onGetPostings = { expiredPage(it.cursor) })
+
+        val state = viewModel(postingRepository = repository).state.value
+
+        assertEquals(FeedLoadState.Loaded, state.loadState)
+        assertTrue(state.postings.isEmpty())
+        assertEquals(FeedLoadMoreState.Paused, state.loadMore)
+        // 커서가 상한만큼 나아간 채 남았다 — 「끝」이 아니라 「여기까지」다.
+        assertEquals("c${FeedViewModel.MAX_EMPTY_PAGE_FOLLOW_UPS}", state.nextCursor)
+        assertTrue(state.hasNext)
+    }
+
+    @Test
+    fun `더 찾아보기는 멈춘 자리에서 다음 상한만큼 이어 읽는다`() {
+        // 상한은 총량이 아니라 한 걸음의 크기다 — 눌러 준 만큼 계속 간다.
+        val valid = posting(id = 99, dueDate = TODAY.plusDays(3))
+        val repository =
+            FakePostingRepository(
+                onGetPostings = { query ->
+                    if (query.cursor == "c5") {
+                        Result.success(CursorPage(items = listOf(valid), nextCursor = null))
+                    } else {
+                        expiredPage(query.cursor)
+                    }
+                },
+            )
+        val viewModel = viewModel(postingRepository = repository)
+        assertEquals(FeedLoadMoreState.Paused, viewModel.state.value.loadMore)
+
+        viewModel.onEvent(FeedUiEvent.LoadMoreSelected)
+
+        val state = viewModel.state.value
+        assertEquals(listOf(99L), state.postings.map(Posting::id))
+        assertFalse(state.hasNext)
+        assertEquals(FeedLoadMoreState.Ready, state.loadMore)
+    }
+
+    @Test
+    fun `이어 읽어도 한 건도 늘지 않으면 다시 선다`() {
+        // 「늘었는가」로 재기 때문에 중복만 실려 와도 자동 추적이 여기서 끝난다 — 무한 되풀이가 없다.
+        val same = posting(id = 1, dueDate = TODAY.plusDays(3))
+        val repository =
+            FakePostingRepository(
+                onGetPostings = { Result.success(CursorPage(items = listOf(same), nextCursor = "next")) },
+            )
+        val viewModel = viewModel(postingRepository = repository)
+        assertEquals(FeedLoadMoreState.Ready, viewModel.state.value.loadMore)
+
+        viewModel.onLoadMore()
+
+        assertEquals(
+            listOf(1L),
+            viewModel.state.value.postings
+                .map(Posting::id),
+        )
+        assertEquals(FeedLoadMoreState.Paused, viewModel.state.value.loadMore)
+    }
+
+    @Test
+    fun `페이지 실패는 커서를 남긴 채 다시 시도할 자리를 만든다`() {
+        // 스낵바는 지나가 버린다 — 되살릴 근거(커서·상태)가 상태에 남아 있어야 다시 시도가 가능하다.
+        val repository = FakePostingRepository(initial = List(45) { posting(id = it + 1L) })
+        val viewModel = viewModel(postingRepository = repository)
+        repository.onGetPostings = { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
+
+        viewModel.onLoadMore()
+
+        assertEquals(FeedLoadMoreState.Failed, viewModel.state.value.loadMore)
+        assertEquals(FeedMessage.LoadMoreFailed, viewModel.state.value.message)
+        assertEquals("20", viewModel.state.value.nextCursor)
+
+        repository.onGetPostings = null
+        viewModel.onEvent(FeedUiEvent.LoadMoreSelected)
+
+        assertEquals(40, viewModel.state.value.postings.size)
+        assertEquals(FeedLoadMoreState.Ready, viewModel.state.value.loadMore)
+    }
+
+    @Test
+    fun `오프라인 스냅샷은 커서를 비워 더 찾아보기를 걸지 않는다`() {
+        // 스냅샷에는 이어 읽을 다음 페이지가 없다 — 「더 찾아보기」를 권하면 눌러도 갈 곳이 없다.
+        val viewModel =
+            viewModel(postingRepository = offlinePostings(), snapshotRepository = FakeFeedSnapshotRepository(initial = snapshot(7L)))
+
+        viewModel.showOfflineSnapshot()
+
+        assertFalse(viewModel.state.value.hasNext)
+        assertEquals(FeedLoadMoreState.Ready, viewModel.state.value.loadMore)
     }
 
     @Test

@@ -21,6 +21,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -248,20 +249,79 @@ class FeedScreenTest {
 
     @Test
     fun loadingMore_appendsProgressRowBelowListings() {
-        composeRule.setContent {
-            CareerCompassTheme {
-                FeedScreen(
-                    state = sampleState(),
-                    onEvent = {},
-                    listState = rememberLazyListState(),
-                    onLoadMore = {},
-                    isLoadingMore = true,
-                )
-            }
-        }
+        composeRule.setPagingFeedContent(loadMore = FeedLoadMoreState.Loading)
 
         composeRule.onNodeWithText(SAMPLE_LISTING_TITLE).assertIsDisplayed()
         composeRule.onNodeWithText("공고를 더 불러오는 중이에요").assertIsDisplayed()
+    }
+
+    @Test
+    fun pausedLoadMore_offersSearchFurtherRowAndDoesNotRetryOnScrollAlone() {
+        // 자동 추적이 상한에서 선 자리 — 아무것도 안 그리면 목록이 끝난 것처럼 보인다. 그렇다고 스크롤만으로
+        // 다시 걸리게 두면 걸러질 페이지만 끝없이 받는다. 이어 갈 길은 버튼 하나뿐이어야 한다.
+        val events = mutableListOf<FeedUiEvent>()
+        var autoLoadMoreCalls = 0
+        composeRule.setPagingFeedContent(
+            loadMore = FeedLoadMoreState.Paused,
+            onEvent = events::add,
+            onLoadMore = { autoLoadMoreCalls++ },
+        )
+
+        composeRule.onNodeWithText("여기까지 찾았어요").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("더 찾아보기").performScrollTo().performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(0, autoLoadMoreCalls)
+            assertEquals(listOf(FeedUiEvent.LoadMoreSelected), events)
+        }
+    }
+
+    @Test
+    fun failedLoadMore_offersRetryRowAndDoesNotRetryOnScrollAlone() {
+        // 스낵바는 지나가 버린다 — 다시 시도할 길이 목록 안에 남아 있어야 한다. 대신 바닥에 머무르는 것만으로
+        // 재시도가 돌면, 네트워크가 죽어 있는 동안 같은 실패가 무한히 되풀이된다.
+        val events = mutableListOf<FeedUiEvent>()
+        var autoLoadMoreCalls = 0
+        composeRule.setPagingFeedContent(
+            loadMore = FeedLoadMoreState.Failed,
+            onEvent = events::add,
+            onLoadMore = { autoLoadMoreCalls++ },
+        )
+
+        composeRule.onNodeWithText("공고를 더 불러오지 못했어요").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("다시 시도").performScrollTo().performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(0, autoLoadMoreCalls)
+            assertEquals(listOf(FeedUiEvent.LoadMoreSelected), events)
+        }
+    }
+
+    @Test
+    fun readyLoadMore_pagesAutomaticallyWithoutAnyFooterRow() {
+        var autoLoadMoreCalls = 0
+        composeRule.setPagingFeedContent(loadMore = FeedLoadMoreState.Ready, onLoadMore = { autoLoadMoreCalls++ })
+
+        composeRule.onAllNodesWithText("여기까지 찾았어요").assertCountEquals(0)
+        composeRule.onAllNodesWithText("다시 시도").assertCountEquals(0)
+        composeRule.onAllNodesWithText("공고를 더 불러오는 중이에요").assertCountEquals(0)
+        composeRule.runOnIdle { assertEquals(1, autoLoadMoreCalls) }
+    }
+
+    @Test
+    fun emptyStateWithMorePages_offersToKeepReadingInsteadOfClearingConditions() {
+        // 커서가 남았으면 「결과 없음」이 아니다 — 지울 검색어를 권하는 대신 이어 읽게 한다.
+        val events = mutableListOf<FeedUiEvent>()
+        composeRule.setFeedContent(state = emptyState(FeedEmptyReason.MoreAvailable), onEvent = events::add)
+
+        composeRule.onNodeWithText("여기까지는 찾지 못했어요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("검색어 지우기").assertCountEquals(0)
+        composeRule.onAllNodesWithText("필터 초기화").assertCountEquals(0)
+        composeRule.onNodeWithText("더 찾아보기").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedUiEvent.LoadMoreSelected), events)
+        }
     }
 
     @Test
@@ -287,6 +347,25 @@ class FeedScreenTest {
                     FeedUiEvent.ListingSelected(SAMPLE_LISTING_ID),
                 ),
                 events,
+            )
+        }
+    }
+}
+
+/** 이어 읽기가 걸린 목록 — 페이징 상태만 갈아 끼운다. 카드가 하나라 목록은 처음부터 바닥이다. */
+private fun ComposeContentTestRule.setPagingFeedContent(
+    loadMore: FeedLoadMoreState,
+    onEvent: (FeedUiEvent) -> Unit = {},
+    onLoadMore: () -> Unit = {},
+) {
+    setContent {
+        CareerCompassTheme {
+            FeedScreen(
+                state = sampleState(),
+                onEvent = onEvent,
+                listState = rememberLazyListState(),
+                onLoadMore = onLoadMore,
+                loadMore = loadMore,
             )
         }
     }
