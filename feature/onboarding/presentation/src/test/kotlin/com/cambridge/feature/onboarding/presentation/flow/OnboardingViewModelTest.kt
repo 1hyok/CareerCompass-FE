@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.flow
 
+import androidx.lifecycle.SavedStateHandle
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeExperienceRepository
 import com.cambridge.core.domain.testing.FakePastApplicationRepository
@@ -84,7 +85,7 @@ class OnboardingViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel() =
+    private fun createViewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) =
         OnboardingViewModel(
             resolveOnboardingEntry = ResolveOnboardingEntryUseCase(userProfileRepository, progressRepository),
             saveBasicInfo = SaveBasicInfoUseCase(userProfileRepository, progressRepository),
@@ -100,6 +101,7 @@ class OnboardingViewModelTest {
             updatePastApplicationItemCategory = UpdatePastApplicationItemCategoryUseCase(pastApplicationRepository),
             completeOnboarding = CompleteOnboardingUseCase(progressRepository, userProfileRepository),
             errorReporter = reporter,
+            savedStateHandle = savedStateHandle,
         )
 
     // ---- 진입·재개 ----

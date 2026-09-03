@@ -1,5 +1,6 @@
 package com.cambridge.careercompass_fe.session
 
+import androidx.lifecycle.SavedStateHandle
 import com.cambridge.careercompass_fe.navigation.AppDeepLink
 import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.error.CoreDataFailure
@@ -79,11 +80,13 @@ class MainViewModelTest {
     private fun mainViewModel(
         authRepository: FakeAuthRepository,
         userProfileRepository: FakeUserProfileRepository,
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
     ) = MainViewModel(
         authRepository,
         userProfileRepository,
         ResolveSessionEntryUseCase(authRepository, userProfileRepository),
         reporter,
+        savedStateHandle,
     )
 
     @Test
@@ -287,6 +290,52 @@ class MainViewModelTest {
         assertEquals(AppStartDestination.Login, second.destination)
         assertNotEquals(first.revision, second.revision)
         assertTrue(second.revision > first.revision)
+    }
+
+    // ── 프로세스 재생성 (#133) ────────────────────────────────────────────────
+
+    /**
+     * 세션이 살아 있는 재생성에서는 NavHost 세대가 이어져야 한다 — 세대가 바뀌면 `rememberNavController` 가
+     * 이전 저장 상태를 못 찾고, 백스택과 함께 거기 매달린 온보딩 입력 초안까지 버려진다.
+     */
+    @Test
+    fun `세션이 그대로인 프로세스 재생성은 NavHost 세대를 잇는다`() {
+        val handle = SavedStateHandle()
+        val before = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)), handle)
+        assertEquals(AppStartDestination.Onboarding, before.destination)
+
+        val after = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)), handle)
+
+        assertEquals(AppStartDestination.Onboarding, after.destination)
+        assertEquals(requireNotNull(before.launch.value).revision, requireNotNull(after.launch.value).revision)
+    }
+
+    @Test
+    fun `인증이 다시 필요해진 재생성은 세대를 올려 이전 백스택을 버린다`() {
+        val handle = SavedStateHandle()
+        val before = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)), handle)
+
+        // 그 사이 세션이 사라졌다 — 되살아난 백스택이 로그인 게이트를 건너뛰면 안 된다.
+        val after = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict(), handle)
+
+        assertEquals(AppStartDestination.Login, after.destination)
+        assertNotEquals(requireNotNull(before.launch.value).revision, requireNotNull(after.launch.value).revision)
+    }
+
+    @Test
+    fun `지문 확인이 남은 재생성도 세대를 올린다`() {
+        val handle = SavedStateHandle()
+        val before = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(true)), handle)
+
+        val after =
+            mainViewModel(
+                FakeAuthRepository(loggedIn = true, biometricEnabled = true),
+                FakeUserProfileRepository(profile(true)),
+                handle,
+            )
+
+        assertEquals(AppStartDestination.BiometricLogin, after.destination)
+        assertNotEquals(requireNotNull(before.launch.value).revision, requireNotNull(after.launch.value).revision)
     }
 
     @Test

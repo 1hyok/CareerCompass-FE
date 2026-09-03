@@ -44,7 +44,8 @@ public class MainActivity : FragmentActivity() {
                 launch?.let { current ->
                     // 세션 종료(로그아웃·만료)마다 revision 이 올라 NavHost 를 새로 만든다 — 같은 컨트롤러의
                     // startDestination 만 바꾸면 이전 백스택이 남고, 목적지 값만 키로 쓰면 같은 값일 때 아무
-                    // 일도 일어나지 않는다. 프로세스 재생성 시에는 시작 목적지부터 다시 시작한다(백스택 미복원).
+                    // 일도 일어나지 않는다. 프로세스 재생성에서는 인증이 다시 필요할 때만 올라간다 — 세션이
+                    // 그대로면 이전 백스택과 거기 매달린 입력 초안이 함께 복원된다(#133).
                     key(current.revision) {
                         AppNavigation(
                             startDestination = current.destination,
