@@ -34,18 +34,68 @@ public fun FeedScreenLargeFontPreview() {
     FeedPreviewSurface(state = feedPreviewState())
 }
 
+/**
+ * 빈 피드는 사유마다 다른 화면이다 — 사유별로 골든을 둔다.
+ *
+ * 가장 나쁜 경우가 첫 줄이다. 온보딩을 막 마쳐 게시판이 0개인 사용자는 바꿀 검색어도 필터도 없으므로,
+ * 이 화면에 게시판 등록으로 가는 버튼이 실제로 그려지는지가 골든이 지켜야 할 것이다.
+ */
 @PreviewTest
-@Preview(name = "Empty feed", widthDp = 360, heightDp = 772)
+@Preview(name = "Empty feed - no boards", widthDp = 360, heightDp = 772)
 @Composable
-public fun EmptyFeedScreenPreview() {
+public fun EmptyFeedNoBoardsPreview() {
+    FeedPreviewSurface(state = emptyFeedPreviewState(FeedEmptyReason.NoBoards))
+}
+
+@PreviewTest
+@Preview(name = "Empty feed - search", widthDp = 360, heightDp = 772)
+@Composable
+public fun EmptyFeedSearchPreview() {
+    // 검색어와 필터가 함께 걸린 화면 — 검색어를 먼저 말한다(FeedEmptyReason KDoc 의 우선순위).
     FeedPreviewSurface(
         state =
-            feedPreviewState().copy(
-                totalListingCount = 0,
-                content = FeedContentState.Empty,
+            emptyFeedPreviewState(FeedEmptyReason.Search("백엔드")).copy(
+                searchQuery = "백엔드",
+                activeFilterCount = 2,
             ),
     )
 }
+
+@PreviewTest
+@Preview(name = "Empty feed - filter", widthDp = 360, heightDp = 772)
+@Composable
+public fun EmptyFeedFilterPreview() {
+    FeedPreviewSurface(state = emptyFeedPreviewState(FeedEmptyReason.Filter).copy(activeFilterCount = 2))
+}
+
+@PreviewTest
+@Preview(name = "Empty feed - not collected", widthDp = 360, heightDp = 772)
+@Composable
+public fun EmptyFeedNotCollectedPreview() {
+    // 게시판은 있고 조건도 없다 — 되돌릴 것이 없으므로 행동 대신 언제 들어오는지를 말한다.
+    FeedPreviewSurface(
+        state =
+            emptyFeedPreviewState(
+                FeedEmptyReason.NotCollected("등록한 게시판을 1일 1회 확인하고 있어요"),
+            ),
+    )
+}
+
+@PreviewTest
+@Preview(name = "Empty feed - offline snapshot", widthDp = 360, heightDp = 772)
+@Composable
+public fun EmptyFeedOfflineSnapshotPreview() {
+    // 오프라인 배너와 빈 상태가 각자 다른 사실을 말한다 — 배너는 「저장본을 보는 중」, 본문은 「그 안에 없다」.
+    FeedPreviewSurface(
+        state =
+            emptyFeedPreviewState(FeedEmptyReason.OfflineSnapshot).copy(
+                offlineNotice = "오프라인 · 9월 3일 14:20 기준 목록",
+            ),
+    )
+}
+
+// 빈 상태의 큰 글꼴 골든은 두지 않는다 — 같은 부품(core:ui `CareerCompassEmptyState`)의 2.0 배율
+// 골든이 이미 있고, 글자 수는 loaded 화면이 최악이다(docs/testing/screenshot.md 「무엇을 넣고 무엇을 뺐나」).
 
 @PreviewTest
 @Preview(name = "Loading feed", widthDp = 360, heightDp = 772)
@@ -110,6 +160,21 @@ private fun FeedPreviewSurface(
         }
     }
 }
+
+/**
+ * 빈 목록 골든의 공통 바탕 — 헤더·정렬 줄은 그대로 두고 목록 자리만 사유별 빈 상태로 바꾼다.
+ *
+ * 헤더의 필터 배지는 기본으로 끈다. 사유와 어긋난 배지(게시판 0개인데 「2개 적용」)가 붙어 있으면 골든
+ * 한 장이 두 가지를 말하게 되어, 정작 봐야 할 안내·행동이 흐려진다. 조건이 사유의 근거인 화면
+ * (검색어·필터)만 배지를 켠다.
+ */
+private fun emptyFeedPreviewState(reason: FeedEmptyReason): FeedUiState =
+    feedPreviewState().copy(
+        newListingCount = 0,
+        totalListingCount = 0,
+        content = FeedContentState.Empty(reason),
+        activeFilterCount = 0,
+    )
 
 private fun feedPreviewState(): FeedUiState =
     FeedUiState(

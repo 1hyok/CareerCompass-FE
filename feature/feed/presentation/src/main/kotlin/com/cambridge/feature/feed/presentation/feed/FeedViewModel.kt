@@ -66,6 +66,7 @@ public class FeedViewModel
         private var loadJob: Job? = null
         private var loadMoreJob: Job? = null
         private var searchJob: Job? = null
+        private var boardsJob: Job? = null
 
         init {
             viewModelScope.launch {
@@ -90,6 +91,16 @@ public class FeedViewModel
 
                 FeedUiEvent.FilterRequested -> {
                     _state.update { it.copy(filterDraft = FeedFilterDraft.from(it.query)) }
+                }
+
+                FeedUiEvent.FilterResetSelected -> {
+                    // 시트의 「초기화」와 같은 기본값을 쓴다 — 빈 목록에서 푸는 조건과 시트에서 푸는
+                    // 조건이 갈리면, 초기화했는데도 목록이 그대로인 경우가 생긴다.
+                    applyQuery(FeedFilterDraft.Default.applyTo(_state.value.query) ?: return)
+                }
+
+                FeedUiEvent.BoardRegisterSelected -> {
+                    onBoardRegisterRequested()
                 }
 
                 FeedUiEvent.SortMenuRequested -> {
@@ -250,6 +261,18 @@ public class FeedViewModel
         /** 오류 화면의 「다시 시도」 — 처음부터 다시 읽는다. */
         public fun retry() {
             load()
+        }
+
+        /**
+         * 화면에 돌아올 때마다 게시판 목록만 다시 읽는다.
+         *
+         * 빈 피드가 「등록한 게시판이 없어요」라고 말한 뒤 사용자가 등록하고 돌아오는 길이 생겼다. 그때
+         * 게시판을 다시 읽지 않으면 방금 등록한 사람에게 같은 안내가 그대로 남는다. 공고는 다시 읽지
+         * 않는다 — 첫 수집이 끝나기 전이라 결과가 같고, 목록·스크롤을 흔들 이유가 없다.
+         */
+        public fun refreshBoards() {
+            if (boardsJob?.isActive == true) return
+            loadBoards()
         }
 
         /**
@@ -435,12 +458,19 @@ public class FeedViewModel
             }
         }
 
+        /**
+         * 게시판 목록 — 필터 시트의 선택지이자 빈 피드 사유 판정의 근거다.
+         *
+         * 실패해도 피드는 막지 않되 [FeedViewState.boardsLoaded] 를 켜지 않는다 — 못 받은 것을 0개로
+         * 읽으면 게시판이 있는 사용자에게 「등록한 게시판이 없어요」라고 하게 된다.
+         */
         private fun loadBoards() {
-            viewModelScope.launch {
-                getBoards()
-                    .onSuccess { boards -> _state.update { it.copy(boards = boards) } }
-                    .onFailure { recordFailure(FeedFailureStage.FilterBoards, it) }
-            }
+            boardsJob =
+                viewModelScope.launch {
+                    getBoards()
+                        .onSuccess { boards -> _state.update { it.copy(boards = boards, boardsLoaded = true) } }
+                        .onFailure { recordFailure(FeedFailureStage.FilterBoards, it) }
+                }
         }
 
         private fun loadTodayCount() {

@@ -118,6 +118,9 @@ public data class FeedFilterDraft(
  * @property profile 마지막으로 받은 내 프로필. 인사말과 적합도 표시 판정의 근거다. 아직 못 받았으면 null.
  * @property searchInput 입력창의 현재 글자. 300ms 뒤 [query] 의 `searchQuery` 로 옮겨진다.
  * @property query 서버·클라이언트 조회 조건(카테고리 칩 = `types`, 필터 시트 = 나머지, 정렬 포함).
+ * @property boards 등록된 게시판. 필터 시트의 선택지이자 빈 피드 사유 판정의 근거다.
+ * @property boardsLoaded 게시판 목록을 실제로 받아 봤는가 — 조회에 실패해 비어 있는 것과 정말 0개인 것을
+ *  가른다. 이 구분이 없으면 게시판 조회만 실패한 사용자에게 「등록한 게시판이 없어요」라고 하게 된다.
  * @property postings 지금까지 받은 페이지의 누적 목록. 오프라인 모드에서는 스냅샷의 목록.
  * @property filterDraft 필터 시트가 열려 있으면 편집 중인 조건, 닫혀 있으면 null.
  * @property offlineSnapshot 네트워크 단절 실패 직후 읽어 둔 스냅샷 — 있으면 오류 화면에 「오프라인 모드로 보기」가 열린다.
@@ -130,6 +133,7 @@ public data class FeedViewState(
     val searchInput: String = "",
     val query: FeedQuery = FeedQuery(),
     val boards: List<Board> = emptyList(),
+    val boardsLoaded: Boolean = false,
     val postings: List<Posting> = emptyList(),
     val nextCursor: String? = null,
     val loadState: FeedLoadState = FeedLoadState.Loading,
@@ -166,4 +170,13 @@ public data class FeedViewState(
                 query.minScore != null,
                 query.unreadOnly,
             ).count { it }
+
+    /**
+     * 검색어 말고 목록을 좁히는 조건이 하나라도 걸려 있는가 — 빈 목록을 필터 탓으로 돌릴 근거다.
+     *
+     * 배지([activeFilterCount])와 달리 카테고리 칩도 센다. 배지는 「시트를 열어야 보이는 조건이 몇 개인가」
+     * 를 말하지만, 여기서는 「초기화하면 결과가 달라지는가」를 묻기 때문이다 — 칩도 풀면 달라진다.
+     */
+    public val hasActiveFilter: Boolean
+        get() = activeFilterCount > 0 || selectedCategory != FeedListingCategory.All
 }

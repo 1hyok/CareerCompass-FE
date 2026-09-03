@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedScreen
@@ -52,6 +53,12 @@ public fun FeedEntry(
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
 
+    // 게시판 등록에서 돌아온 길을 위해서다 — 빈 피드가 「등록한 게시판이 없어요」라고 보낸 사용자가
+    // 등록을 마치고 돌아오면, 게시판을 다시 읽어야 같은 안내가 남지 않는다.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshBoards()
+        onPauseOrDispose { }
+    }
     val pendingNavigation = state.pendingNavigation
     LaunchedEffect(pendingNavigation) {
         if (pendingNavigation == null) return@LaunchedEffect

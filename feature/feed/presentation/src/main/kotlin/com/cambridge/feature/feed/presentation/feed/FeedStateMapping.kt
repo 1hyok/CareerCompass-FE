@@ -4,12 +4,16 @@ import android.content.res.Resources
 import androidx.annotation.StringRes
 import com.cambridge.core.model.board.Board
 import com.cambridge.feature.feed.presentation.FeedContentState
+import com.cambridge.feature.feed.presentation.FeedEmptyReason
 import com.cambridge.feature.feed.presentation.FeedUiState
 import com.cambridge.feature.feed.presentation.R
+import com.cambridge.feature.feed.presentation.board.BoardCollectCycle
+import com.cambridge.feature.feed.presentation.board.labelRes
 import com.cambridge.feature.feed.presentation.feedfilter.FeedBoardFilterUiModel
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterUiState
 import com.cambridge.feature.feed.presentation.shared.util.feedCategoryFilters
+import com.cambridge.feature.feed.presentation.shared.util.toCollectCycle
 import com.cambridge.feature.feed.presentation.shared.util.toListingUiModel
 import com.cambridge.feature.feed.presentation.shared.util.toMinScoreFilter
 import com.cambridge.feature.feed.presentation.shared.util.toSortOption
@@ -35,13 +39,51 @@ internal fun FeedViewState.toFeedUiState(
         content =
             when {
                 loadState == FeedLoadState.Loading -> FeedContentState.Loading
-                postings.isEmpty() -> FeedContentState.Empty
+                postings.isEmpty() -> FeedContentState.Empty(toEmptyReason(resources))
                 else -> FeedContentState.Loaded(postings.map { it.toListingUiModel(resources, clock, profile) })
             },
         activeFilterCount = activeFilterCount,
         offlineNotice = offlineSavedAt?.let { savedAt -> resources.getString(R.string.feed_offline_notice, savedAt.toNoticeLabel(clock)) },
         isProfileNoticeVisible = isProfileNoticeVisible,
     )
+
+/**
+ * 목록이 빈 사유를 하나 고른다. 겹칠 때의 우선순위와 그 근거는 [FeedEmptyReason] 의 KDoc 에 있다.
+ *
+ * 「게시판 0개」는 목록을 **받아 본 뒤에만** 말한다([FeedViewState.boardsLoaded]) — 게시판 조회는 피드
+ * 조회와 별개로 실패할 수 있고(실패해도 피드는 막지 않는다), 그때 빈 목록을 0개로 읽으면 게시판을 20개
+ * 등록해 둔 사용자에게 등록하라고 하게 된다. 아직 모르면 조건 쪽 사유로 내려간다.
+ */
+internal fun FeedViewState.toEmptyReason(resources: Resources): FeedEmptyReason =
+    when {
+        isOffline -> FeedEmptyReason.OfflineSnapshot
+        boardsLoaded && boards.isEmpty() -> FeedEmptyReason.NoBoards
+        query.hasSearchQuery -> FeedEmptyReason.Search(query.searchQuery)
+        hasActiveFilter -> FeedEmptyReason.Filter
+        else -> FeedEmptyReason.NotCollected(boards.toCollectNotice(resources))
+    }
+
+/**
+ * 「언제쯤 들어오나」 한 줄 — 수집이 도는 게시판이 없으면 null 이라 아무 말도 하지 않는다.
+ *
+ * **주기가 게시판마다 다르면 가장 짧은 주기를 말한다.** 사용자가 묻는 것은 「목록이 언제 달라지나」이고,
+ * 그 답은 가장 먼저 도는 게시판이 정한다. 가장 긴 주기를 말하면 이미 들어와 있을 시각에도 더 기다리라고
+ * 하게 되고, 평균은 어느 게시판의 주기도 아니라 근거가 없다. 대신 문구를 「가장 자주 보는 게시판을 …」로
+ * 갈아 끼워, 나머지 게시판이 더 느리다는 사실을 숨기지 않는다.
+ *
+ * 꺼 둔 게시판은 세지 않는다 — 수집이 돌지 않으므로 그 주기는 목록이 달라질 시점을 말해 주지 않는다.
+ */
+private fun List<Board>.toCollectNotice(resources: Resources): String? {
+    val cycles = filter(Board::isActive).map { it.cycleHours.toCollectCycle() }
+    val shortest = cycles.minByOrNull(BoardCollectCycle::hours) ?: return null
+    val noticeRes =
+        if (cycles.distinct().size == 1) {
+            R.string.feed_empty_collect_notice
+        } else {
+            R.string.feed_empty_collect_notice_mixed
+        }
+    return resources.getString(noticeRes, resources.getString(shortest.labelRes()))
+}
 
 /** 시트 초안 → 시트 계약. 목록에 없는 게시판 선택은 버린다(계약 불변식). 건수 미리 계산은 없어 `null`. */
 internal fun FeedFilterDraft.toFilterUiState(
