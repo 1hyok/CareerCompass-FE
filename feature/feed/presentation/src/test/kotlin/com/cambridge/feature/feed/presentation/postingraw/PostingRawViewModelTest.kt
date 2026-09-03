@@ -59,7 +59,8 @@ class PostingRawViewModelTest {
         val viewModel = viewModel(repository)
 
         assertEquals(PostingRawLoadState.Failed(isNetworkUnavailable = true), viewModel.state.value.loadState)
-        assertEquals(listOf("posting_raw"), reporter.stages)
+        // 네트워크 단절은 예상된 상태다 — 화면이 사유를 그대로 안내하므로 결함으로 기록하지 않는다.
+        assertTrue(reporter.records.isEmpty())
 
         repository.onGetPostingDetail = null
         viewModel.retry()

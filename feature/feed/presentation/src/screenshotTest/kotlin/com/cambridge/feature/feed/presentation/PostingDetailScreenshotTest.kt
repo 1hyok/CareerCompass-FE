@@ -95,6 +95,14 @@ public fun PostingDetailErrorPreview() {
     )
 }
 
+@PreviewTest
+@Preview(name = "Posting detail maintenance", widthDp = 360, heightDp = 772)
+@Composable
+public fun PostingDetailMaintenancePreview() {
+    // 서버 점검(503) — 한 줄 오류 문구가 아니라 점검 안내다. 상세는 스냅샷이 없어 오프라인 경로가 없다.
+    PostingDetailPreviewSurface(state = PostingDetailUiState(PostingDetailContentState.Maintenance))
+}
+
 @Composable
 private fun PostingDetailPreviewSurface(
     state: PostingDetailUiState,

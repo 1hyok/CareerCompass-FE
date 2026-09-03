@@ -32,6 +32,7 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortOption
 import com.cambridge.feature.feed.presentation.posting
 import com.cambridge.feature.feed.presentation.profile
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -78,6 +79,11 @@ class FeedViewModelTest {
     private fun offlinePostings() =
         FakePostingRepository().apply {
             onGetPostings = { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
+        }
+
+    private fun maintenancePostings(initial: List<Posting> = emptyList()) =
+        FakePostingRepository(initial = initial).apply {
+            onGetPostings = { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException())) }
         }
 
     private fun snapshot(vararg ids: Long) = FeedSnapshot(postings = ids.map { posting(id = it) }, savedAt = FIXED_CLOCK.instant())
@@ -422,7 +428,8 @@ class FeedViewModelTest {
                     .isBookmarked,
             )
             assertEquals(FeedMessage.BookmarkFailed, viewModel.state.value.message)
-            assertEquals(listOf("bookmark"), reporter.stages)
+            // 네트워크 단절은 예상된 상태다 — 스낵바로 알리되 결함으로 기록하지 않는다.
+            assertTrue(reporter.records.isEmpty())
             viewModel.onMessageConsumed()
             assertNull(viewModel.state.value.message)
         }
@@ -449,8 +456,7 @@ class FeedViewModelTest {
         repository.onGetPostings = { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
         val viewModel = viewModel(postingRepository = repository)
 
-        assertEquals(FeedLoadState.Failed(isNetworkUnavailable = true), viewModel.state.value.loadState)
-        assertTrue(reporter.stages.contains("feed_load"))
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.NetworkUnavailable), viewModel.state.value.loadState)
 
         repository.onGetPostings = null
         viewModel.retry()
@@ -468,7 +474,39 @@ class FeedViewModelTest {
         val repository = FakePostingRepository()
         repository.onGetPostings = { Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", RuntimeException())) }
 
-        assertEquals(FeedLoadState.Failed(isNetworkUnavailable = false), viewModel(postingRepository = repository).state.value.loadState)
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.Generic), viewModel(postingRepository = repository).state.value.loadState)
+        assertTrue(reporter.stages.contains("feed_load"))
+    }
+
+    @Test
+    fun `서버 점검 503 은 점검 상태가 되고 다시 시도로 복구한다`() {
+        val repository = maintenancePostings(initial = listOf(posting(id = 1)))
+        val viewModel = viewModel(postingRepository = repository)
+
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.Maintenance), viewModel.state.value.loadState)
+
+        repository.onGetPostings = null
+        viewModel.retry()
+
+        assertEquals(FeedLoadState.Loaded, viewModel.state.value.loadState)
+    }
+
+    @Test
+    fun `네트워크 단절과 서버 점검은 결함으로 기록하지 않는다`() {
+        viewModel(postingRepository = offlinePostings())
+        viewModel(postingRepository = maintenancePostings())
+
+        assertTrue(reporter.records.isEmpty())
+    }
+
+    @Test
+    fun `서버 점검으로 실패해도 저장된 스냅샷을 오프라인 제안으로 싣는다`() {
+        val snapshots = FakeFeedSnapshotRepository(initial = snapshot(7L, 8L))
+
+        val state = viewModel(postingRepository = maintenancePostings(), snapshotRepository = snapshots).state.value
+
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.Maintenance), state.loadState)
+        assertEquals(listOf(7L, 8L), state.offlineSnapshot?.postings?.map(Posting::id))
     }
 
     @Test
@@ -645,7 +683,7 @@ class FeedViewModelTest {
 
         val state = viewModel(postingRepository = offlinePostings(), snapshotRepository = snapshots).state.value
 
-        assertEquals(FeedLoadState.Failed(isNetworkUnavailable = true), state.loadState)
+        assertEquals(FeedLoadState.Failed(FeedFailureReason.NetworkUnavailable), state.loadState)
         assertEquals(listOf(7L, 8L), state.offlineSnapshot?.postings?.map(Posting::id))
         assertFalse(state.isOffline)
     }

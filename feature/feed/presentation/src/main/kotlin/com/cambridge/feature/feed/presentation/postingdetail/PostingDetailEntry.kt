@@ -19,6 +19,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.model.posting.Suitability
 import com.cambridge.feature.feed.presentation.R
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
 import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
 import com.cambridge.feature.feed.presentation.shared.util.toDetailUiModel
@@ -30,6 +31,7 @@ import java.time.Clock
  * 공고 상세 진입점 — 도메인 상세를 [PostingDetailScreen] 계약으로 옮기고 공유·이동·스낵바 신호를 소비한다.
  *
  * 유사 공고 선택은 [onPostingClick] 으로 상세를 하나 더 쌓고, 프로필 입력 안내는 [onProfileClick] 으로 앱 셸에 맡긴다.
+ * 서버 점검은 한 줄 오류 문구가 아니라 [PostingDetailContentState.Maintenance] 로 옮겨 전용 안내 화면이 그려진다.
  */
 @Composable
 public fun PostingDetailEntry(
@@ -121,16 +123,19 @@ internal fun PostingDetailViewState.toUiState(
                 }
 
                 is PostingDetailLoadState.Failed -> {
-                    PostingDetailContentState.Error(
-                        message =
-                            resources.getString(
-                                if (loadState.isNetworkUnavailable) {
-                                    R.string.feed_posting_detail_error_network
-                                } else {
-                                    R.string.feed_posting_detail_error_generic
-                                },
-                            ),
-                    )
+                    when (loadState.reason) {
+                        FeedFailureReason.Maintenance -> {
+                            PostingDetailContentState.Maintenance
+                        }
+
+                        FeedFailureReason.NetworkUnavailable -> {
+                            PostingDetailContentState.Error(resources.getString(R.string.feed_posting_detail_error_network))
+                        }
+
+                        FeedFailureReason.Generic -> {
+                            PostingDetailContentState.Error(resources.getString(R.string.feed_posting_detail_error_generic))
+                        }
+                    }
                 }
 
                 is PostingDetailLoadState.Loaded -> {

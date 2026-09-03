@@ -33,8 +33,6 @@ import com.cambridge.core.model.board.MAX_BOARDS
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.component.CareerCompassEmptyState
-import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedTopBar
@@ -94,19 +92,10 @@ public fun BoardListEntry(
         when (val loadState = state.loadState) {
             is BoardListLoadState.Failed -> {
                 BoardListErrorChrome(onBackClick = { viewModel.onEvent(BoardListEvent.BackClicked) }) {
-                    if (loadState.isNetworkUnavailable) {
-                        CareerCompassNetworkErrorState(
-                            onRetryClick = viewModel::retryLoad,
-                            onOfflineClick = null,
-                        )
-                    } else {
-                        CareerCompassEmptyState(
-                            title = stringResource(R.string.feed_board_list_error_title),
-                            description = stringResource(R.string.feed_board_list_error_description),
-                            actionText = stringResource(R.string.feed_board_list_error_retry),
-                            onActionClick = viewModel::retryLoad,
-                        )
-                    }
+                    BoardListFailureContent(
+                        reason = loadState.reason,
+                        onRetryClick = viewModel::retryLoad,
+                    )
                 }
             }
 
