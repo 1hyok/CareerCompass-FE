@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.board
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
@@ -18,6 +19,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -65,6 +68,9 @@ public data class BoardRegisterViewState(
  * 게시판 등록 — URL → 구조 감지 → 이름·유형·주기 → 등록(기능 스펙 F2-1).
  *
  * URL 이 바뀌면 이전 감지 결과는 무효다. 등록 성공은 [BoardRegisterViewState.isBackRequested] 로 목록에 돌아간다.
+ *
+ * 폼에 친 값은 [BoardRegisterInputDraft] 가 [SavedStateHandle] 에 남긴다 — 주소를 복사하러 브라우저에 다녀오는
+ * 사이 프로세스가 죽어도 폼이 비지 않는다(#137). 무엇을 남기고 무엇을 버리는지는 그 클래스의 KDoc 에 있다.
  */
 @HiltViewModel
 public class BoardRegisterViewModel
@@ -73,11 +79,25 @@ public class BoardRegisterViewModel
         private val detectBoard: DetectBoardUseCase,
         private val registerBoard: RegisterBoardUseCase,
         private val errorReporter: ErrorReporter,
+        savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val _state = MutableStateFlow(BoardRegisterViewState())
+        private val draft = BoardRegisterInputDraft(savedStateHandle)
+
+        private val _state = MutableStateFlow(draft.restoredState())
         public val state: StateFlow<BoardRegisterViewState> = _state.asStateFlow()
 
         private var detectJob: Job? = null
+
+        init {
+            // 값을 바꾸는 자리마다 저장하지 않고 상태 흐름 한 곳에서 남긴다 — 각자 저장하게 두면 언젠가 한
+            // 곳이 빠지고, 빠진 자리는 프로세스가 죽어야 드러난다. 저장 대상이 실제로 바뀔 때만 쓴다.
+            viewModelScope.launch {
+                _state
+                    .map { BoardRegisterInputDraft.Input(url = it.url, name = it.name, type = it.type, cycle = it.cycle) }
+                    .distinctUntilChanged()
+                    .collect(draft::save)
+            }
+        }
 
         public fun onEvent(event: BoardRegisterEvent) {
             when (event) {

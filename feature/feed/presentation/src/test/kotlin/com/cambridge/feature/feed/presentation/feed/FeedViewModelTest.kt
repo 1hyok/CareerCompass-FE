@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.feed
 
+import androidx.lifecycle.SavedStateHandle
 import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeBoardRepository
@@ -60,6 +61,7 @@ class FeedViewModelTest {
         boardRepository: FakeBoardRepository = FakeBoardRepository(initial = listOf(board(id = 1), board(id = 2))),
         profileRepository: FakeUserProfileRepository = FakeUserProfileRepository(initialProfile = profile()),
         snapshotRepository: FakeFeedSnapshotRepository = FakeFeedSnapshotRepository(),
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
     ): FeedViewModel =
         FeedViewModel(
             getFeedPage = GetFeedPageUseCase(postingRepository, FIXED_CLOCK),
@@ -70,6 +72,7 @@ class FeedViewModelTest {
             feedSnapshotRepository = snapshotRepository,
             errorReporter = reporter,
             clock = FIXED_CLOCK,
+            savedStateHandle = savedStateHandle,
         )
 
     /** 희망 직무·관심 태그가 비어 적합도를 낼 수 없는 프로필. */
