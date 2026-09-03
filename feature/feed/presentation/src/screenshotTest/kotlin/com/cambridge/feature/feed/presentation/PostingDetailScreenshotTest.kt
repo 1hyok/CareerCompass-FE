@@ -1,9 +1,14 @@
 package com.cambridge.feature.feed.presentation
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.core.ui.theme.CareerCompassTheme
@@ -15,6 +20,7 @@ import com.cambridge.feature.feed.presentation.postingdetail.PostingFormQuestion
 import com.cambridge.feature.feed.presentation.postingdetail.PostingSuitabilityState
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityAxisUiModel
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityUiModel
+import com.cambridge.feature.feed.presentation.postingdetail.component.SimilarPostingCard
 
 @PreviewTest
 @Preview(name = "Posting detail employment", widthDp = 360, heightDp = 772)
@@ -138,6 +144,66 @@ public fun PostingDetailMaintenancePreview() {
     // 서버 점검(503) — 한 줄 오류 문구가 아니라 점검 안내다. 상세는 스냅샷이 없어 오프라인 경로가 없다.
     PostingDetailPreviewSurface(state = PostingDetailUiState(PostingDetailContentState.Maintenance))
 }
+
+/**
+ * 유사 공고 카드 — 읽은 것과 읽지 않은 것을 나란히 둔다(#165).
+ *
+ * 화면 골든이 아니라 **부품 골든**이다. 상세 화면 골든은 단말 높이(772dp)를 그대로 두는데 유사 공고
+ * 줄은 그 프레임보다 한참 아래라, 이 카드는 지금까지 어느 골든에도 담기지 않았다. 캔버스를 카드가
+ * 들어갈 만큼만 잡아 「✓ 읽음」 배지가 실제로 그려지는지, 읽지 않은 카드와 무엇이 다른지를 못 박는다.
+ */
+@PreviewTest
+@Preview(name = "Similar posting cards", widthDp = 360, heightDp = 300)
+@Composable
+public fun SimilarPostingCardsPreview() {
+    SimilarPostingCardsPreviewSurface()
+}
+
+/**
+ * 같은 카드의 fontScale 2.0 — 메타 줄이 **접히는지** 확인하는 자리다.
+ *
+ * 마감일과 「✓ 읽음」 배지는 `FlowRow` 라 폭이 모자라면 두 줄로 나뉜다. 잘려서 사라지는 것이 아니라
+ * 카드가 세로로 길어지기만 하는지, 체크 표시가 문구를 따라 함께 커지는지(sp 기준)를 여기서 본다.
+ * 캔버스 높이를 키우는 것은 부품 골든이라 허용된다 — `docs/testing/screenshot.md` 「캔버스 높이」.
+ */
+@PreviewTest
+@Preview(name = "Similar posting cards - Large font", widthDp = 360, heightDp = 480, fontScale = LARGE_FONT_SCALE)
+@Composable
+public fun SimilarPostingCardsLargeFontPreview() {
+    SimilarPostingCardsPreviewSurface()
+}
+
+@Composable
+private fun SimilarPostingCardsPreviewSurface() {
+    CareerCompassTheme {
+        Surface(color = CareerCompassTheme.colors.subtleSurface) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SimilarPostingCard(listing = similarPostingPreview(isRead = true), onClick = {})
+                SimilarPostingCard(listing = similarPostingPreview(isRead = false), onClick = {})
+            }
+        }
+    }
+}
+
+private fun similarPostingPreview(isRead: Boolean): FeedListingUiModel =
+    FeedListingUiModel(
+        id = if (isRead) "boostcamp" else "kakao-tech",
+        title = if (isRead) "네이버 부스트캠프 9기 모집" else "카카오테크 캠퍼스 3기 모집",
+        category = FeedListingCategory.Employment,
+        categoryLabel = "채용",
+        sourceLabel = "네이버 채용",
+        suitability = FeedSuitabilityState.Scored(76),
+        // 읽은 쪽에 가장 긴 마감 문구를 물린다 — 마감일과 배지가 한 줄에서 가장 넓게 서는 경우다.
+        deadlineLabel = if (isRead) "오늘 마감" else "D-14",
+        isDeadlineUrgent = isRead,
+        collectedAtLabel = "수집 3일 전",
+        isNew = false,
+        isRead = isRead,
+        isBookmarked = false,
+    )
 
 @Composable
 private fun PostingDetailPreviewSurface(
