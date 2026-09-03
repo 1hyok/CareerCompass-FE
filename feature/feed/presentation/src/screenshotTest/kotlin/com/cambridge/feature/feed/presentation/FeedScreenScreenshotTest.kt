@@ -56,6 +56,7 @@ public fun EmptyFeedSearchPreview() {
         state =
             emptyFeedPreviewState(FeedEmptyReason.Search("백엔드")).copy(
                 searchQuery = "백엔드",
+                activeFilterCount = 2,
             ),
     )
 }
@@ -64,7 +65,7 @@ public fun EmptyFeedSearchPreview() {
 @Preview(name = "Empty feed - filter", widthDp = 360, heightDp = 772)
 @Composable
 public fun EmptyFeedFilterPreview() {
-    FeedPreviewSurface(state = emptyFeedPreviewState(FeedEmptyReason.Filter))
+    FeedPreviewSurface(state = emptyFeedPreviewState(FeedEmptyReason.Filter).copy(activeFilterCount = 2))
 }
 
 @PreviewTest
@@ -76,7 +77,7 @@ public fun EmptyFeedNotCollectedPreview() {
         state =
             emptyFeedPreviewState(
                 FeedEmptyReason.NotCollected("등록한 게시판을 1일 1회 확인하고 있어요"),
-            ).copy(activeFilterCount = 0),
+            ),
     )
 }
 
@@ -89,7 +90,6 @@ public fun EmptyFeedOfflineSnapshotPreview() {
         state =
             emptyFeedPreviewState(FeedEmptyReason.OfflineSnapshot).copy(
                 offlineNotice = "오프라인 · 9월 3일 14:20 기준 목록",
-                activeFilterCount = 0,
             ),
     )
 }
@@ -161,12 +161,19 @@ private fun FeedPreviewSurface(
     }
 }
 
-/** 빈 목록 골든의 공통 바탕 — 헤더·정렬 줄은 그대로 두고 목록 자리만 사유별 빈 상태로 바꾼다. */
+/**
+ * 빈 목록 골든의 공통 바탕 — 헤더·정렬 줄은 그대로 두고 목록 자리만 사유별 빈 상태로 바꾼다.
+ *
+ * 헤더의 필터 배지는 기본으로 끈다. 사유와 어긋난 배지(게시판 0개인데 「2개 적용」)가 붙어 있으면 골든
+ * 한 장이 두 가지를 말하게 되어, 정작 봐야 할 안내·행동이 흐려진다. 조건이 사유의 근거인 화면
+ * (검색어·필터)만 배지를 켠다.
+ */
 private fun emptyFeedPreviewState(reason: FeedEmptyReason): FeedUiState =
     feedPreviewState().copy(
         newListingCount = 0,
         totalListingCount = 0,
         content = FeedContentState.Empty(reason),
+        activeFilterCount = 0,
     )
 
 private fun feedPreviewState(): FeedUiState =
