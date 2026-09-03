@@ -107,9 +107,58 @@ class PostingDetailScreenTest {
             .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("매우 적합").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("분야 유사도 가중치 40%, 95점").assertExists()
+        composeRule.onNodeWithContentDescription("분야 유사도 가중치 40%, 95점, 충족").assertExists()
         composeRule.onNodeWithText(STRENGTH_COMMENT).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(WEAKNESS_COMMENT).performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * 충족 여부는 막대 색이 아니라 글자로도 있어야 한다(F3-3) — 색각 이상·흑백 환경에서
+     * 색만 남으면 아무 정보도 아니다. 접근성 문구에도 같은 말이 실린다.
+     */
+    @Test
+    fun breakdownAxes_labelFulfillmentInTextAndContentDescription() {
+        composeRule.setDetailContent(
+            state =
+                loadedState(
+                    posting =
+                        samplePosting(
+                            suitability =
+                                PostingSuitabilityState.Ready(
+                                    sampleSuitability().copy(
+                                        breakdown =
+                                            listOf(
+                                                SuitabilityAxisUiModel(label = "분야 유사도", score = 60, weightLabel = "40%"),
+                                                SuitabilityAxisUiModel(label = "경쟁 강도", score = 59, weightLabel = "10%"),
+                                            ),
+                                    ),
+                                ),
+                        ),
+                ),
+        )
+
+        composeRule.onNodeWithContentDescription("분야 유사도 가중치 40%, 60점, 충족").assertExists()
+        composeRule.onNodeWithContentDescription("경쟁 강도 가중치 10%, 59점, 미충족").assertExists()
+        composeRule.onNodeWithText("충족", substring = false).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("미충족").performScrollTo().assertIsDisplayed()
+    }
+
+    /** 축이 비어 오면 「모름」 이다 — 0점짜리 축 4개를 그려 「미충족」 으로 읽히게 두지 않는다. */
+    @Test
+    fun emptyBreakdown_saysScoresAreUnknownInsteadOfDrawingUnfulfilledAxes() {
+        composeRule.setDetailContent(
+            state =
+                loadedState(
+                    posting =
+                        samplePosting(
+                            suitability =
+                                PostingSuitabilityState.Ready(sampleSuitability().copy(breakdown = emptyList())),
+                        ),
+                ),
+        )
+
+        composeRule.onNodeWithText("축별 세부 점수는 아직 없어요").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("미충족").assertCountEquals(0)
     }
 
     @Test

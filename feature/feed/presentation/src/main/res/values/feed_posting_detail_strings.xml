@@ -9,7 +9,10 @@
     <string name="feed_posting_detail_suitability_title">AI 적합도 분석</string>
     <string name="feed_posting_detail_score_max" translatable="false">/100</string>
     <string name="feed_posting_detail_suitability_content_description">적합도 %1$d점, %2$s</string>
-    <string name="feed_posting_detail_axis_content_description">%1$s 가중치 %2$s, %3$d점</string>
+    <string name="feed_posting_detail_axis_content_description">%1$s 가중치 %2$s, %3$d점, %4$s</string>
+    <string name="feed_posting_detail_axis_fulfilled">충족</string>
+    <string name="feed_posting_detail_axis_unfulfilled">미충족</string>
+    <string name="feed_posting_detail_breakdown_unavailable">축별 세부 점수는 아직 없어요</string>
     <string name="feed_posting_detail_strength_title">강점</string>
     <string name="feed_posting_detail_weakness_title">약점</string>
     <string name="feed_posting_detail_profile_incomplete">프로필을 입력하면 적합도를 확인할 수 있어요</string>

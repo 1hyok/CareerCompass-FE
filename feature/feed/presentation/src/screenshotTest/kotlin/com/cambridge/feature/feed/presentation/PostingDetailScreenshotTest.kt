@@ -35,7 +35,14 @@ public fun PostingDetailEmploymentDarkPreview() {
     )
 }
 
-/** 긴 한국어 제목·점수 칩·축 목록이 한 화면에 있는 최악의 경우. */
+/**
+ * 긴 한국어 제목·점수 칩·축 목록이 한 화면에 있는 최악의 경우.
+ *
+ * 충족 배지가 막대와 같은 줄에서 잘리지 않는지도 여기서 못 박는다. 「미충족」 은 한 글자 더 길지만
+ * 배지가 고정 폭을 먼저 가져가고 막대(`weight`)가 그만큼 줄어드는 구조라 같은 줄이 더 넓어질 뿐이다 —
+ * 2.0 배율에서 첫 축을 미충족으로 바꿔 렌더해 실측으로 확인했다(#141). 고정 `heightDp` 탓에
+ * 미충족 축이 접히는 자리 아래라 골든에는 담기지 않는다.
+ */
 @PreviewTest
 @Preview(name = "Posting detail employment - Large font", widthDp = 360, heightDp = 772, fontScale = LARGE_FONT_SCALE)
 @Composable
@@ -51,6 +58,25 @@ public fun PostingDetailEmploymentLargeFontPreview() {
 public fun PostingDetailContestPreview() {
     PostingDetailPreviewSurface(
         state = PostingDetailUiState(PostingDetailContentState.Loaded(contestPostingPreview())),
+    )
+}
+
+/** 총점은 왔는데 축 분해가 비어 온 경우 — 「모름」 은 0점 축 4개가 아니라 한 줄 안내로 그린다. */
+@PreviewTest
+@Preview(name = "Posting detail breakdown unavailable", widthDp = 360, heightDp = 772)
+@Composable
+public fun PostingDetailBreakdownUnavailablePreview() {
+    val posting = employmentPostingPreview()
+    val ready = posting.suitability as PostingSuitabilityState.Ready
+    PostingDetailPreviewSurface(
+        state =
+            PostingDetailUiState(
+                PostingDetailContentState.Loaded(
+                    posting.copy(
+                        suitability = PostingSuitabilityState.Ready(ready.suitability.copy(breakdown = emptyList())),
+                    ),
+                ),
+            ),
     )
 }
 
@@ -139,7 +165,8 @@ private fun employmentPostingPreview(): PostingDetailUiModel =
         suitability =
             PostingSuitabilityState.Ready(
                 SuitabilityUiModel(
-                    score = 88,
+                    // 총점은 축 가중합 그대로다: 95*.4 + 88*.3 + 78*.2 + 50*.1 = 85.
+                    score = 85,
                     levelLabel = "매우 적합",
                     level = CareerCompassScoreLevel.High,
                     breakdown =
@@ -147,7 +174,7 @@ private fun employmentPostingPreview(): PostingDetailUiModel =
                             SuitabilityAxisUiModel(label = "분야 유사도", score = 95, weightLabel = "40%"),
                             SuitabilityAxisUiModel(label = "자격 조건 충족도", score = 88, weightLabel = "30%"),
                             SuitabilityAxisUiModel(label = "우대 조건 매칭", score = 78, weightLabel = "20%"),
-                            SuitabilityAxisUiModel(label = "경쟁 강도(역점)", score = 80, weightLabel = "10%"),
+                            SuitabilityAxisUiModel(label = "경쟁 강도(역점)", score = 50, weightLabel = "10%"),
                         ),
                     strengthComment = "\"학교 도서관 좌석 알리미\" 프로젝트의 Spring-JPA 경험이 우대 조건과 일치합니다",
                     weaknessComment = "이 공고는 어학 성적을 요구하나 해당 정보가 프로필에 없습니다",
