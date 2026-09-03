@@ -1,7 +1,9 @@
 package com.cambridge.feature.feed.presentation
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FeedContractTest {
@@ -97,13 +99,26 @@ class FeedContractTest {
     }
 
     @Test
-    fun listing_allowsMissingScoreButRejectsOutOfRangeScore() {
-        assertEquals(null, sampleListing().copy(suitabilityScore = null).suitabilityScore)
+    fun listing_carriesReasonWhenScoreIsMissingAndRejectsOutOfRangeScore() {
+        assertEquals(
+            FeedSuitabilityState.Analyzing,
+            sampleListing().copy(suitability = FeedSuitabilityState.Analyzing).suitability,
+        )
+        assertEquals(
+            FeedSuitabilityState.ProfileIncomplete,
+            sampleListing().copy(suitability = FeedSuitabilityState.ProfileIncomplete).suitability,
+        )
         listOf(-1, 101).forEach { score ->
             assertThrows(IllegalArgumentException::class.java) {
-                sampleListing().copy(suitabilityScore = score)
+                FeedSuitabilityState.Scored(score)
             }
         }
+    }
+
+    @Test
+    fun uiState_hidesProfileNoticeByDefault() {
+        assertFalse(sampleUiState().isProfileNoticeVisible)
+        assertTrue(sampleUiState().copy(isProfileNoticeVisible = true).isProfileNoticeVisible)
     }
 
     @Test
@@ -161,7 +176,7 @@ private fun sampleListing(
         category = FeedListingCategory.Employment,
         categoryLabel = categoryLabel,
         sourceLabel = sourceLabel,
-        suitabilityScore = 88,
+        suitability = FeedSuitabilityState.Scored(88),
         deadlineLabel = deadlineLabel,
         isDeadlineUrgent = false,
         isNew = true,

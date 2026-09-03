@@ -23,6 +23,11 @@
     <string name="feed_user_name_fallback">회원</string>
     <string name="feed_suitability_analyzing">분석 중</string>
     <string name="feed_suitability_analyzing_content_description">적합도 분석 중</string>
+    <string name="feed_suitability_profile_incomplete">프로필 필요</string>
+    <string name="feed_suitability_profile_incomplete_content_description">프로필을 입력하면 적합도를 확인할 수 있어요</string>
+    <string name="feed_profile_notice">프로필을 입력하면 적합도를 확인할 수 있어요</string>
+    <string name="feed_profile_notice_action">입력하기</string>
+    <string name="feed_profile_notice_content_description">프로필을 입력하면 적합도를 확인할 수 있어요. 프로필 입력하기</string>
     <string name="feed_loading_more">공고를 더 불러오는 중이에요</string>
     <string name="feed_error_title">공고를 불러오지 못했어요</string>
     <string name="feed_error_description">잠시 후 다시 시도해 주세요</string>
@@ -35,6 +40,7 @@
 
     <string name="feed_icon_wave" translatable="false">👋</string>
     <string name="feed_icon_offline" translatable="false">📴</string>
+    <string name="feed_icon_profile_notice" translatable="false">🧭</string>
     <string name="feed_icon_notification" translatable="false">🔔</string>
     <string name="feed_icon_search" translatable="false">🔍</string>
     <string name="feed_icon_sort" translatable="false">⌄</string>

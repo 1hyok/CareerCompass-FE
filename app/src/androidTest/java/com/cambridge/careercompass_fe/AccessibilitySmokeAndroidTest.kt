@@ -18,6 +18,7 @@ import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.FeedScreen
 import com.cambridge.feature.feed.presentation.FeedSortUiModel
+import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.FeedUiState
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocument
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocumentFormat
@@ -194,7 +195,7 @@ class AccessibilitySmokeAndroidTest {
                                 category = FeedListingCategory.Employment,
                                 categoryLabel = "채용",
                                 sourceLabel = "공식 채용",
-                                suitabilityScore = 88,
+                                suitability = FeedSuitabilityState.Scored(88),
                                 deadlineLabel = "D-7",
                                 isDeadlineUrgent = false,
                                 isNew = true,

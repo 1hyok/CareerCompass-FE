@@ -13,6 +13,8 @@ import com.cambridge.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
+import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
+import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,30 +24,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import javax.inject.Inject
-
-/** 적합도 카드가 어느 모양으로 보여야 하는지 — 문구·점수 모델은 Entry 가 붙인다. */
-public enum class SuitabilityJudgement {
-    ProfileIncomplete,
-    Analyzing,
-    Ready,
-}
-
-/**
- * 적합도 표시 판정(기능 스펙 F2-3 「적합도 점수 표시 조건」·F3-1 「처리 시점」).
- *
- * 1. 서버가 점수를 줬으면 그대로 보인다 — 프로필이 그 뒤 비었더라도 산출된 값이다.
- * 2. 프로필을 알고 있고 희망 직무·관심 태그가 모두 비어 있으면 「프로필 입력」 안내.
- * 3. 그 밖(파싱 전·프로필 미확인)은 「분석 중」.
- */
-public fun judgeSuitability(
-    detail: PostingDetail,
-    profile: UserProfile?,
-): SuitabilityJudgement =
-    when {
-        detail.suitability != null -> SuitabilityJudgement.Ready
-        profile != null && profile.jobInterests.isEmpty() && profile.tags.isEmpty() -> SuitabilityJudgement.ProfileIncomplete
-        else -> SuitabilityJudgement.Analyzing
-    }
 
 public sealed interface PostingDetailLoadState {
     public data object Loading : PostingDetailLoadState
@@ -98,7 +76,8 @@ public data class PostingDetailViewState(
 ) {
     public val detail: PostingDetail? get() = (loadState as? PostingDetailLoadState.Loaded)?.detail
 
-    public val suitabilityJudgement: SuitabilityJudgement? get() = detail?.let { judgeSuitability(it, profile) }
+    public val suitabilityJudgement: SuitabilityJudgement?
+        get() = detail?.let { judgeSuitability(hasScore = it.suitability != null, profile = profile) }
 }
 
 /**

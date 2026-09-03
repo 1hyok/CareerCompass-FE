@@ -19,6 +19,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.model.posting.Suitability
 import com.cambridge.feature.feed.presentation.R
+import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
+import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
 import com.cambridge.feature.feed.presentation.shared.util.toDetailUiModel
 import com.cambridge.feature.feed.presentation.shared.util.toSuitabilityUiModel
 import kotlinx.coroutines.launch
@@ -138,10 +140,11 @@ internal fun PostingDetailViewState.toUiState(
                             clock = clock,
                             suitability =
                                 toSuitabilityState(
-                                    judgement = judgeSuitability(loadState.detail, profile),
+                                    judgement = judgeSuitability(hasScore = loadState.detail.suitability != null, profile = profile),
                                     suitability = loadState.detail.suitability,
                                     resources = resources,
                                 ),
+                            profile = profile,
                         ),
                     )
                 }

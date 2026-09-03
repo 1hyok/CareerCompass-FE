@@ -53,6 +53,23 @@ public fun OfflineFeedScreenPreview() {
     )
 }
 
+@PreviewTest
+@Preview(name = "Feed with profile notice", widthDp = 360, heightDp = 772)
+@Composable
+public fun ProfileNoticeFeedScreenPreview() {
+    // 프로필이 비어 점수를 못 내는 목록 — 상단 안내와 카드의 「프로필 필요」 칩이 같은 사유를 말한다.
+    FeedPreviewSurface(
+        state =
+            feedPreviewState().copy(
+                isProfileNoticeVisible = true,
+                content =
+                    FeedContentState.Loaded(
+                        feedPreviewListings().map { it.copy(suitability = FeedSuitabilityState.ProfileIncomplete) },
+                    ),
+            ),
+    )
+}
+
 @Composable
 private fun FeedPreviewSurface(
     state: FeedUiState,
@@ -93,7 +110,7 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             category = FeedListingCategory.Employment,
             categoryLabel = "채용",
             sourceLabel = "공식 채용",
-            suitabilityScore = 88,
+            suitability = FeedSuitabilityState.Scored(88),
             deadlineLabel = "D-7",
             isDeadlineUrgent = false,
             isNew = true,
@@ -105,7 +122,7 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             category = FeedListingCategory.Scholarship,
             categoryLabel = "장학금",
             sourceLabel = "학교 게시판",
-            suitabilityScore = 82,
+            suitability = FeedSuitabilityState.Scored(82),
             deadlineLabel = "D-2",
             isDeadlineUrgent = true,
             isNew = true,
@@ -117,7 +134,7 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             category = FeedListingCategory.Employment,
             categoryLabel = "채용",
             sourceLabel = "네이버 채용",
-            suitabilityScore = 76,
+            suitability = FeedSuitabilityState.Scored(76),
             deadlineLabel = "D-14",
             isDeadlineUrgent = false,
             isNew = false,
@@ -129,7 +146,7 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             category = FeedListingCategory.Contest,
             categoryLabel = "공모전",
             sourceLabel = "공식 사이트",
-            suitabilityScore = 64,
+            suitability = FeedSuitabilityState.Scored(64),
             deadlineLabel = "D-30",
             isDeadlineUrgent = false,
             isNew = false,
@@ -141,7 +158,7 @@ private fun feedPreviewListings(): List<FeedListingUiModel> =
             category = FeedListingCategory.Other,
             categoryLabel = "기타",
             sourceLabel = "학교 게시판",
-            suitabilityScore = null,
+            suitability = FeedSuitabilityState.Analyzing,
             deadlineLabel = "마감 미정",
             isDeadlineUrgent = false,
             isNew = true,

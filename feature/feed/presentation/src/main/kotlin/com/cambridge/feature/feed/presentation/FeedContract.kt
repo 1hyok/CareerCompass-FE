@@ -32,18 +32,36 @@ public data class FeedSortUiModel(
 }
 
 /**
- * Display-only data for one listing card.
+ * 카드의 점수 자리에 무엇을 보일지 (기능 스펙 F2-3 「적합도 점수 표시 조건」·F3-1 「처리 시점」).
  *
- * [suitabilityScore] is `null` while the posting is still being parsed or the profile is too thin to
- * score it (spec F2-3 「적합도 점수 표시 조건」·F3-1); the card then shows an "analyzing" chip instead.
+ * 점수가 없는 이유를 둘로 가른다 — 프로필이 비어 산출을 못 하는 것과 아직 분석이 끝나지 않은 것은
+ * 사용자가 할 일이 다르다. 하나로 뭉치면 프로필을 안 채운 사용자에게 목록이 영원히 「분석 중」이다.
  */
+public sealed interface FeedSuitabilityState {
+    /** 서버가 준 점수. */
+    public data class Scored(
+        val score: Int,
+    ) : FeedSuitabilityState {
+        init {
+            require(score in 0..100) { "score must be between 0 and 100: $score" }
+        }
+    }
+
+    /** 아직 파싱·분석이 끝나지 않았다. */
+    public data object Analyzing : FeedSuitabilityState
+
+    /** 프로필(희망 직무·관심 태그)이 비어 산출 자체가 불가능하다. */
+    public data object ProfileIncomplete : FeedSuitabilityState
+}
+
+/** Display-only data for one listing card. */
 public data class FeedListingUiModel(
     val id: String,
     val title: String,
     val category: FeedListingCategory,
     val categoryLabel: String,
     val sourceLabel: String,
-    val suitabilityScore: Int?,
+    val suitability: FeedSuitabilityState,
     val deadlineLabel: String,
     val isDeadlineUrgent: Boolean,
     val isNew: Boolean,
@@ -55,9 +73,6 @@ public data class FeedListingUiModel(
         requireNonBlank("categoryLabel", categoryLabel)
         requireNonBlank("sourceLabel", sourceLabel)
         requireNonBlank("deadlineLabel", deadlineLabel)
-        require(suitabilityScore == null || suitabilityScore in 0..100) {
-            "suitabilityScore must be null or between 0 and 100: $suitabilityScore"
-        }
     }
 }
 
@@ -89,6 +104,9 @@ public sealed interface FeedContentState {
  *
  * [offlineNotice] is the localized banner shown while the feed displays a stored offline snapshot
  * ("오프라인 · 9월 3일 14:20 기준 목록"); `null` hides the banner.
+ *
+ * [isProfileNoticeVisible] 는 프로필이 비어 점수를 못 내는 항목이 목록에 있을 때만 참이다 — 목록 위에
+ * 안내를 한 번 얹고, 카드마다 같은 말을 되풀이하지 않는다.
  */
 public data class FeedUiState(
     val userName: String,
@@ -101,6 +119,7 @@ public data class FeedUiState(
     val content: FeedContentState,
     val activeFilterCount: Int = 0,
     val offlineNotice: String? = null,
+    val isProfileNoticeVisible: Boolean = false,
 ) {
     init {
         requireNonBlank("userName", userName)
@@ -141,6 +160,9 @@ public sealed interface FeedUiEvent {
     ) : FeedUiEvent
 
     public data object NotificationsSelected : FeedUiEvent
+
+    /** 프로필 입력 안내를 눌렀다 — 앱 셸이 마이 탭으로 보낸다. */
+    public data object CompleteProfileSelected : FeedUiEvent
 }
 
 private fun requireNonBlank(

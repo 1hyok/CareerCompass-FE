@@ -2,11 +2,13 @@ package com.cambridge.feature.feed.presentation.feed
 
 import com.cambridge.core.model.board.Board
 import com.cambridge.core.model.posting.Posting
+import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
+import com.cambridge.feature.feed.presentation.shared.model.lacksSuitabilityInputs
 import com.cambridge.feature.feed.presentation.shared.util.toDomainDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toListingCategory
 import com.cambridge.feature.feed.presentation.shared.util.toPostingTypes
@@ -37,6 +39,9 @@ public sealed interface FeedDestination {
     public data object BoardRegister : FeedDestination
 
     public data object BoardList : FeedDestination
+
+    /** 프로필 입력 안내 — 앱 셸이 마이 탭으로 보낸다. 공고 상세의 같은 이름 목적지와 같은 자리다. */
+    public data object Profile : FeedDestination
 }
 
 /** 스낵바 한 줄로 끝나는 실패. 문구는 Entry 가 리소스로 만든다. */
@@ -109,6 +114,7 @@ public data class FeedFilterDraft(
 /**
  * 피드 홈의 전체 상태 — 도메인 값 그대로. 표시 문구(라벨·D-day·상대 시각)는 Entry 가 만든다.
  *
+ * @property profile 마지막으로 받은 내 프로필. 인사말과 적합도 표시 판정의 근거다. 아직 못 받았으면 null.
  * @property searchInput 입력창의 현재 글자. 300ms 뒤 [query] 의 `searchQuery` 로 옮겨진다.
  * @property query 서버·클라이언트 조회 조건(카테고리 칩 = `types`, 필터 시트 = 나머지, 정렬 포함).
  * @property postings 지금까지 받은 페이지의 누적 목록. 오프라인 모드에서는 스냅샷의 목록.
@@ -118,7 +124,7 @@ public data class FeedFilterDraft(
  * @property offlineSavedAt 보여 주는 스냅샷의 저장 시각(배너 문구 근거). [isOffline] 일 때만 값이 있다.
  */
 public data class FeedViewState(
-    val userName: String? = null,
+    val profile: UserProfile? = null,
     val todayNewCount: Int = 0,
     val searchInput: String = "",
     val query: FeedQuery = FeedQuery(),
@@ -137,7 +143,16 @@ public data class FeedViewState(
     val isOffline: Boolean = false,
     val offlineSavedAt: Instant? = null,
 ) {
+    public val userName: String? get() = profile?.name
+
     public val hasNext: Boolean get() = nextCursor != null
+
+    /**
+     * 목록 위에 프로필 입력 안내를 얹을지 — 프로필이 비어 있고, 그 때문에 점수를 못 보이는 항목이 실제로
+     * 있을 때만이다. 모든 공고에 점수가 붙어 있으면 안내할 것이 없다.
+     */
+    public val isProfileNoticeVisible: Boolean
+        get() = profile.lacksSuitabilityInputs() && postings.any { it.score == null }
 
     public val selectedCategory: FeedListingCategory get() = query.types.toListingCategory()
 

@@ -70,6 +70,10 @@ class FeedViewModelTest {
             clock = FIXED_CLOCK,
         )
 
+    /** 희망 직무·관심 태그가 비어 적합도를 낼 수 없는 프로필. */
+    private fun emptyProfileRepository() =
+        FakeUserProfileRepository(initialProfile = profile(jobInterests = emptyList(), tags = emptyList()))
+
     /** 네트워크 단절로 첫 조회가 실패하는 리포지토리. */
     private fun offlinePostings() =
         FakePostingRepository().apply {
@@ -529,6 +533,59 @@ class FeedViewModelTest {
         assertEquals(FeedDestination.BoardList, viewModel.state.value.pendingNavigation)
         viewModel.onBoardRegisterRequested()
         assertEquals(FeedDestination.BoardRegister, viewModel.state.value.pendingNavigation)
+
+        viewModel.onEvent(FeedUiEvent.CompleteProfileSelected)
+        assertEquals(FeedDestination.Profile, viewModel.state.value.pendingNavigation)
+    }
+
+    @Test
+    fun `프로필이 비어 있고 점수 없는 항목이 있으면 안내를 켠다`() {
+        val repository = FakePostingRepository(initial = listOf(posting(id = 1), posting(id = 2, score = 80)))
+
+        val state = viewModel(postingRepository = repository, profileRepository = emptyProfileRepository()).state.value
+
+        assertTrue(state.isProfileNoticeVisible)
+    }
+
+    @Test
+    fun `서버가 점수를 다 줬으면 프로필이 비어도 안내하지 않는다`() {
+        val repository = FakePostingRepository(initial = listOf(posting(id = 1, score = 88), posting(id = 2, score = 80)))
+
+        val state = viewModel(postingRepository = repository, profileRepository = emptyProfileRepository()).state.value
+
+        assertFalse(state.isProfileNoticeVisible)
+    }
+
+    @Test
+    fun `프로필을 아직 못 받았으면 미입력이라고 단정하지 않는다`() {
+        val repository = FakePostingRepository(initial = listOf(posting(id = 1)))
+
+        val state = viewModel(postingRepository = repository, profileRepository = FakeUserProfileRepository()).state.value
+
+        assertNull(state.profile)
+        assertFalse(state.isProfileNoticeVisible)
+    }
+
+    @Test
+    fun `프로필이 채워져 있으면 점수 없는 항목이 있어도 안내하지 않는다`() {
+        val repository = FakePostingRepository(initial = listOf(posting(id = 1)))
+
+        val state = viewModel(postingRepository = repository).state.value
+
+        assertFalse(state.isProfileNoticeVisible)
+    }
+
+    @Test
+    fun `프로필이 늦게 도착하면 안내도 그때 켜진다`() {
+        val repository = FakePostingRepository(initial = listOf(posting(id = 1)))
+        val profileRepository = FakeUserProfileRepository()
+        val viewModel = viewModel(postingRepository = repository, profileRepository = profileRepository)
+
+        assertFalse(viewModel.state.value.isProfileNoticeVisible)
+
+        profileRepository.profileState.value = profile(jobInterests = emptyList(), tags = emptyList())
+
+        assertTrue(viewModel.state.value.isProfileNoticeVisible)
     }
 
     @Test

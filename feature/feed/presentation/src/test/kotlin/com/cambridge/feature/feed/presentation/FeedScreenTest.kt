@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -142,10 +144,51 @@ class FeedScreenTest {
 
     @Test
     fun listingWithoutScore_showsAnalyzingChipInsteadOfScore() {
-        composeRule.setFeedContent(state = sampleState(listing = sampleListing().copy(suitabilityScore = null)))
+        composeRule.setFeedContent(
+            state = sampleState(listing = sampleListing().copy(suitability = FeedSuitabilityState.Analyzing)),
+        )
 
         composeRule.onNodeWithContentDescription("적합도 분석 중").assertIsDisplayed()
         composeRule.onAllNodesWithText("88").assertCountEquals(0)
+    }
+
+    @Test
+    fun listingWithoutProfile_saysProfileIsMissingInsteadOfAnalyzing() {
+        composeRule.setFeedContent(
+            state = sampleState(listing = sampleListing().copy(suitability = FeedSuitabilityState.ProfileIncomplete)),
+        )
+
+        composeRule
+            .onNodeWithContentDescription("프로필을 입력하면 적합도를 확인할 수 있어요")
+            .assertIsDisplayed()
+        composeRule.onAllNodesWithText("분석 중").assertCountEquals(0)
+    }
+
+    @Test
+    fun profileNotice_isHiddenByDefault() {
+        composeRule.setFeedContent(state = sampleState())
+
+        composeRule.onAllNodesWithText("프로필을 입력하면 적합도를 확인할 수 있어요").assertCountEquals(0)
+    }
+
+    @Test
+    fun profileNotice_isReachableAsButtonAndEmitsCompleteProfileIntent() {
+        val events = mutableListOf<FeedUiEvent>()
+        composeRule.setFeedContent(
+            state = sampleState().copy(isProfileNoticeVisible = true),
+            onEvent = events::add,
+        )
+
+        composeRule
+            .onNodeWithContentDescription("프로필을 입력하면 적합도를 확인할 수 있어요. 프로필 입력하기")
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedUiEvent.CompleteProfileSelected), events)
+        }
     }
 
     @Test
@@ -242,7 +285,7 @@ private fun sampleListing(isBookmarked: Boolean = false): FeedListingUiModel =
         category = FeedListingCategory.Employment,
         categoryLabel = "채용",
         sourceLabel = "공식 채용",
-        suitabilityScore = 88,
+        suitability = FeedSuitabilityState.Scored(88),
         deadlineLabel = "D-7",
         isDeadlineUrgent = false,
         isNew = true,
