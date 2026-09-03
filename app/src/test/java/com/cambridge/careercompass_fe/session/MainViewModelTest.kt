@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -72,6 +73,8 @@ class MainViewModelTest {
 
     private val MainViewModel.destination: AppStartDestination? get() = launch.value?.destination
 
+    private val MainViewModel.expiryNotice: Boolean get() = launch.value?.sessionExpiryNotice == true
+
     /** 실제 배선과 같게 — 세션 진입 판정은 두 리포지토리를 받는 use case 가 한다. */
     private fun mainViewModel(
         authRepository: FakeAuthRepository,
@@ -88,6 +91,8 @@ class MainViewModelTest {
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
+        // 한 번도 로그인하지 않은 첫 시작 — 끝난 세션이 없으니 설명할 것도 없다.
+        assertFalse(viewModel.expiryNotice)
     }
 
     @Test
@@ -186,7 +191,7 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `캐시로 메인에 들어간 뒤 세션이 만료됐으면 세션을 정리하고 로그인으로 간다`() {
+    fun `캐시로 메인에 들어간 뒤 세션이 만료됐으면 세션을 정리하고 안내와 함께 로그인으로 간다`() {
         val auth = FakeAuthRepository(loggedIn = true)
         val profiles = FakeUserProfileRepository(profile(true)).apply { onRefreshProfile = { unauthorized() } }
 
@@ -194,6 +199,8 @@ class MainViewModelTest {
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
         assertTrue(auth.clearSessionCalls > 0)
+        // 피드가 잠깐 보였다가 로그인으로 바뀐 경우다 — 화면이 아니라 셸이 만료를 확인했어도 설명은 필요하다.
+        assertTrue(viewModel.expiryNotice)
     }
 
     @Test
@@ -223,12 +230,24 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `프로필 조회가 401 이면 로그인으로 보낸다`() {
+    fun `프로필 조회가 401 이면 안내와 함께 로그인으로 보낸다`() {
         val profiles = FakeUserProfileRepository().apply { onRefreshProfile = { unauthorized() } }
 
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
+        assertTrue(viewModel.expiryNotice)
+    }
+
+    @Test
+    fun `서버 확인이 네트워크로 실패해 로그인이 아닌 곳으로 가면 안내하지 않는다`() {
+        // 오프라인 콜드 스타트 — 세션은 끝나지 않았으므로 만료라고 말하면 거짓말이다.
+        val unknown = FakeUserProfileRepository().apply { onRefreshProfile = { networkFailure() } }
+
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), unknown)
+
+        assertEquals(AppStartDestination.Onboarding, viewModel.destination)
+        assertFalse(viewModel.expiryNotice)
     }
 
     @Test
@@ -262,7 +281,7 @@ class MainViewModelTest {
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
         val first = requireNotNull(viewModel.launch.value)
 
-        viewModel.refresh()
+        viewModel.onSessionEnded(SessionEndCause.LoggedOut)
 
         val second = requireNotNull(viewModel.launch.value)
         assertEquals(AppStartDestination.Login, second.destination)
@@ -284,8 +303,8 @@ class MainViewModelTest {
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
         assertNull(viewModel.launch.value)
 
-        viewModel.refresh()
-        viewModel.refresh()
+        viewModel.onSessionEnded(SessionEndCause.Expired)
+        viewModel.onSessionEnded(SessionEndCause.Expired)
         gate.complete(Result.success(profile(true)))
 
         assertEquals(1, refreshCalls)
@@ -333,9 +352,99 @@ class MainViewModelTest {
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
         viewModel.onDeepLink(AppDeepLink.PostingDetail(101))
 
-        viewModel.refresh()
+        viewModel.onSessionEnded(SessionEndCause.LoggedOut)
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
         assertNull(viewModel.pendingDeepLink.value)
+    }
+
+    // ── 세션 만료 안내 (#128) ─────────────────────────────────────────────────
+
+    @Test
+    fun `만료로 로그인 화면에 돌아오면 이유를 알린다`() {
+        // 피드가 401 을 만나면 network 계층이 세션을 정리한 뒤 화면이 종료를 알린다.
+        val auth = FakeAuthRepository(loggedIn = true)
+        val viewModel = mainViewModel(auth, FakeUserProfileRepository(profile(true)))
+        auth.loggedIn = false
+
+        viewModel.onSessionEnded(SessionEndCause.Expired)
+
+        assertEquals(AppStartDestination.Login, viewModel.destination)
+        assertTrue(viewModel.expiryNotice)
+    }
+
+    @Test
+    fun `사용자가 로그아웃하면 이유를 알리지 않는다`() {
+        val auth = FakeAuthRepository(loggedIn = true)
+        val viewModel = mainViewModel(auth, FakeUserProfileRepository(profile(true)))
+        auth.loggedIn = false
+
+        viewModel.onSessionEnded(SessionEndCause.LoggedOut)
+
+        assertEquals(AppStartDestination.Login, viewModel.destination)
+        assertFalse(viewModel.expiryNotice)
+    }
+
+    @Test
+    fun `로그아웃 뒤 남은 요청이 401 로 돌아와도 만료로 바뀌지 않는다`() {
+        // 로그아웃 요청이 나간 뒤 진행 중이던 조회가 401 을 물고 돌아오는 실제 순서다. 셸이 스스로 확인한
+        // 401(계산 결과가 로그인)까지 겹쳐도 사용자가 끝낸 세션에 만료 안내를 붙이지 않는다.
+        val gate = CompletableDeferred<Result<UserProfile>>()
+        val profiles = FakeUserProfileRepository().apply { onRefreshProfile = { gate.await() } }
+        val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
+        assertNull(viewModel.launch.value)
+
+        viewModel.onSessionEnded(SessionEndCause.LoggedOut)
+        viewModel.onSessionEnded(SessionEndCause.Expired)
+        gate.complete(unauthorized())
+
+        assertEquals(AppStartDestination.Login, viewModel.destination)
+        assertFalse(viewModel.expiryNotice)
+    }
+
+    @Test
+    fun `안내는 닫으면 꺼지고 NavHost 는 다시 만들지 않는다`() {
+        val auth = FakeAuthRepository(loggedIn = true)
+        val viewModel = mainViewModel(auth, FakeUserProfileRepository(profile(true)))
+        auth.loggedIn = false
+        viewModel.onSessionEnded(SessionEndCause.Expired)
+        val shown = requireNotNull(viewModel.launch.value)
+
+        viewModel.consumeSessionExpiryNotice()
+
+        val dismissed = requireNotNull(viewModel.launch.value)
+        assertFalse(dismissed.sessionExpiryNotice)
+        // revision 이 그대로여야 백스택이 살아 있는 채로 안내만 사라진다.
+        assertEquals(shown.revision, dismissed.revision)
+    }
+
+    @Test
+    fun `다음 세션 종료가 로그아웃이면 남아 있던 안내가 꺼진다`() {
+        val auth = FakeAuthRepository(loggedIn = true)
+        val viewModel = mainViewModel(auth, FakeUserProfileRepository(profile(true)))
+        auth.loggedIn = false
+        viewModel.onSessionEnded(SessionEndCause.Expired)
+        assertTrue(viewModel.expiryNotice)
+
+        viewModel.onSessionEnded(SessionEndCause.LoggedOut)
+
+        assertFalse(viewModel.expiryNotice)
+    }
+
+    @Test
+    fun `지문 뒤 만료는 다시 계산하지 않고 안내만 켠다`() {
+        // 지문 화면은 온보딩 그래프 안에서 스스로 로그인 화면으로 옮긴다 — 여기서 재계산하면 세션 정리가
+        // 실패한 기기가 다시 지문 화면으로 돌아가 로그인 화면에 닿지 못한다.
+        val viewModel =
+            mainViewModel(FakeAuthRepository(loggedIn = true, biometricEnabled = true), FakeUserProfileRepository.strict())
+        val started = requireNotNull(viewModel.launch.value)
+        assertEquals(AppStartDestination.BiometricLogin, started.destination)
+
+        viewModel.raiseSessionExpiryNotice()
+
+        val notified = requireNotNull(viewModel.launch.value)
+        assertTrue(notified.sessionExpiryNotice)
+        assertEquals(started.revision, notified.revision)
+        assertEquals(AppStartDestination.BiometricLogin, notified.destination)
     }
 }

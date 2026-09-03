@@ -22,17 +22,25 @@ import com.cambridge.feature.onboarding.presentation.login.LoginEntry
  * Step 1~4 와 완료 화면은 [OnboardingViewModel] 하나를 공유한다 — [graphScopedParentEntry] 가 돌려주는
  * [OnboardingGraphRoute] 의 back stack entry 를 ViewModel 소유자로 쓴다(앱 셸은
  * `navController.getBackStackEntry<OnboardingGraphRoute>()` 를 넘긴다). 로그인·지문 화면은 각자의 ViewModel 을 쓴다.
+ *
+ * @param isSessionExpiryNoticeVisible 로그인 화면에 「로그인이 만료됐다」를 알릴지. 세션 판정은 앱 셸이 하고 이
+ *   그래프는 결론만 전달한다 — 지문 화면으로 시작해 그 안에서 로그인으로 옮겨 온 경우에도 같은 값이 걸려 있다(#128).
+ * @param onSessionExpiryNoticeDismissed 그 안내를 닫았거나 다시 로그인을 시도했다.
  */
 public fun NavGraphBuilder.onboardingNavGraph(
     startDestination: OnboardingRoute,
     graphScopedParentEntry: () -> NavBackStackEntry,
     actions: OnboardingNavActions,
+    isSessionExpiryNoticeVisible: Boolean,
+    onSessionExpiryNoticeDismissed: () -> Unit,
 ) {
     navigation<OnboardingGraphRoute>(startDestination = startDestination) {
         composable<OnboardingRoute.Login> {
             LoginEntry(
                 onLoginSuccess = actions.replaceAuthWithFeed,
                 onNewUserOnboarding = actions.replaceLoginWithOnboarding,
+                isSessionExpiryNoticeVisible = isSessionExpiryNoticeVisible,
+                onSessionExpiryNoticeDismissed = onSessionExpiryNoticeDismissed,
             )
         }
         composable<OnboardingRoute.BiometricLogin> {
@@ -40,6 +48,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
                 onLoginSuccess = actions.replaceAuthWithFeed,
                 onOnboardingRequired = actions.replaceAuthWithOnboarding,
                 onOtherMethodLogin = actions.navigateToLoginFromBiometric,
+                onSessionExpired = actions.navigateToLoginAfterSessionExpiry,
             )
         }
         composable<OnboardingRoute.Step1> { entry ->

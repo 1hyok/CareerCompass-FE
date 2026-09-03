@@ -35,7 +35,17 @@ public enum class BiometricFailureReason {
 public enum class BiometricDestination {
     Feed,
     Onboarding,
+
+    /** 사용자가 「다른 방법으로 로그인」을 골랐다 — 저장된 세션은 그대로다. */
     Login,
+
+    /**
+     * 지문은 맞았지만 저장된 세션이 401 로 끝나 있었다.
+     *
+     * 가는 화면은 [Login] 과 같지만 사용자가 고른 것이 아니라 설명이 필요하다 — 앱 셸이 이 사실을 받아 로그인
+     * 화면에 이유를 남긴다(#128). 이 구분을 화면 쪽에서 다시 판정하지 않도록 목적지에 실어 보낸다.
+     */
+    SessionExpired,
 }
 
 /**
@@ -103,7 +113,7 @@ public class BiometricLoginViewModel
                         when (entry.destination) {
                             SessionEntryDestination.Feed -> BiometricDestination.Feed
                             SessionEntryDestination.Onboarding -> BiometricDestination.Onboarding
-                            SessionEntryDestination.Login -> BiometricDestination.Login
+                            SessionEntryDestination.Login -> BiometricDestination.SessionExpired
                         }
                     _uiState.update { it.copy(isAuthenticating = false, pendingNavigation = destination) }
                 }

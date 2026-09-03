@@ -22,6 +22,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
 import com.cambridge.careercompass_fe.R
 import com.cambridge.careercompass_fe.session.AppStartDestination
+import com.cambridge.careercompass_fe.session.SessionEndCause
 import com.cambridge.core.ui.component.CareerCompassBottomBar
 import com.cambridge.core.ui.component.CareerCompassBottomTab
 import com.cambridge.core.ui.theme.CareerCompassTheme
@@ -44,17 +45,28 @@ internal const val APP_START_SEMANTICS_TAG = "careercompass_app_start"
  * 예외적으로 세션 카드와 지문 로그인 스위치·로그아웃을 그린다([MyTabPlaceholderEntry]). 그 둘 말고는 세션을 끝낼
  * 방법도, 기기에 남은 지문 등록을 되돌릴 방법도 없어서다.
  *
+ * 세션이 왜 끝났는지는 화면이 아니라 여기서 [SessionEndCause] 로 갈라 셸에 넘긴다 — 401 을 만난 피드 계열은
+ * 만료, 마이 탭은 로그아웃이다. 안내를 보일지는 셸이 정하고, 로그인 화면은 [isSessionExpiryNoticeVisible] 이라는
+ * 입력만 받는다(#128).
+ *
+ * @param isSessionExpiryNoticeVisible 로그인 화면에 「로그인이 만료됐다」를 알릴지. 셸이 켠다.
+ * @param onSessionExpiryNoticeDismissed 그 안내를 닫았거나 다시 로그인을 시도했다 — 셸이 끈다.
  * @param pendingDeepLink 아직 적용하지 않은 딥링크. 피드 그래프 안에 있을 때만 이동하고 [onDeepLinkConsumed] 로 비운다 —
  *   로그인·온보딩 중에 받은 것은 인증을 마치고 피드 그래프에 들어온 순간 적용된다.
- * @param onSessionEnded 로그아웃·세션 만료로 인증 이전 상태가 됐을 때 시작 목적지를 다시 계산하게 한다.
+ * @param onSessionEnded 로그아웃·세션 만료로 인증 이전 상태가 됐을 때 사유와 함께 시작 목적지를 다시 계산하게 한다.
+ * @param onAuthSessionExpired 지문 확인 뒤 세션 검증이 만료를 알렸다 — 그래프가 스스로 로그인 화면으로 옮기므로
+ *   재계산 없이 사유만 남긴다.
  * @param onExitRequest 온보딩 첫 화면에서 뒤로 가기 — 앱을 나간다.
  */
 @Composable
 public fun AppNavigation(
     startDestination: AppStartDestination,
+    isSessionExpiryNoticeVisible: Boolean,
+    onSessionExpiryNoticeDismissed: () -> Unit,
     pendingDeepLink: AppDeepLink?,
     onDeepLinkConsumed: () -> Unit,
-    onSessionEnded: () -> Unit,
+    onSessionEnded: (SessionEndCause) -> Unit,
+    onAuthSessionExpired: () -> Unit,
     onExitRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,12 +98,14 @@ public fun AppNavigation(
                 navigateToMain()
                 navController.navigate(FeedRoute.BoardRegister) { launchSingleTop = true }
             },
+            onAuthSessionExpired = onAuthSessionExpired,
         )
     val feedNavActions =
         rememberFeedNavActions(
             navController = navController,
             navigateToMyTab = { appState.navigateToTab(CareerCompassBottomTab.My) },
-            onSessionEnded = onSessionEnded,
+            // 피드 그래프가 세션 종료를 알리는 경우는 401 하나뿐이다(`FeedNavActions.onSessionEnded`).
+            onSessionEnded = { onSessionEnded(SessionEndCause.Expired) },
         )
 
     // 딥링크는 인증 게이트 뒤에서만 적용한다 — navDeepLink 로 NavHost 에 맡기면 시작 목적지가 로그인·온보딩이어도 상세가
@@ -133,11 +147,16 @@ public fun AppNavigation(
                     startDestination = startDestination.toOnboardingStart(),
                     graphScopedParentEntry = { navController.onboardingGraphEntry() },
                     actions = onboardingNavActions,
+                    isSessionExpiryNoticeVisible = isSessionExpiryNoticeVisible,
+                    onSessionExpiryNoticeDismissed = onSessionExpiryNoticeDismissed,
                 )
                 feedNavGraph(actions = feedNavActions)
                 composable<Route.AnalysisTab> { PlaceholderTabScreen(tab = CareerCompassBottomTab.Analysis) }
                 composable<Route.ApplicationsTab> { PlaceholderTabScreen(tab = CareerCompassBottomTab.Applications) }
-                composable<Route.MyTab> { MyTabPlaceholderEntry(onSessionEnded = onSessionEnded) }
+                composable<Route.MyTab> {
+                    // 마이 탭에서 세션이 끝나는 길은 로그아웃 버튼뿐이다 — 사용자가 한 일이라 안내하지 않는다.
+                    MyTabPlaceholderEntry(onSessionEnded = { onSessionEnded(SessionEndCause.LoggedOut) })
+                }
                 composable<Route.NotificationsPlaceholder> {
                     PlaceholderScreen(
                         title = stringResource(R.string.placeholder_notifications_title),

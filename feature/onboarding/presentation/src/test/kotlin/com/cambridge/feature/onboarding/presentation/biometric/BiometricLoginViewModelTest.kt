@@ -119,15 +119,16 @@ class BiometricLoginViewModelTest {
         assertEquals(1, refreshCalls)
     }
 
+    /** 가는 화면은 「다른 방법으로 로그인」과 같지만 목적지를 나눠 둔다 — 셸이 이유를 알아야 로그인 화면이 설명한다(#128). */
     @Test
-    fun `세션이 만료됐으면(401) 로컬 세션을 정리하고 로그인으로 보낸다`() {
+    fun `세션이 만료됐으면(401) 로컬 세션을 정리하고 만료로 표시해 로그인으로 보낸다`() {
         stubRefresh { Result.failure(CoreDataFailure.Unauthorized("AUTH_INVALID", IllegalStateException("만료"))) }
         val viewModel = createViewModel()
 
         viewModel.onAuthenticationSucceeded()
 
         val state = viewModel.uiState.value
-        assertEquals(BiometricDestination.Login, state.pendingNavigation)
+        assertEquals(BiometricDestination.SessionExpired, state.pendingNavigation)
         assertFalse(state.isAuthenticating)
         assertEquals(1, authRepository.clearSessionCalls)
         assertFalse(authRepository.loggedIn)
@@ -185,8 +186,9 @@ class BiometricLoginViewModelTest {
         assertNull(viewModel.uiState.value.failure)
     }
 
+    /** 사용자가 고른 길이라 만료와 갈린다 — 이쪽에는 안내가 붙지 않는다. */
     @Test
-    fun `다른 방법으로 로그인은 로그인 화면으로 보낸다`() {
+    fun `다른 방법으로 로그인은 만료 표시 없이 로그인 화면으로 보낸다`() {
         val viewModel = createViewModel()
 
         viewModel.onOtherMethodClicked()
