@@ -4,6 +4,7 @@ import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeExperienceRepository
 import com.cambridge.core.domain.testing.FakePastApplicationRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
+import com.cambridge.core.model.application.MAX_PAST_APPLICATIONS
 import com.cambridge.core.model.application.PastApplication
 import com.cambridge.core.model.application.PastApplicationCategory
 import com.cambridge.core.model.application.PastApplicationItem
@@ -43,6 +44,7 @@ import com.cambridge.feature.onboarding.presentation.experience.ExperienceDelete
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
+import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelEvent
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 import kotlinx.coroutines.CompletableDeferred
@@ -624,13 +626,14 @@ class OnboardingViewModelTest {
         }
         val viewModel = createViewModel()
 
-        viewModel.onFileSelected(uploadFile("resume.pdf"))
+        viewModel.confirmUpload(uploadFile("resume.pdf"))
 
         val processing =
             viewModel.uiState.value.step4.documents
                 .single()
         assertEquals(OnboardingUploadStatus.Processing, processing.status)
-        assertEquals("resume.pdf", processing.label)
+        // 기본 라벨을 그대로 확인하면 확장자만 빠진다.
+        assertEquals("resume", processing.label)
 
         gate.complete(Unit)
         val completed =
@@ -638,7 +641,7 @@ class OnboardingViewModelTest {
                 .single()
         assertEquals(4, (completed.status as OnboardingUploadStatus.Completed).classifiedItemCount)
         assertEquals(11L, completed.remoteId)
-        assertEquals("resume.pdf", pastApplicationRepository.uploads.single().second)
+        assertEquals("resume", pastApplicationRepository.uploads.single().second)
     }
 
     @Test
@@ -647,7 +650,7 @@ class OnboardingViewModelTest {
         val viewModel = createViewModel()
         val file = uploadFile("resume.docx")
 
-        viewModel.onFileSelected(file)
+        viewModel.confirmUpload(file, label = "2024 카카오 인턴 자소서")
         val failed =
             viewModel.uiState.value.step4.documents
                 .single()
@@ -663,6 +666,8 @@ class OnboardingViewModelTest {
         assertEquals(0, (retried.status as OnboardingUploadStatus.Completed).classifiedItemCount)
         assertEquals(2, pastApplicationRepository.uploads.size)
         assertTrue(pastApplicationRepository.uploads.all { it.first === file })
+        // 재시도는 파일명이 아니라 사용자가 정한 라벨을 그대로 다시 보낸다.
+        assertTrue(pastApplicationRepository.uploads.all { it.second == "2024 카카오 인턴 자소서" })
     }
 
     @Test
@@ -671,7 +676,7 @@ class OnboardingViewModelTest {
         pastApplicationRepository.onUpload = { _, _ -> Result.failure(IOException("offline")) }
         progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
         val viewModel = createViewModel()
-        viewModel.onFileSelected(uploadFile("resume.txt"))
+        viewModel.confirmUpload(uploadFile("resume.txt"))
         val localId =
             viewModel.uiState.value.step4.documents
                 .first { it.remoteId == null }
@@ -713,6 +718,97 @@ class OnboardingViewModelTest {
             viewModel.uiState.value.step4.documents
                 .isEmpty(),
         )
+    }
+
+    @Test
+    fun `파일을 고르면 올리기 전에 라벨 시트를 열고 기본 라벨은 확장자를 뺀 파일명이다`() {
+        val viewModel = createViewModel()
+
+        viewModel.onFileSelected(uploadFile("이력서_최종_v3(2).pdf"))
+
+        val sheet = viewModel.uiState.value.uploadLabel
+        assertNotNull(sheet)
+        assertEquals("이력서_최종_v3(2)", sheet?.label)
+        assertEquals("이력서_최종_v3(2).pdf", sheet?.fileName)
+        // 확인하기 전에는 올리지도, 목록에 넣지도 않는다.
+        assertTrue(pastApplicationRepository.uploads.isEmpty())
+        assertTrue(
+            viewModel.uiState.value.step4.documents
+                .isEmpty(),
+        )
+    }
+
+    @Test
+    fun `라벨을 고쳐 확인하면 파일명 대신 그 라벨로 올린다`() {
+        val viewModel = createViewModel()
+        viewModel.onFileSelected(uploadFile("resume.pdf"))
+
+        viewModel.onUploadLabelEvent(UploadLabelEvent.LabelChanged(" 2024 카카오 인턴 자소서 "))
+        viewModel.onUploadLabelEvent(UploadLabelEvent.Submitted)
+
+        assertNull(viewModel.uiState.value.uploadLabel)
+        val (file, label) = pastApplicationRepository.uploads.single()
+        assertEquals("2024 카카오 인턴 자소서", label)
+        assertEquals("resume.pdf", file.fileName)
+        assertEquals(
+            "2024 카카오 인턴 자소서",
+            viewModel.uiState.value.step4.documents
+                .single()
+                .label,
+        )
+    }
+
+    @Test
+    fun `업로드 라벨은 직접 입력과 같은 규칙으로 거른다`() {
+        val viewModel = createViewModel()
+        viewModel.onFileSelected(uploadFile("resume.pdf"))
+
+        viewModel.onUploadLabelEvent(UploadLabelEvent.LabelChanged("   "))
+        viewModel.onUploadLabelEvent(UploadLabelEvent.Submitted)
+        assertEquals(
+            OnboardingFieldError.Required,
+            viewModel.uiState.value.uploadLabel
+                ?.labelError,
+        )
+
+        viewModel.onUploadLabelEvent(UploadLabelEvent.LabelChanged("가".repeat(51)))
+        viewModel.onUploadLabelEvent(UploadLabelEvent.Submitted)
+        assertEquals(
+            OnboardingFieldError.TooLong(50),
+            viewModel.uiState.value.uploadLabel
+                ?.labelError,
+        )
+        assertTrue(pastApplicationRepository.uploads.isEmpty())
+    }
+
+    @Test
+    fun `라벨 시트를 취소하면 고른 파일을 올리지 않는다`() {
+        val viewModel = createViewModel()
+        viewModel.onFileSelected(uploadFile("resume.pdf"))
+
+        viewModel.onUploadLabelEvent(UploadLabelEvent.Dismissed)
+
+        assertNull(viewModel.uiState.value.uploadLabel)
+        assertTrue(pastApplicationRepository.uploads.isEmpty())
+        assertTrue(
+            viewModel.uiState.value.step4.documents
+                .isEmpty(),
+        )
+    }
+
+    @Test
+    fun `문서 상한이 차면 라벨 시트를 열지 않고 사유만 알린다`() {
+        repeat(MAX_PAST_APPLICATIONS) { index ->
+            pastApplicationRepository.applications += samplePastApplication(id = index + 1L, itemCount = 0)
+        }
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
+        val viewModel = createViewModel()
+
+        viewModel.onFileSelected(uploadFile("resume.pdf"))
+
+        assertNull(viewModel.uiState.value.uploadLabel)
+        assertEquals(OnboardingFailureReason.LimitExceeded, viewModel.uiState.value.failure)
+        assertEquals(MAX_PAST_APPLICATIONS, viewModel.uiState.value.step4.documents.size)
     }
 
     @Test
@@ -967,4 +1063,14 @@ class OnboardingViewModelTest {
     }
 
     private fun uploadFile(fileName: String) = UploadFile(fileName = fileName, sizeBytes = 16L) { ByteArrayInputStream(ByteArray(16)) }
+
+    /** 파일 선택 → 라벨 시트 확인까지. [label] 을 주지 않으면 기본 라벨(확장자를 뺀 파일명)을 그대로 쓴다. */
+    private fun OnboardingViewModel.confirmUpload(
+        file: UploadFile,
+        label: String? = null,
+    ) {
+        onFileSelected(file)
+        if (label != null) onUploadLabelEvent(UploadLabelEvent.LabelChanged(label))
+        onUploadLabelEvent(UploadLabelEvent.Submitted)
+    }
 }

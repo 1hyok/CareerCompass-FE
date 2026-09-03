@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_upload_label_title">지원서 이름 확인</string>
+    <string name="onboarding_upload_label_selected_file">선택한 파일 · %1$s</string>
+    <string name="onboarding_upload_label_field_label">지원서 이름 *</string>
+    <string name="onboarding_upload_label_field_placeholder">예: 2024 카카오 인턴 자소서</string>
+    <string name="onboarding_upload_label_hint">목록에서 이 이름으로 보여요. 올린 뒤에는 바꿀 수 없어요</string>
+    <string name="onboarding_upload_label_submit">업로드</string>
+</resources>

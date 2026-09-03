@@ -54,6 +54,8 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInput
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputState
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryState
+import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelEvent
+import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelState
 import com.cambridge.feature.onboarding.presentation.reporting.OnboardingFailureStage
 import com.cambridge.feature.onboarding.presentation.reporting.recordOnboardingFailure
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
@@ -595,9 +597,44 @@ public class OnboardingViewModel
             }
         }
 
-        /** Entry 가 파일 선택기에서 읽어 만든 [UploadFile]. 라벨은 파일명을 그대로 쓴다. */
+        /**
+         * Entry 가 파일 선택기에서 읽어 만든 [UploadFile].
+         *
+         * 바로 올리지 않고 라벨 시트를 먼저 연다 — 서버에 라벨 수정 엔드포인트가 없어 이때가 사용자가 이름을
+         * 정할 수 있는 유일한 시점이다(F1-4). 상한은 시트를 열기 전에 본다: 어차피 못 올릴 파일에 이름을
+         * 붙이게 두지 않는다.
+         */
         public fun onFileSelected(file: UploadFile) {
-            enqueueUpload(label = file.fileName, file = file)
+            if (!_uiState.value.isInputEnabled) return
+            if (_uiState.value.step4.documents.size >= MAX_PAST_APPLICATIONS) {
+                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded) }
+                return
+            }
+            _uiState.update {
+                it.copy(uploadLabel = UploadLabelState(file = file, label = PastApplicationLabelRules.defaultLabelFor(file.fileName)))
+            }
+        }
+
+        public fun onUploadLabelEvent(event: UploadLabelEvent) {
+            when (event) {
+                is UploadLabelEvent.LabelChanged -> updateUploadLabel { copy(label = event.value, labelError = null) }
+
+                UploadLabelEvent.Submitted -> submitUploadLabel()
+
+                // 취소는 고른 파일을 버린다 — 목록에 흔적을 남기지 않는다.
+                UploadLabelEvent.Dismissed -> _uiState.update { it.copy(uploadLabel = null) }
+            }
+        }
+
+        private fun submitUploadLabel() {
+            val sheet = _uiState.value.uploadLabel ?: return
+            val labelError = PastApplicationLabelRules.validate(sheet.label)
+            if (labelError != null) {
+                _uiState.update { it.copy(uploadLabel = sheet.copy(labelError = labelError)) }
+                return
+            }
+            _uiState.update { it.copy(uploadLabel = null) }
+            enqueueUpload(label = PastApplicationLabelRules.normalize(sheet.label), file = sheet.file)
         }
 
         /** 파일을 [UploadFile] 로 만들지 못했다(지원하지 않는 형식·크기 초과·읽기 실패). */
@@ -772,25 +809,10 @@ public class OnboardingViewModel
 
         private fun submitDirectInput() {
             val input = _uiState.value.directInput ?: return
-            val label = input.label.trim()
+            val label = PastApplicationLabelRules.normalize(input.label)
             val validated =
                 input.copy(
-                    labelError =
-                        when {
-                            label.isEmpty() -> {
-                                OnboardingFieldError.Required
-                            }
-
-                            label.length > DirectInputState.MAX_LABEL_LENGTH -> {
-                                OnboardingFieldError.TooLong(
-                                    DirectInputState.MAX_LABEL_LENGTH,
-                                )
-                            }
-
-                            else -> {
-                                null
-                            }
-                        },
+                    labelError = PastApplicationLabelRules.validate(input.label),
                     contentError = if (input.content.isBlank()) OnboardingFieldError.Required else null,
                 )
             if (validated.labelError != null || validated.contentError != null) {
@@ -889,6 +911,10 @@ public class OnboardingViewModel
 
         private inline fun updateDirectInput(transform: DirectInputState.() -> DirectInputState) {
             _uiState.update { it.copy(directInput = it.directInput?.transform()) }
+        }
+
+        private inline fun updateUploadLabel(transform: UploadLabelState.() -> UploadLabelState) {
+            _uiState.update { it.copy(uploadLabel = it.uploadLabel?.transform()) }
         }
 
         private inline fun replaceDocument(

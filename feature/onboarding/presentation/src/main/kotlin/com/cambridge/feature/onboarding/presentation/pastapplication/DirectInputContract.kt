@@ -3,7 +3,11 @@ package com.cambridge.feature.onboarding.presentation.pastapplication
 import androidx.compose.runtime.Immutable
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 
-/** Step 4 「직접 입력하기」 시트 상태 — 라벨과 본문을 받아 TXT 지원서로 업로드한다(F1-4 「직접 입력」). */
+/**
+ * Step 4 「직접 입력하기」 시트 상태 — 라벨과 본문을 받아 TXT 지원서로 업로드한다(F1-4 「직접 입력」).
+ *
+ * 라벨의 공백·길이 규칙은 파일 업로드 라벨과 공유한다(`PastApplicationLabelRules`).
+ */
 @Immutable
 public data class DirectInputState(
     public val label: String = "",
@@ -17,10 +21,6 @@ public data class DirectInputState(
 
     public val isSubmitEnabled: Boolean
         get() = !isSubmitting && label.isNotBlank() && content.isNotBlank()
-
-    public companion object {
-        public const val MAX_LABEL_LENGTH: Int = 50
-    }
 }
 
 /** User intentions emitted by [DirectInputSheet]. */

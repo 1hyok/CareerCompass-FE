@@ -24,6 +24,8 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInput
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputSheet
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategorySheet
+import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelEvent
+import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelSheet
 import com.cambridge.feature.onboarding.presentation.pastapplication.labelResId
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
 
@@ -80,6 +82,12 @@ public fun OnboardingStep4Entry(
         }
     }
 
+    state.uploadLabel?.let { sheet ->
+        OnboardingSheetHost(onDismissRequest = { viewModel.onUploadLabelEvent(UploadLabelEvent.Dismissed) }) {
+            UploadLabelSheet(state = sheet, onEvent = viewModel::onUploadLabelEvent)
+        }
+    }
+
     state.itemCategoryPicker?.let { picker ->
         OnboardingSheetHost(
             onDismissRequest = { viewModel.onItemCategoryPickerEvent(PastApplicationItemCategoryEvent.Dismissed) },
@@ -98,19 +106,21 @@ private fun OnboardingStep4FormState.toUiState(isInputEnabled: Boolean): Onboard
     )
 
 /**
- * 서버 목록의 문서에는 파일명·크기가 없다(API_SPEC §4 는 라벨만 돌려준다). 라벨에 지원 확장자가 있으면 그대로
- * 파일명으로 쓰고(파일 업로드는 파일명을 라벨로 올린다), 없으면 직접 입력 문서이므로 TXT 로 본다. 크기는 화면에
- * 그리지 않는 값이라 계약 하한으로 채운다.
+ * 라벨은 사용자가 정한 이름이라 형식을 담고 있지 않다. 형식 배지는 올린 파일의 실제 이름에서 읽고, 파일이 없는
+ * 서버 목록의 문서는 라벨에서 읽는다(API_SPEC §4 는 라벨만 돌려준다 — 확장자가 없으면 직접 입력 문서라 TXT).
+ * 카드 제목은 「라벨.확장자」다: 기본 라벨을 그대로 둔 업로드는 파일명을 라벨로 쓰던 이전과 같은 문구가 된다.
+ * 크기는 화면에 그리지 않는 값이라 계약 하한으로 채운다.
  */
 @Composable
 private fun OnboardingUploadDocument.toUiModel(): OnboardingApplicationDocument {
-    val format = PastApplicationFileFormat.fromFileName(label)
-    val fileName = if (format != null) label else "$label.${PastApplicationFileFormat.Txt.extension}"
+    val format = PastApplicationFileFormat.fromFileName(file?.fileName ?: label) ?: PastApplicationFileFormat.Txt
+    val extension = format.extension
+    val fileName = if (label.endsWith(".$extension", ignoreCase = true)) label else "$label.$extension"
     val status = status
     return OnboardingApplicationDocument(
         id = id,
         fileName = fileName,
-        format = (format ?: PastApplicationFileFormat.Txt).toUiFormat(),
+        format = format.toUiFormat(),
         fileSizeBytes = sizeBytes ?: UNKNOWN_SIZE_PLACEHOLDER_BYTES,
         status =
             when (status) {
