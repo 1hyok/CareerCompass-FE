@@ -177,9 +177,9 @@ class FeedUiMappersTest {
         val failing =
             board(
                 id = 3,
-                isActive = false,
+                isActive = true,
                 status = DomainBoardStatus.Failed,
-                failCount = 3,
+                failCount = 2,
                 lastCollectedAt = NOON_TODAY.minus(Duration.ofHours(2)),
                 type = DomainBoardType.Recruit,
             ).toBoardUiModel(resources, FIXED_CLOCK)
@@ -188,13 +188,33 @@ class FeedUiMappersTest {
         assertEquals(BoardType.Employment, failing.type)
         assertEquals("채용", failing.typeLabel)
         assertEquals(BoardStatus.Failing, failing.status)
-        assertEquals(3, failing.failCount)
+        assertEquals(2, failing.failCount)
         assertEquals("2시간 전", failing.lastCollectedLabel)
         assertNull(failing.postingCount)
 
         val paused = board(id = 4, isActive = false, status = DomainBoardStatus.Unknown).toBoardUiModel(resources, FIXED_CLOCK)
         assertEquals(BoardStatus.Paused, paused.status)
         assertNull(paused.lastCollectedLabel)
+    }
+
+    @Test
+    fun `연속 실패로 서버가 끈 게시판만 중단 상태이고 사용자가 끈 것은 일시중지다`() {
+        // 기능 스펙 F2-2 「3회 연속 실패 시 비활성화」 — 판정은 isActive == false && status == Failed 하나뿐이다.
+        val deactivated = board(id = 5, isActive = false, status = DomainBoardStatus.Failed, failCount = 3)
+        assertEquals(BoardStatus.Deactivated, deactivated.toUiBoardStatus())
+        assertEquals(3, deactivated.toBoardUiModel(resources, FIXED_CLOCK).failCount)
+
+        // 같은 Failed 라도 켜져 있으면 아직 수집을 시도하는 중이다.
+        val stillTrying = board(id = 6, isActive = true, status = DomainBoardStatus.Failed, failCount = 2)
+        assertEquals(BoardStatus.Failing, stillTrying.toUiBoardStatus())
+
+        // 사용자가 끈 게시판은 실패한 적이 없어도 꺼져 있다 — 중단 안내를 붙이면 안 된다.
+        assertEquals(BoardStatus.Paused, board(id = 7, isActive = false, status = DomainBoardStatus.Paused).toUiBoardStatus())
+        assertEquals(BoardStatus.Paused, board(id = 8, isActive = false, status = DomainBoardStatus.Active).toUiBoardStatus())
+
+        // 모르는 상태는 예전대로 활성 여부로만 접힌다.
+        assertEquals(BoardStatus.Active, board(id = 9, isActive = true, status = DomainBoardStatus.Unknown).toUiBoardStatus())
+        assertEquals(BoardStatus.Paused, board(id = 10, isActive = false, status = DomainBoardStatus.Unknown).toUiBoardStatus())
     }
 
     @Test

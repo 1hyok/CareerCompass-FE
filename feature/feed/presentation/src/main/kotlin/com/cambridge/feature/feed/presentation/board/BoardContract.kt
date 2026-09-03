@@ -115,11 +115,18 @@ public sealed interface BoardRegisterEvent {
     public data object BackClicked : BoardRegisterEvent
 }
 
-/** Collection status of a registered board. */
+/**
+ * 등록된 게시판의 수집 상태.
+ *
+ * [Failing] 은 수집이 실패하는 중이지만 아직 켜져 있는 상태고, [Deactivated] 는 연속 실패로 **서버가 끈** 상태다
+ * (기능 스펙 F2-2 「3회 연속 실패 시 비활성화」). 사용자가 직접 끈 [Paused] 와 갈라 두는 이유는 화면이 할 말이
+ * 다르기 때문이다 — 꺼진 이유와 되살리는 방법을 [Deactivated] 에서만 안내한다.
+ */
 public enum class BoardStatus {
     Active,
     Paused,
     Failing,
+    Deactivated,
 }
 
 /**
@@ -150,6 +157,9 @@ public data class BoardUiModel(
             "lastCollectedLabel must be null or non-blank"
         }
         require(postingCount == null || postingCount >= 0) { "postingCount must be null or non-negative" }
+        // 실패 상태 둘은 토글 값으로 갈린다. 어긋난 조합을 허용하면 화면이 안내를 잘못 고르므로 만들지 못하게 막는다.
+        require(status != BoardStatus.Deactivated || !isActive) { "Deactivated boards must not be active" }
+        require(status != BoardStatus.Failing || isActive) { "Failing boards must be active" }
     }
 }
 

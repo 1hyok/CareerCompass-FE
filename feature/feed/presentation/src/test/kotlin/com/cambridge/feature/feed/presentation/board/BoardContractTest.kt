@@ -87,6 +87,26 @@ class BoardContractTest {
     }
 
     @Test
+    fun boardModel_tiesTheTwoFailureStatusesToTheToggle() {
+        // 연속 실패로 서버가 끈 게시판은 꺼져 있고(기능 스펙 F2-2), 실패 중이지만 살아 있는 게시판은 켜져 있다.
+        // 어긋난 조합을 만들 수 있으면 화면이 사용자가 끈 「일시중지」와 같은 안내를 고르게 된다.
+        assertThrows(IllegalArgumentException::class.java) {
+            sampleBoard().copy(status = BoardStatus.Deactivated, isActive = true)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            sampleBoard().copy(status = BoardStatus.Failing, isActive = false)
+        }
+        assertEquals(
+            BoardStatus.Deactivated,
+            sampleBoard().copy(status = BoardStatus.Deactivated, isActive = false, failCount = 3).status,
+        )
+        assertEquals(
+            BoardStatus.Failing,
+            sampleBoard().copy(status = BoardStatus.Failing, failCount = 2).status,
+        )
+    }
+
+    @Test
     fun loadedList_rejectsEmptyAndDuplicateBoards() {
         assertThrows(IllegalArgumentException::class.java) {
             BoardListContentState.Loaded(emptyList())
