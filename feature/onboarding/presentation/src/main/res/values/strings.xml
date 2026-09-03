@@ -13,7 +13,6 @@
     <string name="onboarding_step1_name_placeholder">이름을 입력해 주세요</string>
     <string name="onboarding_step1_school_label">학교 *</string>
     <string name="onboarding_step1_school_placeholder">학교를 선택해 주세요</string>
-    <string name="onboarding_step1_school_indicator" translatable="false">⌄</string>
     <string name="onboarding_step1_major_label">학과 *</string>
     <string name="onboarding_step1_major_placeholder">학과를 입력해 주세요</string>
     <string name="onboarding_step1_gpa_label">학점</string>
