@@ -54,4 +54,26 @@ class OnboardingFormValidationTest {
         assertEquals("AI", normalizeInterestTag(" ##AI "))
         assertEquals("", normalizeInterestTag("# "))
     }
+
+    @Test
+    fun `지원서 라벨은 공백만 있으면 거부하고 길이 상한을 검사한다`() {
+        assertEquals(OnboardingFieldError.Required, PastApplicationLabelRules.validate("   "))
+        assertNull(PastApplicationLabelRules.validate(" 2024 카카오 인턴 자소서 "))
+        assertNull(PastApplicationLabelRules.validate("가".repeat(PastApplicationLabelRules.MAX_LENGTH)))
+        assertEquals(
+            OnboardingFieldError.TooLong(PastApplicationLabelRules.MAX_LENGTH),
+            PastApplicationLabelRules.validate("가".repeat(PastApplicationLabelRules.MAX_LENGTH + 1)),
+        )
+        assertEquals("2024 카카오 인턴 자소서", PastApplicationLabelRules.normalize(" 2024 카카오 인턴 자소서 "))
+    }
+
+    @Test
+    fun `업로드 기본 라벨은 확장자를 뺀 파일명이고 규칙을 만족한다`() {
+        assertEquals("이력서_최종_v3(2)", PastApplicationLabelRules.defaultLabelFor("이력서_최종_v3(2).pdf"))
+        assertEquals("resume", PastApplicationLabelRules.defaultLabelFor("resume"))
+        assertEquals(".pdf", PastApplicationLabelRules.defaultLabelFor(".pdf"))
+        val long = PastApplicationLabelRules.defaultLabelFor("가".repeat(80) + ".docx")
+        assertEquals(PastApplicationLabelRules.MAX_LENGTH, long.length)
+        assertNull(PastApplicationLabelRules.validate(long))
+    }
 }

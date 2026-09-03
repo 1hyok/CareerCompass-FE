@@ -16,6 +16,7 @@ import com.cambridge.feature.onboarding.presentation.experience.ExperienceDelete
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditorState
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputState
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryState
+import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelState
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 
 /** 온보딩 흐름의 실패 사유. 문구는 Entry 가 리소스로 만든다. */
@@ -120,7 +121,7 @@ public sealed interface OnboardingUploadStatus {
  *
  * @property id 목록 안에서만 유효한 식별자. 서버 문서는 `remote-<id>`, 이번 세션 업로드는 `local-<n>`.
  * @property remoteId 서버 id. 업로드가 끝나기 전이나 실패한 문서는 null.
- * @property label 업로드 라벨. 파일 업로드는 파일명을 그대로 라벨로 쓴다.
+ * @property label 사용자가 정한 업로드 라벨(F1-4). 파일 업로드도 올리기 전에 라벨 시트에서 받는다.
  * @property sizeBytes 서버 목록에는 크기가 없어 null 일 수 있다.
  * @property file 재시도에 쓸 원본. 서버에서 읽어 온 문서는 null.
  */
@@ -181,6 +182,7 @@ public data class OnboardingFlowState(
     val experienceEditor: ExperienceEditorState? = null,
     val experienceDelete: ExperienceDeleteState? = null,
     val directInput: DirectInputState? = null,
+    val uploadLabel: UploadLabelState? = null,
     val itemCategoryPicker: PastApplicationItemCategoryState? = null,
 ) {
     init {
