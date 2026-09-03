@@ -117,7 +117,7 @@ public fun CareerCompassTopAppBarSubtitlePreview() {
     }
 }
 
-/** 제목 한 줄에 부제 한 줄 — 고정 높이 상단바에서 큰 글꼴이 가장 먼저 넘치는 조합이다. */
+/** 제목 한 줄에 부제 한 줄 — 상단바가 큰 글꼴에서 가장 먼저 넘치는 조합이고, 넘치면 자라야 한다. */
 @PreviewTest
 @Preview(name = "Top app bar - Subtitle - Large font", widthDp = 360, heightDp = 772, fontScale = LARGE_FONT_SCALE)
 @Composable

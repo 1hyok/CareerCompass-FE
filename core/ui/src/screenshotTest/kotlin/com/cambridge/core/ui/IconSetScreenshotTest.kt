@@ -47,7 +47,8 @@ public fun CareerCompassIconSetDarkPreview() {
  *
  * 아이콘은 `Modifier.size(32.dp)`, 라벨은 `sp` 라 배율이 오르면 라벨만 커져야 한다. 배율을 따라
  * 커지면 안 되는 자리(하단 탭·상단바 글리프)가 실제로 안 커진다는 근거가 이 한 장에 다 들어 있다.
- * 캔버스 높이는 라벨이 두 줄로 늘어난 만큼만 키운다.
+ * 캔버스는 라이트·다크와 같은 320dp 를 쓴다 — 아이콘이 안 커지는 덕에 배율 2.0 에서도 세트 전체가
+ * 그 안에 들어온다. 그 «들어온다» 가 이 골든이 말하는 것이다.
  */
 @PreviewTest
 @Preview(name = "Icon set - Large font", widthDp = 360, heightDp = 320, fontScale = LARGE_FONT_SCALE)
