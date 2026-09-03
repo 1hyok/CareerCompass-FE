@@ -1131,6 +1131,12 @@ private fun OnboardingStep3FormState.restore(
  * 연도만 있는 수상 카드를 「2025.01」로 열면, 사용자가 준 적 없는 1월이 화면에 뜨고 저장에 실린다.
  * 그래서 수상은 연도를 **연도로**(「2025」) 열고, 자격증은 연월을 연월로 연다. 상세 필드가 그 유형의 정본이라
  * `startDate` 보다 먼저 읽는다 — 카드 목록(`OnboardingStep3Entry.periodText`)과 같은 순서다.
+ *
+ * ### 칸이 담지 못하는 일(day)은 원본째로 들고 간다 (#171)
+ * 시점 칸은 `YYYY.MM` 이라 `2025-06-15` 를 「2025.06」으로밖에 못 그린다. 그 글만 들고 저장하면 사용자가
+ * 손대지도 않은 일이 1일로 깎이므로, 원본 일자를 [ExperienceEditorState.startDateOrigin]·
+ * [ExperienceEditorState.endDateOrigin] 에 함께 실어 [toDraft] 가 되돌릴 수 있게 한다.
+ * 기간이 없는 유형(수상·자격증)은 시점을 `startDate` 에 적지 않으므로(#166) 되돌릴 것도 없어 비운다.
  */
 internal fun Experience.toEditorState(): ExperienceEditorState {
     val details = details
@@ -1172,6 +1178,8 @@ internal fun Experience.toEditorState(): ExperienceEditorState {
         title = title,
         startDate = start,
         endDate = if (ExperienceEditorRules.hasPeriod(type)) endDate?.toEditorYearMonth().orEmpty() else "",
+        startDateOrigin = if (ExperienceEditorRules.hasPeriod(type)) startDate else null,
+        endDateOrigin = if (ExperienceEditorRules.hasPeriod(type)) endDate else null,
         primary = primary.orEmpty(),
         secondary = secondary.orEmpty(),
         techs = techs,
@@ -1361,11 +1369,25 @@ private fun validateOptionalText(
  *
  * 반대 방향인 좁히기(`YYYY.MM` → 연도)는 그대로 한다 — 예전 카드가 남긴 일자에서 연도를 읽는 것은 새 정보를
  * 만들지 않는다.
+ *
+ * ### 있던 값도 바꾸지 않는다 (#171)
+ * #166 이 막은 것은 「없던 값이 생긴다」였고, 남아 있던 것은 그 반대편인 **「있던 값이 바뀐다」**였다 — 시점 칸이
+ * 월 정밀도라 `2025-06-15` 짜리 카드를 열었다 저장만 해도 시작일이 `2025-06-01` 로 깎였다. 그래서 사용자가 그
+ * 칸의 달을 바꾸지 않았으면 원본의 일을 되돌린다([ExperienceEditorRules.resolveDate]). 이 칸은 일을 표현할
+ * 수단이 없으므로, 달이 같다는 것은 「일에 대해 아무 말도 하지 않았다」는 뜻이다.
  */
 internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
     val trimmedTitle = title.trim()
-    val start = ExperienceEditorRules.parseYearMonth(startDate)
-    val end = if (ExperienceEditorRules.hasPeriod(type)) ExperienceEditorRules.parseYearMonth(endDate) else null
+    val hasPeriod = ExperienceEditorRules.hasPeriod(type)
+    val keptStart = ExperienceEditorRules.resolveDate(startDate, startDateOrigin)
+    val keptEnd = if (hasPeriod) ExperienceEditorRules.resolveDate(endDate, endDateOrigin) else null
+    // 지켜 낸 일이 사용자가 방금 친 기간과 어긋나면 — 6월 20일 시작을 그대로 두고 종료만 6월로 당긴 경우 —
+    // **사용자의 입력이 이긴다.** 화면에 보이는 것은 달 하나뿐이라 「종료가 시작보다 빠르다」고 되물어도 사용자는
+    // 무엇이 틀렸는지 볼 수 없고, 검증(`validateExperienceEditor`)도 화면과 같은 월 정밀도로 판정해 통과시킨다.
+    // 지키려던 일을 놓아 주면 사용자가 준 정밀도 그대로의 기간이 남는다.
+    val keptInverted = keptStart != null && keptEnd != null && keptEnd.isBefore(keptStart)
+    val start = if (keptInverted) ExperienceEditorRules.parseYearMonth(startDate) else keptStart
+    val end = if (keptInverted) ExperienceEditorRules.parseYearMonth(endDate) else keptEnd
     val primaryText = primary.trim().ifEmpty { null }
     val secondaryText = secondary.trim().ifEmpty { null }
     val linkText = if (ExperienceEditorRules.hasLink(type)) link.trim().ifEmpty { null } else null
@@ -1417,7 +1439,7 @@ internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
         }
     return ExperienceDraft(
         title = trimmedTitle,
-        startDate = if (ExperienceEditorRules.hasPeriod(type)) start else null,
+        startDate = if (hasPeriod) start else null,
         endDate = end,
         details = details,
     )
