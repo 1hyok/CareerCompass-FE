@@ -526,11 +526,24 @@ public class OnboardingViewModel
             when (event) {
                 is ExperienceQuickAddEvent.TypeSelected -> {
                     // 수정 중에는 유형을 바꾸지 않는다 — 유형마다 필드 의미가 달라 채운 값이 다른 뜻으로 저장된다.
+                    //
+                    // 신규 등록에서 유형을 바꿔도 이미 친 값은 **지우지 않는다**. 새 유형이 쓰지 않는 값은
+                    // `toDraft()` 가 표를 보고 읽지 않아 저장에서 빠지므로, 잘못 누른 칩을 되돌린 사용자만
+                    // 이득을 본다. 오류 표시만 새 유형 기준으로 다시 계산하도록 비운다.
                     updateExperienceEditor {
                         if (isEditing) {
                             this
                         } else {
-                            copy(type = event.type, startDateError = null, endDateError = null, primaryError = null, secondaryError = null)
+                            copy(
+                                type = event.type,
+                                startDateError = null,
+                                endDateError = null,
+                                primaryError = null,
+                                secondaryError = null,
+                                techInputError = null,
+                                linkError = null,
+                                detailError = null,
+                            )
                         }
                     }
                 }
@@ -555,6 +568,30 @@ public class OnboardingViewModel
                     updateExperienceEditor { copy(secondary = event.value, secondaryError = null) }
                 }
 
+                is ExperienceQuickAddEvent.TechInputChanged -> {
+                    updateExperienceEditor { copy(techInput = event.value, techInputError = null) }
+                }
+
+                ExperienceQuickAddEvent.TechTagSubmitted -> {
+                    updateExperienceEditor { withTechTagCommitted() }
+                }
+
+                is ExperienceQuickAddEvent.TechTagRemoved -> {
+                    updateExperienceEditor { copy(techs = techs.filterNot { it == event.tag }, techInputError = null) }
+                }
+
+                is ExperienceQuickAddEvent.LinkChanged -> {
+                    updateExperienceEditor { copy(link = event.value, linkError = null) }
+                }
+
+                is ExperienceQuickAddEvent.DetailChanged -> {
+                    updateExperienceEditor { copy(detail = event.value, detailError = null) }
+                }
+
+                ExperienceQuickAddEvent.DetailSectionToggled -> {
+                    updateExperienceEditor { copy(isDetailExpanded = !isDetailExpanded) }
+                }
+
                 ExperienceQuickAddEvent.Submitted -> {
                     submitExperience()
                 }
@@ -568,19 +605,15 @@ public class OnboardingViewModel
         private fun submitExperience() {
             val editor = _uiState.value.experienceEditor ?: return
             if (editor.isSubmitting) return
-            val validated = validateExperienceEditor(editor)
+            // 입력칸에 남은 기술 이름을 먼저 태그로 확정한다 — 「Kotlin」을 치고 완료 대신 바로 추가하기를 누른
+            // 사용자가 그 글자를 조용히 잃지 않게.
+            val validated = validateExperienceEditor(editor.withTechTagCommitted())
             if (validated.hasErrors) {
                 _uiState.update { it.copy(experienceEditor = validated) }
                 return
             }
             val editingId = validated.experienceId
-            val original =
-                editingId?.let { id ->
-                    _uiState.value.step3.experiences
-                        .firstOrNull { it.id == id }
-                }
-            val edited = validated.toDraft()
-            val draft = original?.let(edited::preserving) ?: edited
+            val draft = validated.toDraft()
             _uiState.update { it.copy(experienceEditor = validated.copy(isSubmitting = true), failure = null) }
             val stage = if (editingId == null) OnboardingFailureStage.AddExperience else OnboardingFailureStage.UpdateExperience
             viewModelScope.launch {
@@ -1082,36 +1115,18 @@ private fun OnboardingStep3FormState.restore(
     }
 
 /**
- * 빠른 입력 5필드로 표현되지 않는 값은 원본에서 그대로 물려받는다.
+ * 등록된 카드를 시트의 값으로 되돌린다 — [toDraft] 의 역방향이다.
  *
- * 시트는 유형별 공통 5필드만 받으므로, 다른 화면에서 채운 기술 태그·링크·요약이 수정 저장에 쓸려 나가면 안 된다.
- * 수정 중에는 유형이 잠겨 있어 원본과 상세 타입이 항상 같다.
+ * ### 「시트가 모르는 필드를 지우지 않는다」를 이제 무엇이 지키는가 (#139)
+ * 예전 시트는 공통 5필드만 받아, 수정 저장이 기술 태그·링크·요약을 지우지 않도록 원본에서 물려받는
+ * `preserving()` 를 따로 뒀다. #139 로 시트가 `ExperienceDetails` 의 **전 필드**를 받게 되면서 물려받을
+ * 대상이 사라졌고, 손으로 쓴 유형별 물려받기는 그대로 두면 새 필드가 생겼을 때 조용히 낡는 죽은 코드가 된다.
+ * 그래서 물려받기를 걷어내고 계약을 **이 함수와 [toDraft] 의 왕복이 무손실**이라는 한 가지로 좁혔다 —
+ * `OnboardingViewModelTest` 의 왕복 테스트가 다섯 유형 전부에 대해 그 등식을 고정한다.
+ *
+ * 상세 값이 하나라도 있으면 [ExperienceEditorState.isDetailExpanded] 를 켜서 펼친 채로 연다. 접힌 채 열면
+ * 사용자는 그 값이 사라졌다고 읽는다.
  */
-private fun ExperienceDraft.preserving(original: Experience): ExperienceDraft {
-    val edited = details
-    val originalDetails = original.details
-    val merged =
-        when {
-            edited is ExperienceDetails.Project && originalDetails is ExperienceDetails.Project -> {
-                edited.copy(techs = originalDetails.techs, link = originalDetails.link)
-            }
-
-            edited is ExperienceDetails.Intern && originalDetails is ExperienceDetails.Intern -> {
-                edited.copy(summary = originalDetails.summary)
-            }
-
-            edited is ExperienceDetails.Activity && originalDetails is ExperienceDetails.Activity -> {
-                edited.copy(role = originalDetails.role)
-            }
-
-            else -> {
-                edited
-            }
-        }
-    return copy(details = merged)
-}
-
-/** 등록된 카드를 빠른 입력 시트의 값으로 되돌린다 — [ExperienceEditorState.toDraft] 의 역방향이다. */
 internal fun Experience.toEditorState(): ExperienceEditorState {
     val details = details
     val start =
@@ -1136,6 +1151,16 @@ internal fun Experience.toEditorState(): ExperienceEditorState {
             is ExperienceDetails.Activity -> details.summary
             is ExperienceDetails.Certificate -> null
         }
+    val detail =
+        when (details) {
+            is ExperienceDetails.Intern -> details.summary
+            is ExperienceDetails.Activity -> details.role
+            else -> null
+        }
+    // 서버에 상한을 넘는 태그가 있어도(다른 클라이언트가 만들었을 수 있다) 여기서 자르지 않는다 — 자르면
+    // 제목만 고치려던 사용자가 자기도 모르게 태그를 잃는다. 상한은 「새로 더할 때」만 건다.
+    val techs = (details as? ExperienceDetails.Project)?.techs.orEmpty()
+    val link = (details as? ExperienceDetails.Project)?.link.orEmpty()
     return ExperienceEditorState(
         experienceId = id,
         type = type,
@@ -1144,6 +1169,10 @@ internal fun Experience.toEditorState(): ExperienceEditorState {
         endDate = if (ExperienceEditorRules.hasEndDate(type)) endDate?.toEditorYearMonth().orEmpty() else "",
         primary = primary.orEmpty(),
         secondary = secondary.orEmpty(),
+        techs = techs,
+        link = link,
+        detail = detail.orEmpty(),
+        isDetailExpanded = techs.isNotEmpty() || link.isNotEmpty() || !detail.isNullOrEmpty(),
     )
 }
 
@@ -1178,7 +1207,50 @@ private fun parseGraduationMonth(value: String): Int? =
     }
 
 private val ExperienceEditorState.hasErrors: Boolean
-    get() = listOfNotNull(titleError, startDateError, endDateError, primaryError, secondaryError).isNotEmpty()
+    get() =
+        listOfNotNull(
+            titleError,
+            startDateError,
+            endDateError,
+            primaryError,
+            secondaryError,
+            techInputError,
+            linkError,
+            detailError,
+        ).isNotEmpty()
+
+/**
+ * 입력칸에 남은 글자를 기술 태그로 확정한다. 규칙에 걸리면 태그 대신 필드 오류를 남긴다.
+ *
+ * 중복은 **대소문자를 무시하고** 거른다 — `kotlin` 과 `Kotlin` 은 사람에게 같은 기술이고, 카드에 둘 다 뜨면
+ * 오히려 잘못 입력한 것처럼 보인다. 먼저 친 표기를 남긴다. 상한을 넘으면 오류만 남기고 입력칸은 비우지
+ * 않는다 — 태그 하나를 지우고 다시 완료를 누르면 그대로 들어간다.
+ */
+internal fun ExperienceEditorState.withTechTagCommitted(): ExperienceEditorState {
+    if (!ExperienceEditorRules.hasTechTags(type)) return this
+    val tag = ExperienceEditorRules.normalizeTechTag(techInput)
+    return when {
+        tag.isEmpty() -> {
+            copy(techInput = "", techInputError = null)
+        }
+
+        tag.length > ExperienceEditorRules.MAX_TECH_TAG_LENGTH -> {
+            copy(techInputError = OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_TECH_TAG_LENGTH))
+        }
+
+        techs.any { it.equals(tag, ignoreCase = true) } -> {
+            copy(techInput = "", techInputError = null)
+        }
+
+        techs.size >= ExperienceEditorRules.MAX_TECH_TAGS -> {
+            copy(techInputError = OnboardingFieldError.OutOfRange)
+        }
+
+        else -> {
+            copy(techInput = "", techs = techs + tag, techInputError = null)
+        }
+    }
+}
 
 /** 시트 입력을 [ExperienceEditorRules] 로 검증해 필드 오류를 채운 사본을 돌려준다. */
 internal fun validateExperienceEditor(editor: ExperienceEditorState): ExperienceEditorState {
@@ -1221,12 +1293,38 @@ internal fun validateExperienceEditor(editor: ExperienceEditorState): Experience
         } else {
             null
         }
+    // 상세는 전부 선택 입력이다 — 비어 있는 것은 오류가 아니고, 그 유형이 안 쓰는 값은 아예 보지 않는다.
+    val linkError =
+        when {
+            !ExperienceEditorRules.hasLink(type) || editor.link.isBlank() -> {
+                null
+            }
+
+            editor.link.trim().length > ExperienceEditorRules.MAX_LINK_LENGTH -> {
+                OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_LINK_LENGTH)
+            }
+
+            !ExperienceEditorRules.isValidLink(editor.link) -> {
+                OnboardingFieldError.InvalidFormat
+            }
+
+            else -> {
+                null
+            }
+        }
+    val detailError =
+        if (ExperienceEditorRules.hasDetail(type)) validateOptionalText(editor.detail, required = false) else null
     return editor.copy(
         titleError = titleError,
         startDateError = startDateError,
         endDateError = endDateError,
         primaryError = primaryError,
         secondaryError = secondaryError,
+        linkError = linkError,
+        detailError = detailError,
+        // 접힌 영역의 오류로 제출이 막히면 사용자에게는 「버튼이 안 먹는다」로만 보인다 — 오류가 나면 펼친다.
+        isDetailExpanded =
+            editor.isDetailExpanded || editor.techInputError != null || linkError != null || detailError != null,
     )
 }
 
@@ -1240,17 +1338,31 @@ private fun validateOptionalText(
         else -> null
     }
 
-/** 검증을 통과한 시트 입력을 [ExperienceDraft] 로 옮긴다 — 유형별 필드 의미는 [ExperienceEditorRules] 표를 따른다. */
+/**
+ * 검증을 통과한 시트 입력을 [ExperienceDraft] 로 옮긴다 — 유형별 필드 의미는 [ExperienceEditorRules] 표를 따른다.
+ *
+ * 표에 없는 값은 **읽지 않는다**. 유형을 바꿔도 시트는 이전 유형에 친 글을 지우지 않으므로(칩을 잘못 눌렀다
+ * 돌아온 사용자를 위해), 새 유형이 쓰지 않는 값이 서버로 새지 않는 것은 여기서 보장한다.
+ */
 internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
     val trimmedTitle = title.trim()
     val start = ExperienceEditorRules.parseYearMonth(startDate)
     val end = if (ExperienceEditorRules.hasEndDate(type)) ExperienceEditorRules.parseYearMonth(endDate) else null
     val primaryText = primary.trim().ifEmpty { null }
     val secondaryText = secondary.trim().ifEmpty { null }
+    val linkText = if (ExperienceEditorRules.hasLink(type)) link.trim().ifEmpty { null } else null
+    val detailText = if (ExperienceEditorRules.hasDetail(type)) detail.trim().ifEmpty { null } else null
+    // 모델이 「공백 없음·중복 없음」을 require 로 지킨다 — 여기서 한 번 더 거른다.
+    val techTags =
+        if (ExperienceEditorRules.hasTechTags(type)) {
+            techs.map(String::trim).filter(String::isNotEmpty).distinctBy(String::lowercase)
+        } else {
+            emptyList()
+        }
     val details =
         when (type) {
             ExperienceType.Project -> {
-                ExperienceDetails.Project(role = primaryText, techs = emptyList(), summary = secondaryText, link = null)
+                ExperienceDetails.Project(role = primaryText, techs = techTags, summary = secondaryText, link = linkText)
             }
 
             ExperienceType.Award -> {
@@ -1266,14 +1378,14 @@ internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
                 ExperienceDetails.Intern(
                     company = requireNotNull(primaryText) { "intern company is required" },
                     role = requireNotNull(secondaryText) { "intern role is required" },
-                    summary = null,
+                    summary = detailText,
                 )
             }
 
             ExperienceType.Activity -> {
                 ExperienceDetails.Activity(
                     organization = requireNotNull(primaryText) { "activity organization is required" },
-                    role = null,
+                    role = detailText,
                     summary = secondaryText,
                 )
             }

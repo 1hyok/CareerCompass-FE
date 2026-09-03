@@ -43,6 +43,7 @@ import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationDatePic
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerEvent
 import com.cambridge.feature.onboarding.presentation.complete.OnboardingCompleteEvent
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceDeleteEvent
+import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditorRules
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryEvent
@@ -596,9 +597,258 @@ class OnboardingViewModelTest {
         assertEquals(listOf(1L, 2L), state.step3.experiences.map(Experience::id))
         val updated = state.step3.experiences.first { it.id == 2L }
         assertEquals("CareerCompass 리뉴얼", updated.title)
-        // 빠른 입력 시트에 없는 기술 태그는 수정 저장에 쓸려 나가지 않는다.
+        // 손대지 않은 기술 태그는 수정 저장에 쓸려 나가지 않는다 — #139 이후로는 시트 왕복이 값을 그대로 실어 오는 것이 그 근거다.
         assertEquals(listOf("Kotlin"), (updated.details as ExperienceDetails.Project).techs)
         assertTrue(experienceRepository.createdDrafts.isEmpty())
+    }
+
+    @Test
+    fun `카드의 상세 필드는 시트를 왕복해도 그대로다`() {
+        // 「시트가 모르는 필드를 저장 때 지우지 않는다」를 물려받기 대신 이 무손실 왕복이 지킨다(#139).
+        // 수상의 `contestName` 은 시트에서 제목 칸 그 자체라 제목을 공모전명으로 둔다.
+        val cards =
+            listOf(
+                ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin", "Compose"), summary = "요약", link = "https://a.io"),
+                ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = "주관사"),
+                ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = "주요 업무"),
+                ExperienceDetails.Activity(organization = "동아리", role = "기획팀장", summary = "성과"),
+                ExperienceDetails.Certificate(issuer = "한국산업인력공단", acquiredYearMonth = "2025-06"),
+            )
+
+        cards.forEach { details ->
+            val card =
+                Experience(
+                    id = 7L,
+                    title = "공모전",
+                    startDate = LocalDate.of(2025, 6, 1),
+                    endDate = LocalDate.of(2025, 7, 1),
+                    details = details,
+                    createdAt = null,
+                )
+
+            assertEquals(details, card.toEditorState().toDraft().details)
+        }
+    }
+
+    @Test
+    fun `상세 값이 있는 카드는 자세히를 펼친 채로 연다`() {
+        experienceRepository.experiences += sampleExperience(id = 1L)
+        experienceRepository.experiences +=
+            Experience(
+                id = 2L,
+                title = "무지개 동아리",
+                startDate = LocalDate.of(2025, 3, 1),
+                endDate = null,
+                details = ExperienceDetails.Activity(organization = "무지개", role = null, summary = null),
+                createdAt = null,
+            )
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
+        val viewModel = createViewModel()
+
+        viewModel.onStep3Event(OnboardingStep3Event.ExperienceSelected("1"))
+        val withDetails = viewModel.uiState.value.experienceEditor
+        assertNotNull(withDetails)
+        assertTrue(withDetails!!.isDetailExpanded)
+        assertEquals(listOf("Kotlin"), withDetails.techs)
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Dismissed)
+        viewModel.onStep3Event(OnboardingStep3Event.ExperienceSelected("2"))
+
+        // 채울 것이 없는 카드까지 펼쳐 열면 선택 단계인 Step 3 가 괜히 길어 보인다.
+        assertFalse(
+            viewModel.uiState.value.experienceEditor
+                ?.isDetailExpanded ?: true,
+        )
+    }
+
+    @Test
+    fun `프로젝트 상세는 기술 태그와 링크를 실어 보낸다`() {
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("CareerCompass"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025.09"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.PrimaryChanged("안드로이드"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.LinkChanged("https://github.com/Team-CamBridge"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("#Kotlin "))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+        // 대소문자만 다른 태그는 같은 기술로 보고 먼저 친 표기를 남긴다.
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("kotlin"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("Compose"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+        // 입력칸에 남은 글자도 제출이 태그로 확정한다.
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("Hilt"))
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        val draft = experienceRepository.createdDrafts.single()
+        assertEquals(
+            ExperienceDetails.Project(
+                role = "안드로이드",
+                techs = listOf("Kotlin", "Compose", "Hilt"),
+                summary = null,
+                link = "https://github.com/Team-CamBridge",
+            ),
+            draft.details,
+        )
+    }
+
+    @Test
+    fun `기술 태그는 개수와 길이 상한을 넘으면 필드 오류로 막힌다`() {
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        repeat(ExperienceEditorRules.MAX_TECH_TAGS) { index ->
+            viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("tech$index"))
+            viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+        }
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("overflow"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+
+        val overflowed = viewModel.uiState.value.experienceEditor
+        assertNotNull(overflowed)
+        assertEquals(ExperienceEditorRules.MAX_TECH_TAGS, overflowed!!.techs.size)
+        assertEquals(OnboardingFieldError.OutOfRange, overflowed.techInputError)
+        // 상한에 걸린 글자는 입력칸에 남는다 — 하나 지우고 다시 완료를 누르면 그대로 들어간다.
+        assertEquals("overflow", overflowed.techInput)
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagRemoved("tech0"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+        assertEquals(
+            "overflow",
+            viewModel.uiState.value.experienceEditor
+                ?.techs
+                ?.last(),
+        )
+
+        viewModel.onExperienceEditorEvent(
+            ExperienceQuickAddEvent.TechInputChanged("a".repeat(ExperienceEditorRules.MAX_TECH_TAG_LENGTH + 1)),
+        )
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+        assertEquals(
+            OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_TECH_TAG_LENGTH),
+            viewModel.uiState.value.experienceEditor
+                ?.techInputError,
+        )
+    }
+
+    @Test
+    fun `링크는 http https 절대 주소만 받는다`() {
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("CareerCompass"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025.09"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.LinkChanged("javascript:alert(1)"))
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        assertEquals(
+            OnboardingFieldError.InvalidFormat,
+            viewModel.uiState.value.experienceEditor
+                ?.linkError,
+        )
+        assertTrue(experienceRepository.createdDrafts.isEmpty())
+
+        viewModel.onExperienceEditorEvent(
+            ExperienceQuickAddEvent.LinkChanged("https://example.com/" + "a".repeat(ExperienceEditorRules.MAX_LINK_LENGTH)),
+        )
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+        assertEquals(
+            OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_LINK_LENGTH),
+            viewModel.uiState.value.experienceEditor
+                ?.linkError,
+        )
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.LinkChanged("https://example.com/demo"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+        assertEquals(
+            "https://example.com/demo",
+            (experienceRepository.createdDrafts.single().details as ExperienceDetails.Project).link,
+        )
+    }
+
+    @Test
+    fun `접힌 상세에서 난 오류는 영역을 펼쳐 보여 준다`() {
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("CareerCompass"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025.09"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.LinkChanged("github.com/foo"))
+        // 링크를 치고 영역을 다시 접은 상태에서 제출한다.
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.DetailSectionToggled)
+        assertTrue(
+            viewModel.uiState.value.experienceEditor
+                ?.isDetailExpanded == true,
+        )
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.DetailSectionToggled)
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        val editor = viewModel.uiState.value.experienceEditor
+        assertNotNull(editor)
+        assertEquals(OnboardingFieldError.InvalidFormat, editor!!.linkError)
+        // 접힌 채로 막히면 사용자에게는 「버튼이 안 먹는다」로만 보인다.
+        assertTrue(editor.isDetailExpanded)
+        assertTrue(experienceRepository.createdDrafts.isEmpty())
+    }
+
+    @Test
+    fun `인턴과 대외활동의 상세는 각각 업무 요약과 역할로 저장된다`() {
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TypeSelected(ExperienceType.Intern))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("카카오 인턴"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025.01"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.PrimaryChanged("카카오"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.SecondaryChanged("안드로이드 개발"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.DetailChanged(" 공고 피드 화면 개발 "))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        assertEquals(
+            ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = "공고 피드 화면 개발"),
+            experienceRepository.createdDrafts.single().details,
+        )
+
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TypeSelected(ExperienceType.Activity))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("멋쟁이사자처럼"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.PrimaryChanged("멋사"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.SecondaryChanged("해커톤 최우수상"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.DetailChanged("기획팀장"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        assertEquals(
+            ExperienceDetails.Activity(organization = "멋사", role = "기획팀장", summary = "해커톤 최우수상"),
+            experienceRepository.createdDrafts.last().details,
+        )
+    }
+
+    @Test
+    fun `유형을 바꿔도 이전 값은 시트에 남고 저장에서만 빠진다`() {
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TitleChanged("CareerCompass"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.StartDateChanged("2025.09"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("Kotlin"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.LinkChanged("https://example.com"))
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TypeSelected(ExperienceType.Activity))
+
+        // 칩을 잘못 눌렀다 되돌아오는 사용자를 위해 값은 지우지 않는다.
+        val switched = viewModel.uiState.value.experienceEditor
+        assertNotNull(switched)
+        assertEquals(listOf("Kotlin"), switched!!.techs)
+        assertEquals("https://example.com", switched.link)
+
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.PrimaryChanged("무지개"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.DetailChanged("기획팀장"))
+        viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
+
+        // 대외활동에는 기술 태그·링크 자리가 없어 저장에서 빠진다.
+        assertEquals(
+            ExperienceDetails.Activity(organization = "무지개", role = "기획팀장", summary = null),
+            experienceRepository.createdDrafts.single().details,
+        )
     }
 
     @Test

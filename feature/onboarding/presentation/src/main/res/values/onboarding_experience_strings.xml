@@ -21,6 +21,23 @@
     <string name="onboarding_experience_activity_organization_label">기관명 *</string>
     <string name="onboarding_experience_activity_summary_label">성과 요약</string>
     <string name="onboarding_experience_certificate_issuer_label">발급 기관</string>
+    <string name="onboarding_experience_detail_expand">자세히 입력하기 (선택)</string>
+    <string name="onboarding_experience_detail_collapse">자세히 접기</string>
+    <string name="onboarding_experience_detail_expanded_state">펼침</string>
+    <string name="onboarding_experience_detail_collapsed_state">접힘</string>
+    <string name="onboarding_experience_detail_filled">입력됨</string>
+    <string name="onboarding_experience_detail_hint">추천 정확도를 높이는 데 쓰여요. 비워 둬도 저장할 수 있어요</string>
+    <string name="onboarding_experience_tech_label">사용 기술</string>
+    <string name="onboarding_experience_tech_placeholder"># 기술을 입력하고 완료를 눌러 주세요</string>
+    <string name="onboarding_experience_tech_support">최대 %1$d개 · 한 개당 %2$d자까지</string>
+    <string name="onboarding_experience_tech_limit">기술 태그는 최대 %1$d개까지 추가할 수 있어요</string>
+    <string name="onboarding_experience_tech_chip" translatable="false">#%1$s ×</string>
+    <string name="onboarding_experience_tech_remove">%1$s 태그 삭제</string>
+    <string name="onboarding_experience_link_label">성과·결과물 링크</string>
+    <string name="onboarding_experience_link_placeholder" translatable="false">https://github.com/…</string>
+    <string name="onboarding_experience_link_invalid">http:// 또는 https:// 로 시작하는 주소를 입력해 주세요</string>
+    <string name="onboarding_experience_intern_summary_label">주요 업무 요약</string>
+    <string name="onboarding_experience_activity_role_label">역할</string>
     <string name="onboarding_experience_submit">추가하기</string>
     <string name="onboarding_experience_submitting">추가하는 중</string>
     <string name="onboarding_experience_save">저장하기</string>
