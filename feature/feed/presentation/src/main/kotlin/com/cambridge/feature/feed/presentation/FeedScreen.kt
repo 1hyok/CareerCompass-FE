@@ -44,7 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -53,7 +52,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,7 +68,9 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.shared.component.FEED_ICON_SIZE
 import com.cambridge.feature.feed.presentation.shared.component.FEED_INLINE_ICON_SIZE
 import com.cambridge.feature.feed.presentation.shared.component.FeedIconButton
+import com.cambridge.feature.feed.presentation.shared.component.FeedReadBadge
 import com.cambridge.feature.feed.presentation.shared.component.FeedSuitabilityChip
+import com.cambridge.feature.feed.presentation.shared.component.feedMetaTextStyle
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
@@ -744,52 +744,6 @@ private fun FeedListingMeta(
     }
 }
 
-/**
- * 읽은 공고 표시 — 체크 「형태」와 「읽음」 문구가 각각 홀로도 뜻을 지고, 회색은 거들기만 한다.
- *
- * 스크린 리더에서는 지운다([clearAndSetSemantics]). 카드의 `stateDescription` 이 이미 읽음·읽지 않음을
- * 말하므로, 여기까지 읽히면 읽은 카드만 「읽음」을 두 번 듣게 된다.
- *
- * 체크 아이콘 크기를 sp 에서 뽑는 이유는 폰트 배율이다 — dp 로 못 박으면 글꼴이 2배가 될 때 문구
- * 옆에 점처럼 남아, 형태로 말하겠다는 약속이 큰 글꼴에서만 깨진다.
- */
-@Composable
-private fun FeedReadBadge() {
-    val colors = CareerCompassTheme.colors
-    val markerSize = with(LocalDensity.current) { FEED_READ_MARKER_SIZE.toDp() }
-
-    Row(
-        modifier =
-            Modifier
-                .clearAndSetSemantics {}
-                .background(colors.surfaceVariant, CareerCompassTheme.shapes.pill)
-                .padding(horizontal = 8.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = CareerCompassIcons.Check,
-            contentDescription = null,
-            modifier = Modifier.size(markerSize),
-            tint = colors.onSurfaceVariant,
-        )
-        Text(
-            text = stringResource(R.string.feed_listing_read_state),
-            color = colors.onSurfaceVariant,
-            style = feedMetaTextStyle,
-        )
-    }
-}
-
-/** 메타 줄 공통 글꼴 — 세 조각이 같은 크기로 서야 줄이 접혀도 한 덩어리로 읽힌다. */
-private val feedMetaTextStyle: TextStyle
-    @Composable get() =
-        CareerCompassTheme.typography.caption.copy(
-            fontSize = 12.sp,
-            lineHeight = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-
 @Composable
 private fun FeedBookmarkToggle(
     title: String,
@@ -1035,6 +989,3 @@ private fun FeedListingCategory.badgeTone(): CareerCompassBadgeTone =
 
 /** Trigger the next page when this many items (or fewer) remain below the viewport. */
 private const val LOAD_MORE_THRESHOLD = 3
-
-/** 「읽음」 배지의 체크 표시 크기. dp 가 아니라 sp 라서 폰트 배율을 따라 함께 커진다. */
-private val FEED_READ_MARKER_SIZE = 14.sp
