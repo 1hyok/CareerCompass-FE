@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -46,18 +47,72 @@ class FeedScreenTest {
     }
 
     @Test
-    fun emptyState_showsEmptyGuidanceWithoutListings() {
+    fun emptyStateWithoutBoards_offersBoardRegistrationInsteadOfChangingConditions() {
+        val events = mutableListOf<FeedUiEvent>()
+        composeRule.setFeedContent(state = emptyState(FeedEmptyReason.NoBoards), onEvent = events::add)
+
+        composeRule.onNodeWithText("아직 등록한 게시판이 없어요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("검색어 지우기").assertCountEquals(0)
+        composeRule.onAllNodesWithText(SAMPLE_LISTING_TITLE).assertCountEquals(0)
+        composeRule.onNodeWithText("게시판 등록하기").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedUiEvent.BoardRegisterSelected), events)
+        }
+    }
+
+    @Test
+    fun emptyStateWithSearchQuery_namesTheQueryAndClearsIt() {
+        val events = mutableListOf<FeedUiEvent>()
         composeRule.setFeedContent(
-            state =
-                sampleState(
-                    totalListingCount = 0,
-                    content = FeedContentState.Empty,
-                ),
+            state = emptyState(FeedEmptyReason.Search("백엔드")),
+            onEvent = events::add,
         )
 
-        composeRule.onNodeWithText("조건에 맞는 공고가 없어요").assertIsDisplayed()
-        composeRule.onNodeWithText("검색어나 필터를 바꿔 보세요").assertIsDisplayed()
-        composeRule.onAllNodesWithText(SAMPLE_LISTING_TITLE).assertCountEquals(0)
+        composeRule.onNodeWithText("‘백엔드’ 검색 결과가 없어요").assertIsDisplayed()
+        composeRule.onNodeWithText("검색어 지우기").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedUiEvent.SearchQueryChanged("")), events)
+        }
+    }
+
+    @Test
+    fun emptyStateWithFilters_offersResetInsteadOfBoardRegistration() {
+        val events = mutableListOf<FeedUiEvent>()
+        composeRule.setFeedContent(state = emptyState(FeedEmptyReason.Filter), onEvent = events::add)
+
+        composeRule.onNodeWithText("필터에 맞는 공고가 없어요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("게시판 등록하기").assertCountEquals(0)
+        composeRule.onNodeWithText("필터 초기화").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedUiEvent.FilterResetSelected), events)
+        }
+    }
+
+    @Test
+    fun emptyStateBeforeFirstCollection_saysWhenPostingsArriveAndOffersNoAction() {
+        composeRule.setFeedContent(
+            state = emptyState(FeedEmptyReason.NotCollected("등록한 게시판을 1일 1회 확인하고 있어요")),
+        )
+
+        composeRule
+            .onNodeWithText("아직 모인 공고가 없어요")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("등록한 게시판을 1일 1회 확인하고 있어요", substring = true)
+            .assertIsDisplayed()
+        composeRule.onAllNodes(hasClickAction() and hasText("게시판 등록하기")).assertCountEquals(0)
+    }
+
+    @Test
+    fun emptyOfflineSnapshot_saysTheStoredListIsEmptyWithoutBlamingConditions() {
+        composeRule.setFeedContent(state = emptyState(FeedEmptyReason.OfflineSnapshot))
+
+        composeRule.onNodeWithText("저장해 둔 목록에는 공고가 없어요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("필터 초기화").assertCountEquals(0)
+        composeRule.onAllNodesWithText("게시판 등록하기").assertCountEquals(0)
     }
 
     @Test
@@ -253,6 +308,8 @@ private fun ComposeContentTestRule.setFeedContent(
         }
     }
 }
+
+private fun emptyState(reason: FeedEmptyReason): FeedUiState = sampleState(totalListingCount = 0, content = FeedContentState.Empty(reason))
 
 private fun sampleState(
     userName: String = "일혁",

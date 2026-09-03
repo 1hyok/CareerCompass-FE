@@ -585,6 +585,84 @@ class FeedViewModelTest {
     }
 
     @Test
+    fun `빈 목록의 게시판 등록 안내는 등록 화면으로 보낸다`() {
+        val viewModel = viewModel(postingRepository = FakePostingRepository())
+
+        viewModel.onEvent(FeedUiEvent.BoardRegisterSelected)
+
+        assertEquals(FeedDestination.BoardRegister, viewModel.state.value.pendingNavigation)
+    }
+
+    @Test
+    fun `빈 목록의 필터 초기화는 칩까지 풀고 정렬은 남긴다`() {
+        val viewModel = viewModel()
+        viewModel.onEvent(FeedUiEvent.FilterSelected(FeedListingCategory.Employment))
+        viewModel.onSortEvent(FeedSortMenuEvent.SortSelected(FeedSortOption.DueAsc))
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        viewModel.onFilterEvent(FeedFilterEvent.MinScoreSelected(FeedMinScoreFilter.AtLeast80))
+        viewModel.onFilterEvent(FeedFilterEvent.UnreadOnlyToggled)
+        viewModel.onFilterEvent(FeedFilterEvent.ApplyClicked)
+        assertTrue(viewModel.state.value.hasActiveFilter)
+
+        viewModel.onEvent(FeedUiEvent.FilterResetSelected)
+
+        val query = viewModel.state.value.query
+        assertFalse(viewModel.state.value.hasActiveFilter)
+        assertTrue(query.types.isEmpty())
+        assertNull(query.minScore)
+        assertFalse(query.unreadOnly)
+        assertEquals(FeedDeadlineFilter.All, query.deadline)
+        assertEquals(PostingSort.DueAsc, query.sort)
+    }
+
+    @Test
+    fun `필터 초기화는 검색어를 지우지 않는다`() =
+        runTest {
+            // 검색어와 필터는 각자의 사유가 각자의 행동을 준다 — 하나를 풀 때 다른 하나까지 지우면
+            // 사용자가 되돌린 적 없는 조건이 사라진다.
+            val viewModel = viewModel()
+            viewModel.onEvent(FeedUiEvent.SearchQueryChanged("백엔드"))
+            advanceTimeBy(FeedViewModel.SEARCH_DEBOUNCE_MS + 1)
+
+            viewModel.onEvent(FeedUiEvent.FilterResetSelected)
+
+            assertEquals("백엔드", viewModel.state.value.query.searchQuery)
+            assertEquals("백엔드", viewModel.state.value.searchInput)
+        }
+
+    @Test
+    fun `게시판 조회에 성공해야 목록을 받아 봤다고 표시한다`() {
+        assertTrue(viewModel().state.value.boardsLoaded)
+
+        val failing = FakeBoardRepository.strict().apply { onGetBoards = { Result.failure(RuntimeException("boom")) } }
+
+        assertFalse(viewModel(boardRepository = failing).state.value.boardsLoaded)
+    }
+
+    @Test
+    fun `화면에 돌아오면 게시판만 다시 읽는다`() {
+        // 「등록한 게시판이 없어요」를 보고 등록하러 갔다 온 사용자에게 같은 안내가 남지 않게 한다.
+        val boards = FakeBoardRepository(initial = emptyList())
+        val postings = FakePostingRepository()
+        val viewModel = viewModel(postingRepository = postings, boardRepository = boards)
+        assertTrue(
+            viewModel.state.value.boards
+                .isEmpty(),
+        )
+        boards.boards += board(id = 9)
+        val queriesBefore = postings.queries.size
+
+        viewModel.refreshBoards()
+
+        assertEquals(
+            listOf(9L),
+            viewModel.state.value.boards
+                .map { it.id },
+        )
+        assertEquals(queriesBefore, postings.queries.size)
+    }
+
+    @Test
     fun `프로필이 비어 있고 점수 없는 항목이 있으면 안내를 켠다`() {
         val repository = FakePostingRepository(initial = listOf(posting(id = 1), posting(id = 2, score = 80)))
 

@@ -60,6 +60,7 @@ import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
+import com.cambridge.core.ui.component.CareerCompassEmptyState
 import com.cambridge.core.ui.component.CareerCompassTag
 import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
@@ -120,8 +121,12 @@ public fun FeedScreen(
                 FeedLoading(modifier = Modifier.weight(1f))
             }
 
-            FeedContentState.Empty -> {
-                FeedEmpty(modifier = Modifier.weight(1f))
+            is FeedContentState.Empty -> {
+                FeedEmpty(
+                    reason = content.reason,
+                    onEvent = onEvent,
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             is FeedContentState.Loaded -> {
@@ -741,22 +746,75 @@ private fun FeedProfileNoticeBanner(onClick: () -> Unit) {
     }
 }
 
+/**
+ * 빈 목록 — [FeedEmptyReason] 마다 다른 안내와 행동을 준다.
+ *
+ * 사유를 가르는 규칙과 우선순위는 [FeedEmptyReason] 의 KDoc 에 있다. 여기서는 사유 하나를 문구와
+ * 행동으로 옮기기만 한다.
+ *
+ * 되돌릴 조건이 없는 사유([FeedEmptyReason.NotCollected]·[FeedEmptyReason.OfflineSnapshot])에는 행동을
+ * 주지 않는다 — 눌러도 목록이 달라지지 않는 버튼은 기다리라는 안내와 모순된다. 새로고침은 화면 전체에
+ * 걸린 당겨서 새로고침이 이미 맡고 있다.
+ */
 @Composable
-private fun FeedEmpty(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CareerCompassTheme.spacing.small),
-        ) {
-            Text(
-                text = stringResource(R.string.feed_empty_title),
-                color = CareerCompassTheme.colors.onSurface,
-                style = CareerCompassTheme.typography.headline4,
+private fun FeedEmpty(
+    reason: FeedEmptyReason,
+    onEvent: (FeedUiEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (reason) {
+        FeedEmptyReason.NoBoards -> {
+            CareerCompassEmptyState(
+                title = stringResource(R.string.feed_empty_no_boards_title),
+                description = stringResource(R.string.feed_empty_no_boards_description),
+                actionText = stringResource(R.string.feed_empty_no_boards_action),
+                onActionClick = { onEvent(FeedUiEvent.BoardRegisterSelected) },
+                modifier = modifier,
             )
-            Text(
-                text = stringResource(R.string.feed_empty_description),
-                color = CareerCompassTheme.colors.mutedContent,
-                style = CareerCompassTheme.typography.bodyMedium,
+        }
+
+        is FeedEmptyReason.Search -> {
+            // 검색어를 지우는 것도 검색어 변경이다 — 입력칸의 글자와 조회 조건이 한 이벤트로만 바뀌게
+            // 두어, 지우기 전용 경로가 둘 사이를 어긋나게 만들지 않는다.
+            CareerCompassEmptyState(
+                title = stringResource(R.string.feed_empty_search_title, reason.query),
+                description = stringResource(R.string.feed_empty_search_description),
+                actionText = stringResource(R.string.feed_empty_search_action),
+                onActionClick = { onEvent(FeedUiEvent.SearchQueryChanged("")) },
+                modifier = modifier,
+            )
+        }
+
+        FeedEmptyReason.Filter -> {
+            CareerCompassEmptyState(
+                title = stringResource(R.string.feed_empty_filter_title),
+                description = stringResource(R.string.feed_empty_filter_description),
+                actionText = stringResource(R.string.feed_empty_filter_action),
+                onActionClick = { onEvent(FeedUiEvent.FilterResetSelected) },
+                modifier = modifier,
+            )
+        }
+
+        is FeedEmptyReason.NotCollected -> {
+            CareerCompassEmptyState(
+                title = stringResource(R.string.feed_empty_not_collected_title),
+                description =
+                    reason.collectNotice?.let { notice ->
+                        stringResource(R.string.feed_empty_not_collected_description_with_notice, notice)
+                    } ?: stringResource(R.string.feed_empty_not_collected_description),
+                actionText = null,
+                onActionClick = null,
+                modifier = modifier,
+            )
+        }
+
+        FeedEmptyReason.OfflineSnapshot -> {
+            CareerCompassEmptyState(
+                title = stringResource(R.string.feed_empty_offline_title),
+                description = stringResource(R.string.feed_empty_offline_description),
+                actionText = null,
+                onActionClick = null,
+                modifier = modifier,
             )
         }
     }

@@ -131,6 +131,18 @@ class FeedContractTest {
     }
 
     @Test
+    fun emptyReason_rejectsUnusableGuidanceText() {
+        // 빈 문자열을 받아 두면 「'' 검색 결과가 없어요」 같은 문구가 그대로 화면에 나간다.
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedEmptyReason.Search(query = " \t")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FeedEmptyReason.NotCollected(collectNotice = " \t")
+        }
+        assertEquals(null, FeedEmptyReason.NotCollected(collectNotice = null).collectNotice)
+    }
+
+    @Test
     fun uiState_acceptsUniqueFiltersContainingSelection() {
         val state = sampleUiState()
 
@@ -160,7 +172,7 @@ private fun sampleUiState(
         selectedFilter = selectedFilter,
         selectedSort = FeedSortUiModel(id = "fit", label = "적합도 높은순"),
         totalListingCount = 0,
-        content = FeedContentState.Empty,
+        content = FeedContentState.Empty(FeedEmptyReason.NotCollected(collectNotice = null)),
     )
 
 private fun sampleListing(

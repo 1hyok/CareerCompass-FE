@@ -120,13 +120,14 @@ internal fun board(
     failCount: Int = 0,
     lastCollectedAt: Instant? = null,
     type: BoardType = BoardType.Scholarship,
+    cycleHours: Int = 24,
 ): Board =
     Board(
         id = id,
         url = "https://example.com/boards/$id",
         name = "게시판 $id",
         type = type,
-        cycleHours = 24,
+        cycleHours = cycleHours,
         isActive = isActive,
         status = status,
         failCount = failCount,
