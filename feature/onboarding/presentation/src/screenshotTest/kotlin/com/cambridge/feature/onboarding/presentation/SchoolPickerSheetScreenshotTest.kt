@@ -6,6 +6,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.domain.model.SchoolCatalog
+import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolDirectInputState
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerSheet
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerState
 
@@ -23,11 +24,26 @@ public fun SchoolPickerFilteredPreview() {
     SchoolPickerPreviewHost(state = SchoolPickerState(query = "건국", results = SchoolCatalog.search("건국")))
 }
 
+/** 0건이어도 「직접 입력」 탈출구가 함께 보여야 한다 — 문구만 남으면 앱 전체가 막힌다(#138). */
 @PreviewTest
 @Preview(name = "School picker empty", widthDp = 360, heightDp = 800)
 @Composable
 public fun SchoolPickerEmptyPreview() {
     SchoolPickerPreviewHost(state = SchoolPickerState(query = "없는 학교", results = emptyList()))
+}
+
+@PreviewTest
+@Preview(name = "School picker direct input", widthDp = 360, heightDp = 800)
+@Composable
+public fun SchoolPickerDirectInputPreview() {
+    SchoolPickerPreviewHost(
+        state =
+            SchoolPickerState(
+                query = "서울예술",
+                results = emptyList(),
+                directInput = SchoolDirectInputState(value = "서울예술대학교"),
+            ),
+    )
 }
 
 @Composable

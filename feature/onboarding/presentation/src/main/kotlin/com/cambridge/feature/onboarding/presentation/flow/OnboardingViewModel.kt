@@ -24,6 +24,7 @@ import com.cambridge.feature.onboarding.domain.model.JobOptionCatalog
 import com.cambridge.feature.onboarding.domain.model.OnboardingProgress
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.domain.model.SchoolCatalog
+import com.cambridge.feature.onboarding.domain.model.SchoolNameRules
 import com.cambridge.feature.onboarding.domain.usecase.AddExperienceUseCase
 import com.cambridge.feature.onboarding.domain.usecase.CompleteOnboardingUseCase
 import com.cambridge.feature.onboarding.domain.usecase.DeleteExperienceUseCase
@@ -43,6 +44,7 @@ import com.cambridge.feature.onboarding.presentation.OnboardingStep3Event
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4Event
 import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationDatePickerEvent
 import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationPickerState
+import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolDirectInputState
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerEvent
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerState
 import com.cambridge.feature.onboarding.presentation.complete.OnboardingCompleteEvent
@@ -224,17 +226,68 @@ public class OnboardingViewModel
                 }
 
                 is SchoolPickerEvent.SchoolSelected -> {
-                    _uiState.update { state ->
-                        state.copy(
-                            step1 = state.step1.copy(school = event.school, schoolError = null),
-                            schoolPicker = null,
+                    _uiState.update { state -> state.withSchool(event.school) }
+                }
+
+                SchoolPickerEvent.DirectInputRequested -> {
+                    updateSchoolPicker { copy(directInput = SchoolDirectInputState(value = SchoolNameRules.normalize(query))) }
+                }
+
+                is SchoolPickerEvent.DirectInputChanged -> {
+                    updateSchoolPicker {
+                        copy(
+                            directInput =
+                                SchoolDirectInputState(
+                                    value = event.value,
+                                    error = OnboardingStep1Rules.validateSchool(event.value, requireValue = false),
+                                ),
                         )
                     }
+                }
+
+                SchoolPickerEvent.DirectInputConfirmed -> {
+                    confirmSchoolDirectInput()
+                }
+
+                SchoolPickerEvent.DirectInputCancelled -> {
+                    updateSchoolPicker { copy(directInput = null) }
                 }
 
                 SchoolPickerEvent.Dismissed -> {
                     _uiState.update { it.copy(schoolPicker = null) }
                 }
+            }
+        }
+
+        /**
+         * 직접 입력한 학교를 확정한다 — 목록 선택과 같은 자리로 들어간다.
+         *
+         * 확정 시점에만 필수 여부를 따진다. 입력 도중에 「필수 입력이에요」 를 띄우면 첫 글자를 치기도
+         * 전에 빨간 칸이 된다.
+         */
+        private fun confirmSchoolDirectInput() {
+            _uiState.update { state ->
+                val input = state.schoolPicker?.directInput ?: return@update state
+                val error = OnboardingStep1Rules.validateSchool(input.value, requireValue = true)
+                if (error != null) {
+                    state.copy(schoolPicker = state.schoolPicker.copy(directInput = input.copy(error = error)))
+                } else {
+                    state.withSchool(input.value)
+                }
+            }
+        }
+
+        /** 학교를 정하고 시트를 닫는다. 목록 값·직접 입력값 모두 같은 규칙으로 다듬어 담는다. */
+        private fun OnboardingFlowState.withSchool(school: String): OnboardingFlowState =
+            copy(
+                step1 = step1.copy(school = SchoolNameRules.normalize(school), schoolError = null),
+                schoolPicker = null,
+            )
+
+        private inline fun updateSchoolPicker(transform: SchoolPickerState.() -> SchoolPickerState) {
+            _uiState.update { state ->
+                val picker = state.schoolPicker ?: return@update state
+                state.copy(schoolPicker = picker.transform())
             }
         }
 
@@ -292,7 +345,7 @@ public class OnboardingViewModel
             val validated =
                 form.copy(
                     nameError = OnboardingStep1Rules.validateText(form.name, OnboardingStep1Rules.MAX_NAME_LENGTH, requireValue = true),
-                    schoolError = if (form.school.isBlank()) OnboardingFieldError.Required else null,
+                    schoolError = OnboardingStep1Rules.validateSchool(form.school, requireValue = true),
                     majorError = OnboardingStep1Rules.validateText(form.major, OnboardingStep1Rules.MAX_MAJOR_LENGTH, requireValue = true),
                     gradePointAverageError = OnboardingStep1Rules.validateGradePointAverage(form.gradePointAverage),
                     graduationDateError = OnboardingStep1Rules.validateGraduationDate(form.graduationDate),
@@ -305,7 +358,7 @@ public class OnboardingViewModel
             viewModelScope.launch {
                 saveBasicInfo(
                     name = validated.name.trim(),
-                    school = validated.school.trim(),
+                    school = SchoolNameRules.normalize(validated.school),
                     department = validated.major.trim(),
                     gpa = OnboardingStep1Rules.parseGradePointAverage(validated.gradePointAverage),
                     gradYear = OnboardingStep1Rules.parseGraduationYear(validated.graduationDate),

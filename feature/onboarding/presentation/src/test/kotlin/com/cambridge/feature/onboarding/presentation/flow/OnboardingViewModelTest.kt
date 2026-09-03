@@ -20,6 +20,7 @@ import com.cambridge.core.model.user.UserProfileUpdate
 import com.cambridge.feature.onboarding.domain.model.OnboardingProgress
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.domain.model.SchoolCatalog
+import com.cambridge.feature.onboarding.domain.model.SchoolNameRules
 import com.cambridge.feature.onboarding.domain.testing.FakeOnboardingProgressRepository
 import com.cambridge.feature.onboarding.domain.usecase.AddExperienceUseCase
 import com.cambridge.feature.onboarding.domain.usecase.CompleteOnboardingUseCase
@@ -273,6 +274,97 @@ class OnboardingViewModelTest {
         viewModel.onStep1Event(OnboardingStep1Event.SchoolPickerClicked)
         viewModel.onSchoolPickerEvent(SchoolPickerEvent.Dismissed)
         assertNull(viewModel.uiState.value.schoolPicker)
+    }
+
+    /**
+     * 목록 40개에 없는 학교를 쓰는 사용자가 Step 1 을 통과할 수 있어야 한다(#138) — 여기가 막히면 앱 전체가 막힌다.
+     */
+    @Test
+    fun `목록에 없는 학교는 직접 입력으로 정할 수 있다`() {
+        val viewModel = createViewModel()
+
+        viewModel.onStep1Event(OnboardingStep1Event.SchoolPickerClicked)
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.QueryChanged("서울예술"))
+        val searching = viewModel.uiState.value.schoolPicker
+        assertEquals(emptyList<String>(), searching?.results)
+        assertTrue(searching?.isDirectInputOffered == true)
+
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputRequested)
+        assertEquals(
+            "서울예술",
+            viewModel.uiState.value.schoolPicker
+                ?.directInput
+                ?.value,
+        )
+
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputChanged("  서울예술   대학교 "))
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputConfirmed)
+
+        assertNull(viewModel.uiState.value.schoolPicker)
+        assertEquals("서울예술 대학교", viewModel.uiState.value.step1.school)
+        assertNull(viewModel.uiState.value.step1.schoolError)
+
+        viewModel.onStep1Event(OnboardingStep1Event.NextClicked)
+        assertEquals(
+            listOf(UserProfileUpdate(name = "정일혁", school = "서울예술 대학교", department = "컴퓨터공학부", gpa = 3.87, gradYear = 2027)),
+            userProfileRepository.updates,
+        )
+    }
+
+    @Test
+    fun `직접 입력은 공백만이거나 상한을 넘으면 확정되지 않는다`() {
+        val viewModel = createViewModel()
+
+        viewModel.onStep1Event(OnboardingStep1Event.SchoolPickerClicked)
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.QueryChanged("없는대"))
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputRequested)
+
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputChanged("   "))
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputConfirmed)
+        assertEquals(
+            OnboardingFieldError.Required,
+            viewModel.uiState.value.schoolPicker
+                ?.directInput
+                ?.error,
+        )
+        assertEquals("건국대학교", viewModel.uiState.value.step1.school)
+
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputChanged("가".repeat(SchoolNameRules.MAX_LENGTH + 1)))
+        assertEquals(
+            OnboardingFieldError.TooLong(SchoolNameRules.MAX_LENGTH),
+            viewModel.uiState.value.schoolPicker
+                ?.directInput
+                ?.error,
+        )
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputConfirmed)
+        assertNotNull(viewModel.uiState.value.schoolPicker)
+        assertEquals("건국대학교", viewModel.uiState.value.step1.school)
+    }
+
+    @Test
+    fun `직접 입력을 접으면 목록으로 돌아가고 시트는 열려 있다`() {
+        val viewModel = createViewModel()
+
+        viewModel.onStep1Event(OnboardingStep1Event.SchoolPickerClicked)
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.QueryChanged("건국"))
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputRequested)
+        viewModel.onSchoolPickerEvent(SchoolPickerEvent.DirectInputCancelled)
+
+        val picker = viewModel.uiState.value.schoolPicker
+        assertNotNull(picker)
+        assertNull(picker?.directInput)
+        assertEquals(listOf("건국대학교"), picker?.results)
+    }
+
+    /** 서버에서 프리필된 값에 잉여 공백이 있어도 저장 모양은 목록 선택과 같아야 한다. */
+    @Test
+    fun `프리필된 학교도 저장 직전에 같은 규칙으로 다듬는다`() {
+        userProfileRepository.profileState.value = sampleProfile().copy(school = "  건국  대학교 ")
+        val viewModel = createViewModel()
+
+        viewModel.onStep1Event(OnboardingStep1Event.NextClicked)
+
+        assertEquals("건국 대학교", userProfileRepository.updates.single().school)
     }
 
     @Test
