@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.board
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
@@ -23,6 +24,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -108,6 +111,11 @@ public data class BoardListViewState(
  * 카드를 누르면 수정 시트가 열리고, 저장은 바뀐 필드만 `PATCH` 로 보낸다.
  *
  * 등록 화면에서 돌아오면 Entry 가 [refresh] 를 부른다.
+ *
+ * 수정 시트에서 고치던 값은 [BoardEditInputDraft] 가 [SavedStateHandle] 에 남긴다(#156). 서버에 이미 있는
+ * 게시판을 고치는 자리라 **필드 단위로 서버가 이긴다** — 남기는 것은 사용자가 실제로 바꾼 필드뿐이고, 시트를
+ * 다시 열 때 바탕은 그 순간 목록에 있는 서버 값이다. 왜 그렇게 정했는지(그리고 왜 「충돌을 알아채 물어보기」가
+ * 불가능한지)는 그 클래스의 KDoc 에 있다.
  */
 @HiltViewModel
 public class BoardListViewModel
@@ -121,7 +129,10 @@ public class BoardListViewModel
         private val errorReporter: ErrorReporter,
         /** Entry 가 마지막 수집 상대 시각에 같은 시계를 쓴다. */
         public val clock: Clock,
+        savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
+        private val editInputDraft = BoardEditInputDraft(savedStateHandle)
+
         private val _state = MutableStateFlow(BoardListViewState())
         public val state: StateFlow<BoardListViewState> = _state.asStateFlow()
 
@@ -129,6 +140,12 @@ public class BoardListViewModel
 
         init {
             load(showLoading = true)
+            // 시트가 값을 바꾸는 자리마다 저장하지 않고 상태 흐름 한 곳에서 남긴다 — 각자 저장하게 두면 언젠가
+            // 한 곳이 빠지고, 빠진 자리는 프로세스가 죽어야 드러난다. 갱신은 시트가 **열려 있는 동안만** 한다:
+            // 닫힘(null)까지 여기서 받으면 살아난 직후 시트가 닫힌 상태라는 이유로 방금 복원한 초안을 지운다.
+            viewModelScope.launch {
+                _state.map { it.editDraft }.distinctUntilChanged().collect { draft -> draft?.let(editInputDraft::save) }
+            }
         }
 
         public fun onEvent(event: BoardListEvent) {
@@ -154,7 +171,10 @@ public class BoardListViewModel
                 is BoardListEvent.BoardSelected -> {
                     val boardId = event.boardId.toLongOrNull() ?: return
                     val board = _state.value.boards.firstOrNull { it.id == boardId } ?: return
-                    _state.update { it.copy(editDraft = BoardEditDraft.from(board)) }
+                    // 바탕은 언제나 방금 읽어 온 서버 값이고, 살아남은 초안은 사용자가 바꾼 필드만 그 위에 덮는다.
+                    val base = BoardEditDraft.from(board)
+                    val restored = editInputDraft.restoredEdit()?.applyTo(base) ?: base
+                    _state.update { it.copy(editDraft = restored) }
                 }
 
                 BoardListEvent.BackClicked -> {
@@ -183,9 +203,8 @@ public class BoardListViewModel
                 }
 
                 BoardEditEvent.DismissClicked -> {
-                    _state.update { state ->
-                        if (state.editDraft?.isSaving == true) state else state.copy(editDraft = null)
-                    }
+                    if (_state.value.editDraft?.isSaving == true) return
+                    closeEditSheet()
                 }
             }
         }
@@ -293,7 +312,7 @@ public class BoardListViewModel
             if (draft.isSaving || draft.name.isBlank()) return
             val update = draft.toUpdate()
             if (update.isEmpty) {
-                _state.update { it.copy(editDraft = null) }
+                closeEditSheet()
                 return
             }
             updateDraft { it.copy(isSaving = true) }
@@ -301,6 +320,7 @@ public class BoardListViewModel
                 updateBoard(draft.board.id, update)
                     .onSuccess { updated ->
                         replaceBoard(updated)
+                        editInputDraft.clear()
                         _state.update { it.copy(editDraft = null, message = BoardListMessage.Updated) }
                     }.onFailure { throwable ->
                         recordFailure(FeedFailureStage.BoardUpdate, throwable)
@@ -308,6 +328,12 @@ public class BoardListViewModel
                         _state.update { it.copy(message = BoardListMessage.UpdateFailed) }
                     }
             }
+        }
+
+        /** 시트를 닫으면서 초안도 버린다 — 닫히는 이유(취소·보낼 것 없음)가 모두 편집을 버리는 쪽이다. */
+        private fun closeEditSheet() {
+            editInputDraft.clear()
+            _state.update { it.copy(editDraft = null) }
         }
 
         private fun updateDraft(transform: (BoardEditDraft) -> BoardEditDraft) {
