@@ -51,6 +51,15 @@ public sealed interface BoardDetectionState {
 
     public data object Detecting : BoardDetectionState
 
+    /**
+     * 서버 응답을 기다리다 끊긴 상태 — 서버가 사유를 알린 [Failed] 와 갈라 둔다.
+     *
+     * 둘을 같은 문구로 안내하면 사용자가 「이 사이트는 지원되지 않는다」로 읽고 등록을 접거나, 재시도를
+     * 눌러 서버에 같은 크롤링을 처음부터 다시 시킨다(#134). 여기서는 사이트가 느렸을 뿐이라는 사실과
+     * 다시 시도할 길만 안내한다.
+     */
+    public data object TimedOut : BoardDetectionState
+
     public data class Success(
         val preview: List<BoardPreviewItemUiModel>,
         val dateDetected: Boolean,

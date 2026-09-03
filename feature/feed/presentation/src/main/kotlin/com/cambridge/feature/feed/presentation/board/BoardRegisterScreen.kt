@@ -105,6 +105,13 @@ public fun BoardRegisterScreen(
                     BoardDetectingRow()
                 }
 
+                BoardDetectionState.TimedOut -> {
+                    BoardDetectionTimedOutBox(
+                        retryEnabled = state.isDetectEnabled,
+                        onRetryClick = { onEvent(BoardRegisterEvent.DetectClicked) },
+                    )
+                }
+
                 is BoardDetectionState.Failed -> {
                     BoardDetectionFailedBox(
                         reason = detection.reason,
@@ -181,16 +188,23 @@ private fun BoardRegisterInfoCard() {
     }
 }
 
+/**
+ * 감지 진행 표시.
+ *
+ * 외부 사이트를 크롤링하는 호출이라 수십 초가 예사다(#134). 얼마나 걸릴지 말해 주지 않으면 사용자가 멈춘
+ * 줄 알고 화면을 떠나거나 다시 누르므로, 진행 문구 아래에 걸리는 시간을 함께 적는다.
+ */
 @Composable
 private fun BoardDetectingRow() {
     val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
 
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        horizontalArrangement = Arrangement.spacedBy(CareerCompassTheme.spacing.small),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CircularProgressIndicator(
@@ -198,10 +212,64 @@ private fun BoardDetectingRow() {
             color = colors.primaryEmphasis,
             strokeWidth = 2.dp,
         )
-        Text(
-            text = stringResource(R.string.feed_board_register_detecting),
-            color = colors.onSurfaceVariant,
-            style = CareerCompassTheme.typography.bodyMedium,
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = stringResource(R.string.feed_board_register_detecting),
+                color = colors.onSurfaceVariant,
+                style = CareerCompassTheme.typography.bodyMedium,
+            )
+            Text(
+                text = stringResource(R.string.feed_board_register_detecting_hint),
+                color = colors.mutedContent,
+                style = CareerCompassTheme.typography.caption,
+            )
+        }
+    }
+}
+
+/**
+ * 타임아웃 안내 — 실패([BoardDetectionFailedBox])와 달리 경고 톤이다.
+ *
+ * 같은 오류 상자에 담으면 사용자가 사이트가 지원되지 않는다고 읽는다. 여기서 알려야 할 것은 「우리가
+ * 기다리기를 그만뒀다」와 「다시 시도할 수 있다」뿐이다.
+ */
+@Composable
+private fun BoardDetectionTimedOutBox(
+    retryEnabled: Boolean,
+    onRetryClick: () -> Unit,
+) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(colors.warningContainer, CareerCompassTheme.shapes.largeControl)
+                .padding(spacing.large),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium),
+    ) {
+        Column(
+            modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+            verticalArrangement = Arrangement.spacedBy(spacing.xxSmall),
+        ) {
+            Text(
+                text = stringResource(R.string.feed_board_detect_timeout_title),
+                color = colors.onWarningContainer,
+                style = CareerCompassTheme.typography.headline4,
+            )
+            Text(
+                text = stringResource(R.string.feed_board_detect_timeout_description),
+                color = colors.onWarningContainer,
+                style = CareerCompassTheme.typography.bodyMedium,
+            )
+        }
+        CareerCompassButton(
+            text = stringResource(R.string.feed_board_register_retry),
+            onClick = onRetryClick,
+            variant = CareerCompassButtonVariant.Secondary,
+            size = CareerCompassButtonSize.Small,
+            enabled = retryEnabled,
         )
     }
 }

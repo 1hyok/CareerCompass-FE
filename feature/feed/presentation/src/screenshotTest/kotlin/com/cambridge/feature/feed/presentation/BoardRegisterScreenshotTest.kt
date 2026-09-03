@@ -30,6 +30,19 @@ public fun BoardRegisterDetectingPreview() {
 }
 
 @PreviewTest
+@Preview(name = "Board register timed out", widthDp = 360, heightDp = 772)
+@Composable
+public fun BoardRegisterTimedOutPreview() {
+    BoardRegisterPreviewSurface(
+        state =
+            boardRegisterPreviewState().copy(
+                url = "https://slow-portal.ac.kr/notice",
+                detection = BoardDetectionState.TimedOut,
+            ),
+    )
+}
+
+@PreviewTest
 @Preview(name = "Board register success", widthDp = 360, heightDp = 772)
 @Composable
 public fun BoardRegisterSuccessPreview() {

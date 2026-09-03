@@ -1,6 +1,7 @@
 package com.cambridge.core.domain.error
 
 import java.io.IOException
+import java.io.InterruptedIOException
 
 /**
  * 데이터 요청 실패 중 **사유가 확인된 것**의 공통 루트 — API_SPEC v0.1 §9 에러 코드를 도메인 사유로 옮긴다.
@@ -22,7 +23,22 @@ public sealed class CoreDataFailure(
      */
     public class NetworkUnavailable(
         public val transportCause: IOException,
-    ) : CoreDataFailure("network unavailable", code = null, cause = transportCause)
+    ) : CoreDataFailure("network unavailable", code = null, cause = transportCause) {
+        /**
+         * 연결이 안 된 것이 아니라 **응답을 기다리다 우리가 먼저 끊은** 실패인지.
+         *
+         * 오래 걸리는 서버 작업(게시판 구조 감지 등)에서만 이 둘의 안내가 갈려야 한다. 연결이 멀쩡한
+         * 사용자에게 「연결을 확인해 주세요」를 띄우면 헛수고를 시키고, 그 화면이 감지 실패 안내와
+         * 구분되지 않으면 사이트가 지원되지 않는다는 오해까지 부른다(#134). 나머지 화면은 지금처럼
+         * [NetworkUnavailable] 하나로 묶어도 사용자가 할 일이 같다 — 굳이 갈라 사유를 늘리지 않는다.
+         *
+         * 판정은 **예외 타입만** 본다. read·connect 초과는 `SocketTimeoutException`, OkHttp 의 call
+         * timeout 은 `InterruptedIOException("timeout")` 이라 둘의 공통 상위 타입 하나로 갈린다. 메시지
+         * 문구는 OkHttp·JDK 버전마다 바뀌므로 근거로 삼지 않는다.
+         */
+        public val isTimeout: Boolean
+            get() = transportCause is InterruptedIOException
+    }
 
     /** `AUTH_REQUIRED` / `AUTH_INVALID` (401). 세션 정리는 network 계층이 이미 끝냈다. */
     public class Unauthorized(

@@ -157,17 +157,31 @@ public class BoardRegisterViewModel
                     _state.update { it.copy(detection = BoardDetectionState.Failed(BoardDetectionFailure.Blocked)) }
                 }
 
+                // 타임아웃은 화면에 남는 상태로, 연결 단절은 지금처럼 스낵바로 알린다. 서버가 외부 사이트를
+                // 크롤링하는 동안 우리가 먼저 끊은 것을 「연결을 확인해 주세요」로 안내하면 연결이 멀쩡한
+                // 사용자를 헛수고시키고, 감지 실패 문구로 안내하면 사이트가 지원 안 된다는 오해를 부른다.
+                // 둘 다 리포팅은 남긴다 — 일시적 전송 실패라 세션 첫 건만 표본이 되고, 그래야 「감지만
+                // 타임아웃한다」는 신호가 보인다.
+                is CoreDataFailure.NetworkUnavailable -> {
+                    errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
+                    _state.update {
+                        if (throwable.isTimeout) {
+                            it.copy(detection = BoardDetectionState.TimedOut)
+                        } else {
+                            it.copy(
+                                detection = BoardDetectionState.Idle,
+                                message = BoardRegisterMessage.NetworkUnavailable,
+                            )
+                        }
+                    }
+                }
+
                 else -> {
                     errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
                     _state.update {
                         it.copy(
                             detection = BoardDetectionState.Idle,
-                            message =
-                                if (throwable is CoreDataFailure.NetworkUnavailable) {
-                                    BoardRegisterMessage.NetworkUnavailable
-                                } else {
-                                    BoardRegisterMessage.DetectFailed
-                                },
+                            message = BoardRegisterMessage.DetectFailed,
                             sessionEnded = it.sessionEnded || throwable is CoreDataFailure.Unauthorized,
                         )
                     }

@@ -16,6 +16,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import com.cambridge.core.model.board.BoardType as DomainBoardType
 
@@ -97,6 +98,42 @@ class BoardRegisterViewModelTest {
         assertEquals(BoardRegisterMessage.NetworkUnavailable, viewModel.state.value.message)
         // 일시적 전송 실패는 (원인, 단계) 조합의 세션 첫 건만 표본으로 남는다.
         assertEquals(listOf("board_detect"), reporter.stages)
+    }
+
+    @Test
+    fun `감지 타임아웃은 감지 실패와 다른 상태로 화면에 남는다`() {
+        val repository =
+            FakeBoardRepository.strict().apply {
+                onDetect = { Result.failure(CoreDataFailure.NetworkUnavailable(SocketTimeoutException("timeout"))) }
+            }
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardRegisterEvent.UrlChanged("https://slow.example.ac.kr/board"))
+        viewModel.onEvent(BoardRegisterEvent.DetectClicked)
+
+        val state = viewModel.state.value
+        // 서버가 알린 감지 실패(Failed)도, 연결 단절 스낵바도 아니다 — 셋이 화면에서 갈려야 한다.
+        assertEquals(BoardDetectionState.TimedOut, state.detection)
+        assertNull(state.message)
+        assertNull(state.urlError)
+        // 같은 URL 로 다시 시도할 수 있어야 한다.
+        assertTrue(state.isDetectEnabled)
+        assertEquals(listOf("board_detect"), reporter.stages)
+    }
+
+    @Test
+    fun `서버가 알린 감지 실패는 사유 그대로 남고 타임아웃 상태가 되지 않는다`() {
+        val repository =
+            FakeBoardRepository(
+                detection = BoardDetection(status = BoardDetectionStatus.Failed, preview = emptyList(), hasDateSelector = false),
+            )
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardRegisterEvent.UrlChanged("https://konkuk.ac.kr/board/notice"))
+        viewModel.onEvent(BoardRegisterEvent.DetectClicked)
+
+        assertEquals(BoardDetectionState.Failed(BoardDetectionFailure.Failed), viewModel.state.value.detection)
+        assertNull(viewModel.state.value.message)
     }
 
     @Test

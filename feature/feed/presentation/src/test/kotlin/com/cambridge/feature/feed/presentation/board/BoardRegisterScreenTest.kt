@@ -80,7 +80,26 @@ class BoardRegisterScreenTest {
         composeRule.setRegisterContent(state = sampleState(detection = BoardDetectionState.Detecting))
 
         composeRule.onNodeWithText("게시글 구조를 분석하고 있어요").assertIsDisplayed()
+        composeRule.onNodeWithText("사이트 응답 속도에 따라 1분 넘게 걸릴 수 있어요").assertIsDisplayed()
         detectButton().assertIsNotEnabled()
+    }
+
+    @Test
+    fun timedOut_showsWaitingCopyDistinctFromDetectionFailureAndRetries() {
+        val events = mutableListOf<BoardRegisterEvent>()
+        composeRule.setRegisterContent(
+            state = sampleState(detection = BoardDetectionState.TimedOut),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("분석이 오래 걸려 멈췄어요").assertIsDisplayed()
+        // 감지 실패 문구가 함께 뜨면 사용자가 사이트가 지원 안 된다고 읽는다.
+        composeRule.onNodeWithText("게시글 구조를 찾지 못했어요. 목록 페이지 주소인지 확인해 주세요").assertDoesNotExist()
+        composeRule.onNode(hasText("다시 시도") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(BoardRegisterEvent.DetectClicked), events)
+        }
     }
 
     @Test

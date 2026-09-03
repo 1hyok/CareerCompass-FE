@@ -1,7 +1,5 @@
 package com.cambridge.core.network.service
 
-import com.cambridge.core.network.dto.BoardDetectRequestDto
-import com.cambridge.core.network.dto.BoardDetectionDto
 import com.cambridge.core.network.dto.BoardDto
 import com.cambridge.core.network.dto.BoardListDto
 import com.cambridge.core.network.dto.BoardRegisterRequestDto
@@ -14,13 +12,8 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-/** API_SPEC v0.1 §5 — `/boards`. */
+/** API_SPEC v0.1 §5 — `/boards`. 구조 감지만 타임아웃이 달라 [BoardDetectApiService] 로 나가 있다. */
 public interface BoardApiService {
-    @POST("boards/detect")
-    public suspend fun detect(
-        @Body body: BoardDetectRequestDto,
-    ): BaseResponse<BoardDetectionDto>
-
     @POST("boards")
     public suspend fun register(
         @Body body: BoardRegisterRequestDto,
