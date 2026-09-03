@@ -367,7 +367,16 @@ private fun PostingSuitabilityReady(suitability: SuitabilityUiModel) {
         levelLabel = suitability.levelLabel,
         level = suitability.level,
     )
-    if (suitability.breakdown.isNotEmpty()) {
+    if (suitability.breakdown.isEmpty()) {
+        // 총점은 나왔는데 축 분해가 비어 온 경우. 「모름」 이지 「미충족」 이 아니므로 0점짜리 축 4개를
+        // 그려서는 안 된다 — 없는 것은 없다고만 적는다. 축이 일부만 오면 온 축만 그리고 나머지는
+        // 자리 자체를 만들지 않는 것도 같은 이유다.
+        Text(
+            text = stringResource(R.string.feed_posting_detail_breakdown_unavailable),
+            color = colors.mutedContent,
+            style = CareerCompassTheme.typography.caption,
+        )
+    } else {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
             suitability.breakdown.forEach { axis ->
                 SuitabilityBreakdownRow(axis = axis)

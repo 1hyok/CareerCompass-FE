@@ -1,5 +1,6 @@
 package com.cambridge.feature.feed.presentation.postingdetail
 
+import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
@@ -10,12 +11,52 @@ public const val POSTING_DETAIL_MAX_BREAKDOWN_COUNT: Int = 4
 /** Maximum number of similar postings recommended on the detail screen (spec F3-3). */
 public const val POSTING_DETAIL_MAX_SIMILAR_POSTING_COUNT: Int = 3
 
+/**
+ * 축 하나가 충족인가 미충족인가 — 기능 스펙 F3-3 「4개 분석 축 각각의 세부 점수 및 충족/미충족 표시」.
+ *
+ * 서버 계약에는 없는 클라이언트 파생값이다 — `API_SPEC §5` 의 breakdown 은 `{axis, score, weight}` 뿐이고
+ * [com.cambridge.core.model.posting.SuitabilityAxis] 도 같다.
+ */
+public enum class SuitabilityAxisFulfillment {
+    /** 경계값 이상 — 이 축은 공고가 요구하는 선을 넘었다. */
+    Fulfilled,
+
+    /** 경계값 미만. 「점수를 모른다」 는 이 값이 아니다 — [SuitabilityUiModel.breakdown] 에 행이 없는 것이 그것이다. */
+    Unfulfilled,
+}
+
+/**
+ * 축이 「충족」 으로 넘어가는 경계 — **60점**.
+ *
+ * F3-2 가 총점 60점부터 「적합」 이라고 부르는 그 경계를 그대로 쓴다
+ * ([SuitabilityLabel.Suitable] 의 `minScore`). 막대 색을 가르던 예전 기준은 80점
+ * (`HIGH_SCORE_THRESHOLD`)이었는데, 그것을 충족 선으로 쓰면 총점 65점을 「적합」 이라고
+ * 부르면서 65점짜리 축은 「미충족」 이라고 적는 화면이 된다. 한 화면에서 두 말이 맞붙어야 하므로
+ * 낮은 쪽(60)으로 모은다. `HIGH_SCORE_THRESHOLD` 는 점수 칩의 강조 3단계에만 남고
+ * 충족 여부에는 관여하지 않는다.
+ *
+ * 값이 도메인 경계와 갈라지지 않는지는 `PostingDetailContractTest` 가 고정한다.
+ */
+public const val SUITABILITY_AXIS_FULFILLED_THRESHOLD: Int = 60
+
 /** One analysis axis of the suitability breakdown, e.g. "분야 유사도 · 40% · 95점". */
 public data class SuitabilityAxisUiModel(
     val label: String,
     val score: Int,
     val weightLabel: String,
 ) {
+    /**
+     * 충족 여부. 생성자 인자가 아니라 [score] 에서 파생한다 — 점수와 어긋나는 값을
+     * 넣을 자리를 아예 두지 않아야 경계가 한 곳에 남는다.
+     */
+    public val fulfillment: SuitabilityAxisFulfillment
+        get() =
+            if (score >= SUITABILITY_AXIS_FULFILLED_THRESHOLD) {
+                SuitabilityAxisFulfillment.Fulfilled
+            } else {
+                SuitabilityAxisFulfillment.Unfulfilled
+            }
+
     init {
         requireNonBlank("label", label)
         requireNonBlank("weightLabel", weightLabel)

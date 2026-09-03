@@ -1,9 +1,12 @@
 package com.cambridge.feature.feed.presentation.postingdetail
 
+import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
+import com.cambridge.feature.feed.presentation.shared.component.HIGH_SCORE_THRESHOLD
+import com.cambridge.feature.feed.presentation.shared.component.MID_SCORE_THRESHOLD
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -129,6 +132,34 @@ class PostingDetailContractTest {
                 }
             assertEquals(expectedMessage, exception.message)
         }
+    }
+
+    @Test
+    fun axisFulfillment_flipsAtSixtyPoints() {
+        listOf(0, 1, 59).forEach { score ->
+            assertEquals(
+                SuitabilityAxisFulfillment.Unfulfilled,
+                sampleAxis().copy(score = score).fulfillment,
+            )
+        }
+        listOf(60, 61, 100).forEach { score ->
+            assertEquals(
+                SuitabilityAxisFulfillment.Fulfilled,
+                sampleAxis().copy(score = score).fulfillment,
+            )
+        }
+    }
+
+    /**
+     * 「충족」 경계가 F3-2 의 「적합」 경계와 갈라지면 한 화면이 서로 다른 말을 한다 —
+     * 총점 65점을 「적합」 이라 부르면서 65점짜리 축은 「미충족」 이라고 적는 식이다.
+     * 경계는 도메인의 [SuitabilityLabel] 하나뿐이고, 프레젠테이션의 상수들은 그 사본이다.
+     */
+    @Test
+    fun scoreThresholds_stayPinnedToTheDomainLabelBoundaries() {
+        assertEquals(SuitabilityLabel.Suitable.minScore, SUITABILITY_AXIS_FULFILLED_THRESHOLD)
+        assertEquals(SuitabilityLabel.Suitable.minScore, MID_SCORE_THRESHOLD)
+        assertEquals(SuitabilityLabel.VerySuitable.minScore, HIGH_SCORE_THRESHOLD)
     }
 
     @Test
