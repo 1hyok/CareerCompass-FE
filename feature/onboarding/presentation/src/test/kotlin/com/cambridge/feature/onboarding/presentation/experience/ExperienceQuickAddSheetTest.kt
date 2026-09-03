@@ -64,6 +64,104 @@ public class ExperienceQuickAddSheetTest {
     }
 
     @Test
+    public fun detailSection_isCollapsedByDefaultAndOptional() {
+        setSheet(ExperienceEditorState())
+
+        composeRule.onNodeWithText("자세히 입력하기 (선택)").performScrollTo().assertIsDisplayed()
+        // 접힌 동안에는 상세 필드가 시트를 늘리지 않는다 — Step 3 이탈을 막는 근거가 이 사실이다.
+        composeRule.onAllNodesWithContentDescription("사용 기술").assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription("성과·결과물 링크").assertCountEquals(0)
+        composeRule.onAllNodesWithText("입력됨").assertCountEquals(0)
+    }
+
+    @Test
+    public fun detailSection_isAbsentForTypesWithoutDetailFields() {
+        setSheet(ExperienceEditorState(type = ExperienceType.Award, title = "공모전"))
+
+        composeRule.onAllNodesWithText("자세히 입력하기 (선택)").assertCountEquals(0)
+    }
+
+    @Test
+    public fun collapsedDetailSection_marksFilledValues() {
+        setSheet(ExperienceEditorState(techs = listOf("Kotlin"), isDetailExpanded = false))
+
+        composeRule.onNodeWithText("입력됨").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    public fun expandedProjectDetail_showsTechTagsAndLink() {
+        setSheet(ExperienceEditorState(techs = listOf("Kotlin", "Compose"), link = "https://example.com", isDetailExpanded = true))
+
+        composeRule.onNodeWithContentDescription("사용 기술").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("최대 10개 · 한 개당 20자까지").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Kotlin 태그 삭제").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Compose 태그 삭제").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("성과·결과물 링크").performScrollTo().assertIsDisplayed()
+        // 프로젝트에는 자유 서술 상세가 없다.
+        composeRule.onAllNodesWithContentDescription("주요 업무 요약").assertCountEquals(0)
+    }
+
+    @Test
+    public fun expandedInternDetail_showsSummaryOnly() {
+        setSheet(ExperienceEditorState(type = ExperienceType.Intern, title = "카카오 인턴", isDetailExpanded = true))
+
+        composeRule.onNodeWithContentDescription("주요 업무 요약").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithContentDescription("사용 기술").assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription("성과·결과물 링크").assertCountEquals(0)
+    }
+
+    @Test
+    public fun expandedActivityDetail_showsRole() {
+        setSheet(ExperienceEditorState(type = ExperienceType.Activity, title = "동아리", isDetailExpanded = true))
+
+        composeRule.onNodeWithContentDescription("역할").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("성과 요약").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    public fun detailControls_emitDistinctEvents() {
+        val events = mutableListOf<ExperienceQuickAddEvent>()
+        setSheet(ExperienceEditorState(title = "제목", techs = listOf("Kotlin"), isDetailExpanded = true), onEvent = events::add)
+
+        composeRule.onNodeWithText("자세히 접기").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription("사용 기술").performScrollTo().performTextReplacement("Compose")
+        composeRule.onNodeWithContentDescription("Kotlin 태그 삭제").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription("성과·결과물 링크").performScrollTo().performTextReplacement("https://example.com")
+
+        composeRule.runOnIdle {
+            assertEquals(
+                ExperienceQuickAddEvent.TechInputChanged("Compose"),
+                events.filterIsInstance<ExperienceQuickAddEvent.TechInputChanged>().first(),
+            )
+            assertEquals(
+                ExperienceQuickAddEvent.LinkChanged("https://example.com"),
+                events.filterIsInstance<ExperienceQuickAddEvent.LinkChanged>().first(),
+            )
+            assertEquals(
+                listOf(
+                    ExperienceQuickAddEvent.DetailSectionToggled,
+                    ExperienceQuickAddEvent.TechTagRemoved("Kotlin"),
+                ),
+                events.filterNot { it.isTextChange() },
+            )
+        }
+    }
+
+    @Test
+    public fun detailFieldErrors_useFieldSpecificWording() {
+        setSheet(
+            ExperienceEditorState(
+                isDetailExpanded = true,
+                techInputError = OnboardingFieldError.OutOfRange,
+                linkError = OnboardingFieldError.InvalidFormat,
+            ),
+        )
+
+        composeRule.onNodeWithText("기술 태그는 최대 10개까지 추가할 수 있어요").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("http:// 또는 https:// 로 시작하는 주소를 입력해 주세요").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     public fun fieldErrors_areRendered() {
         setSheet(
             ExperienceEditorState(
@@ -162,7 +260,10 @@ public class ExperienceQuickAddSheetTest {
             this is ExperienceQuickAddEvent.StartDateChanged ||
             this is ExperienceQuickAddEvent.EndDateChanged ||
             this is ExperienceQuickAddEvent.PrimaryChanged ||
-            this is ExperienceQuickAddEvent.SecondaryChanged
+            this is ExperienceQuickAddEvent.SecondaryChanged ||
+            this is ExperienceQuickAddEvent.TechInputChanged ||
+            this is ExperienceQuickAddEvent.LinkChanged ||
+            this is ExperienceQuickAddEvent.DetailChanged
 
     private fun setSheet(
         state: ExperienceEditorState,

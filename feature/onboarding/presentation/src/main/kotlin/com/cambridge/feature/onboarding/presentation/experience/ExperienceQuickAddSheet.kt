@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.experience
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -10,17 +11,25 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
@@ -30,6 +39,7 @@ import com.cambridge.core.ui.component.CareerCompassTextField
 import com.cambridge.core.ui.component.CareerCompassTextFieldSize
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
+import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 import com.cambridge.feature.onboarding.presentation.shared.util.toMessage
 
 /**
@@ -37,6 +47,8 @@ import com.cambridge.feature.onboarding.presentation.shared.util.toMessage
  *
  * 유형 칩을 바꾸면 [ExperienceEditorRules] 에 따라 필드 라벨과 필수 표시가 바뀐다. 수정 중에는 유형을 잠근다 —
  * 유형마다 필드 의미가 달라, 바꾸면 이미 채운 값이 다른 뜻으로 저장된다.
+ *
+ * 유형별 상세 필드(F1-3)는 [ExperienceDetailSection] 이 「자세히」 안에 접어 둔다.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -168,6 +180,9 @@ public fun ExperienceQuickAddSheet(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             )
         }
+        if (ExperienceEditorRules.hasDetailSection(state.type)) {
+            ExperienceDetailSection(state = state, onEvent = onEvent)
+        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = spacing.small),
             horizontalArrangement = Arrangement.spacedBy(spacing.small),
@@ -190,6 +205,208 @@ public fun ExperienceQuickAddSheet(
         }
     }
 }
+
+/**
+ * 유형별 상세 입력(F1-3) — 기본은 접힌 채로 둔다.
+ *
+ * Step 3 는 선택 단계라 시트가 길어지는 것 자체가 이탈 비용이다. 그래서 필수 규칙이 걸린 공통 필드만 항상
+ * 보이고, 추천 정확도를 올리는 값은 「자세히」 안에 둔다. 이미 값이 있는 카드를 고칠 때는
+ * [ExperienceEditorState.isDetailExpanded] 가 펼친 채로 열려 사용자가 값이 지워졌다고 오해하지 않는다.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExperienceDetailSection(
+    state: ExperienceEditorState,
+    onEvent: (ExperienceQuickAddEvent) -> Unit,
+) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+    val expandedState = stringResource(R.string.onboarding_experience_detail_expanded_state)
+    val collapsedState = stringResource(R.string.onboarding_experience_detail_collapsed_state)
+
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        enabled = state.isInputEnabled,
+                        role = Role.Button,
+                        onClick = { onEvent(ExperienceQuickAddEvent.DetailSectionToggled) },
+                    ).semantics { stateDescription = if (state.isDetailExpanded) expandedState else collapsedState }
+                    .padding(vertical = spacing.xSmall),
+            horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text =
+                    stringResource(
+                        if (state.isDetailExpanded) {
+                            R.string.onboarding_experience_detail_collapse
+                        } else {
+                            R.string.onboarding_experience_detail_expand
+                        },
+                    ),
+                color = if (state.isInputEnabled) colors.onSurface else colors.disabledContent,
+                style = CareerCompassTheme.typography.labelMedium,
+            )
+            // 접힌 채로도 값이 있다는 사실은 보여 준다 — 없는 줄 알고 다시 채우는 일을 막는다.
+            if (!state.isDetailExpanded && state.hasDetailValues) {
+                Surface(
+                    shape = CareerCompassTheme.shapes.pill,
+                    color = colors.successContainer,
+                    contentColor = colors.onSuccessContainer,
+                ) {
+                    Text(
+                        text = stringResource(R.string.onboarding_experience_detail_filled),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style =
+                            CareerCompassTheme.typography.caption.copy(
+                                fontSize = 11.sp,
+                                lineHeight = 16.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                    )
+                }
+            }
+        }
+        if (state.isDetailExpanded) {
+            Text(
+                text = stringResource(R.string.onboarding_experience_detail_hint),
+                color = colors.mutedContent,
+                style = CareerCompassTheme.typography.caption,
+            )
+            if (ExperienceEditorRules.hasTechTags(state.type)) {
+                TechTagField(state = state, onEvent = onEvent)
+            }
+            if (ExperienceEditorRules.hasLink(state.type)) {
+                CareerCompassTextField(
+                    value = state.link,
+                    onValueChange = { onEvent(ExperienceQuickAddEvent.LinkChanged(it)) },
+                    label = stringResource(R.string.onboarding_experience_link_label),
+                    placeholder = stringResource(R.string.onboarding_experience_link_placeholder),
+                    errorMessage = state.linkError?.linkMessage(),
+                    isError = state.linkError != null,
+                    enabled = state.isInputEnabled,
+                    size = CareerCompassTextFieldSize.Large,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                )
+            }
+            if (ExperienceEditorRules.hasDetail(state.type)) {
+                CareerCompassTextField(
+                    value = state.detail,
+                    onValueChange = { onEvent(ExperienceQuickAddEvent.DetailChanged(it)) },
+                    label = stringResource(detailLabelResId(state.type)),
+                    errorMessage = state.detailError?.let { it.toMessage() },
+                    isError = state.detailError != null,
+                    enabled = state.isInputEnabled,
+                    size = CareerCompassTextFieldSize.Large,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                )
+            }
+        }
+    }
+}
+
+/** 기술 태그 입력칸과 확정된 칩들. 입력칸의 글자는 완료를 눌러야 태그가 된다. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TechTagField(
+    state: ExperienceEditorState,
+    onEvent: (ExperienceQuickAddEvent) -> Unit,
+) {
+    val spacing = CareerCompassTheme.spacing
+
+    CareerCompassTextField(
+        value = state.techInput,
+        onValueChange = { onEvent(ExperienceQuickAddEvent.TechInputChanged(it)) },
+        label = stringResource(R.string.onboarding_experience_tech_label),
+        placeholder = stringResource(R.string.onboarding_experience_tech_placeholder),
+        supportingText =
+            stringResource(
+                R.string.onboarding_experience_tech_support,
+                ExperienceEditorRules.MAX_TECH_TAGS,
+                ExperienceEditorRules.MAX_TECH_TAG_LENGTH,
+            ),
+        errorMessage = state.techInputError?.techMessage(),
+        isError = state.techInputError != null,
+        enabled = state.isInputEnabled,
+        size = CareerCompassTextFieldSize.Large,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions =
+            KeyboardActions(
+                onDone = {
+                    if (state.isInputEnabled && state.techInput.isNotBlank()) {
+                        onEvent(ExperienceQuickAddEvent.TechTagSubmitted)
+                    }
+                },
+            ),
+    )
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
+        verticalArrangement = Arrangement.spacedBy(spacing.xSmall),
+    ) {
+        state.techs.forEach { tag ->
+            RemovableTechTag(
+                tag = tag,
+                enabled = state.isInputEnabled,
+                onClick = { onEvent(ExperienceQuickAddEvent.TechTagRemoved(tag)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RemovableTechTag(
+    tag: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val removeDescription = stringResource(R.string.onboarding_experience_tech_remove, tag)
+    val colors = CareerCompassTheme.colors
+
+    Surface(
+        modifier =
+            Modifier
+                .clickable(
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                ).semantics { contentDescription = removeDescription },
+        shape = CareerCompassTheme.shapes.pill,
+        color = if (enabled) colors.successContainer else colors.disabledContainer,
+        contentColor = if (enabled) colors.onSuccessContainer else colors.disabledContent,
+    ) {
+        Text(
+            text = stringResource(R.string.onboarding_experience_tech_chip, tag),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            maxLines = 1,
+            style =
+                CareerCompassTheme.typography.caption.copy(
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+        )
+    }
+}
+
+/** 태그 개수 초과는 공통 「허용 범위를 벗어났어요」로는 무엇을 고쳐야 하는지 알 수 없어 상한을 문구에 넣는다. */
+@Composable
+private fun OnboardingFieldError.techMessage(): String =
+    when (this) {
+        OnboardingFieldError.OutOfRange -> stringResource(R.string.onboarding_experience_tech_limit, ExperienceEditorRules.MAX_TECH_TAGS)
+        else -> toMessage()
+    }
+
+/** 링크는 「형식이 올바르지 않아요」만으로 http/https 요구를 알 수 없어 필드 고유 문구를 쓴다. */
+@Composable
+private fun OnboardingFieldError.linkMessage(): String =
+    when (this) {
+        OnboardingFieldError.InvalidFormat -> stringResource(R.string.onboarding_experience_link_invalid)
+        else -> toMessage()
+    }
 
 /** 경험 유형의 화면 라벨 — Step 3 필터와 시트가 같은 문구를 쓴다. */
 public fun ExperienceType.labelResId(): Int =
@@ -226,6 +443,12 @@ private fun primaryLabelResId(type: ExperienceType): Int =
         ExperienceType.Intern -> R.string.onboarding_experience_intern_company_label
         ExperienceType.Activity -> R.string.onboarding_experience_activity_organization_label
         ExperienceType.Certificate -> R.string.onboarding_experience_certificate_issuer_label
+    }
+
+private fun detailLabelResId(type: ExperienceType): Int =
+    when (type) {
+        ExperienceType.Activity -> R.string.onboarding_experience_activity_role_label
+        else -> R.string.onboarding_experience_intern_summary_label
     }
 
 private fun secondaryLabelResId(type: ExperienceType): Int =

@@ -26,6 +26,27 @@ public fun ExperienceQuickAddProjectPreview() {
     )
 }
 
+/** 「자세히」를 펼친 프로젝트 상세(F1-3) — 기술 태그 칩과 링크가 시트 안에 어떻게 앉는지 골든으로 잡는다. */
+@PreviewTest
+@Preview(name = "Experience quick add project detail", widthDp = 360, heightDp = 900)
+@Composable
+public fun ExperienceQuickAddProjectDetailPreview() {
+    ExperienceQuickAddPreviewHost(
+        state =
+            ExperienceEditorState(
+                type = ExperienceType.Project,
+                title = "CareerCompass - 졸업 프로젝트",
+                startDate = "2025.09",
+                primary = "안드로이드 개발",
+                secondary = "공고 자동 분석 + AI 자소서 생성 서비스",
+                techs = listOf("Kotlin", "Compose", "Hilt"),
+                techInput = "Retrofit",
+                link = "https://github.com/Team-CamBridge/CareerCompass-FE",
+                isDetailExpanded = true,
+            ),
+    )
+}
+
 @PreviewTest
 @Preview(name = "Experience quick add intern errors", widthDp = 360, heightDp = 800)
 @Composable
@@ -72,6 +93,9 @@ public fun ExperienceEditInternPreview() {
                 endDate = "2025.02",
                 primary = "카카오",
                 secondary = "안드로이드 개발",
+                // 값이 있는 카드는 「자세히」를 펼친 채로 연다 — 접혀 있으면 지워졌다고 읽힌다.
+                detail = "공고 피드 화면 개발",
+                isDetailExpanded = true,
             ),
     )
 }
