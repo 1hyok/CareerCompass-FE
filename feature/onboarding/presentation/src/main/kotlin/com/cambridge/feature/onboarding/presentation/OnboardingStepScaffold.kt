@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /** Shared layout and accessibility chrome for every onboarding step. */
@@ -145,16 +147,11 @@ private fun OnboardingTopBar(onBackClick: () -> Unit) {
                     },
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = stringResource(R.string.onboarding_back_icon),
-                modifier = Modifier.clearAndSetSemantics {},
-                color = colors.onSurface,
-                style =
-                    CareerCompassTheme.typography.headline2.copy(
-                        fontSize = 22.sp,
-                        lineHeight = 33.sp,
-                        fontWeight = FontWeight.Normal,
-                    ),
+            Icon(
+                imageVector = CareerCompassIcons.ArrowBack,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = colors.onSurface,
             )
         }
     }

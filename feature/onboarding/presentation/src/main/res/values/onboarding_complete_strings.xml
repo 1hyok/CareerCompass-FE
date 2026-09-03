@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="onboarding_complete_check_icon" translatable="false">✓</string>
     <string name="onboarding_complete_title">프로필 완성!</string>
     <string name="onboarding_complete_message_named">%1$s님, 이제 딱 맞는 공고를 찾아드릴게요</string>
     <string name="onboarding_complete_message">이제 딱 맞는 공고를 찾아드릴게요</string>

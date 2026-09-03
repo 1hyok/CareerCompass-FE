@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /** Stateless experience-list step from the onboarding flow. */
@@ -292,12 +294,11 @@ private fun ExperienceCard(
                         },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = stringResource(R.string.onboarding_step3_experience_delete_icon),
-                    modifier = Modifier.clearAndSetSemantics {},
-                    color = if (enabled) colors.mutedContent else colors.disabledContent,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp,
+                Icon(
+                    imageVector = CareerCompassIcons.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = if (enabled) colors.mutedContent else colors.disabledContent,
                 )
             }
         }
@@ -362,12 +363,10 @@ private fun AddExperienceButton(
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(R.string.onboarding_step3_add_icon),
-                modifier = Modifier.clearAndSetSemantics {},
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.SemiBold,
+            Icon(
+                imageVector = CareerCompassIcons.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
             )
             Text(
                 text = stringResource(R.string.onboarding_step3_add_experience),
