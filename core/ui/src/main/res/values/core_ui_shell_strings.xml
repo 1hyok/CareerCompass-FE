@@ -5,5 +5,4 @@
     <string name="core_ui_bottom_tab_applications">지원서</string>
     <string name="core_ui_bottom_tab_my">마이</string>
     <string name="core_ui_back">뒤로가기</string>
-    <string name="core_ui_back_icon" translatable="false">←</string>
 </resources>

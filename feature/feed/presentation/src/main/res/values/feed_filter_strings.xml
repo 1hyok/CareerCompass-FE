@@ -35,6 +35,4 @@
     <string name="feed_sort_due_asc">마감 임박순</string>
     <string name="feed_sort_score_desc">적합도 높은순</string>
 
-    <string name="feed_icon_close" translatable="false">✕</string>
-    <string name="feed_icon_check" translatable="false">✓</string>
 </resources>

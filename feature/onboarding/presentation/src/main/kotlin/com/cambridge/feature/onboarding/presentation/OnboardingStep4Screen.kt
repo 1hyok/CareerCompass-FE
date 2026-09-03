@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /** Stateless past-application step from the onboarding flow. */
@@ -238,8 +240,7 @@ private fun DirectInputAction(
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
-    val fontScale = LocalDensity.current.fontScale
-    val useFigmaCompactSize = fontScale <= 1f
+    val useFigmaCompactSize = LocalDensity.current.fontScale <= 1f
     val sizeModifier =
         if (useFigmaCompactSize) {
             Modifier.width(103.dp)
@@ -278,20 +279,11 @@ private fun DirectInputAction(
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
+            Icon(
+                imageVector = CareerCompassIcons.Edit,
+                contentDescription = null,
                 modifier = Modifier.size(if (useFigmaCompactSize) 16.dp else 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.onboarding_step4_direct_input_icon),
-                    modifier = Modifier.clearAndSetSemantics {},
-                    style =
-                        CareerCompassTheme.typography.bodyMedium.copy(
-                            fontSize = (14f / fontScale).sp,
-                            lineHeight = (16f / fontScale).sp,
-                        ),
-                )
-            }
+            )
             Text(
                 text = stringResource(R.string.onboarding_step4_direct_input),
                 modifier =
@@ -519,14 +511,14 @@ private fun UploadedDocumentItem(
                         },
                 contentAlignment = Alignment.CenterEnd,
             ) {
-                Text(
-                    text = stringResource(R.string.onboarding_step4_document_options_icon),
+                Icon(
+                    imageVector = CareerCompassIcons.MoreHorizontal,
+                    contentDescription = null,
                     modifier =
                         Modifier
                             .padding(end = spacing.medium)
-                            .clearAndSetSemantics {},
-                    color = if (enabled) colors.mutedContent else colors.disabledContent,
-                    style = CareerCompassTheme.typography.headline4,
+                            .size(20.dp),
+                    tint = if (enabled) colors.mutedContent else colors.disabledContent,
                 )
             }
         }
@@ -583,18 +575,12 @@ private fun DocumentStatus(
                     modifier = liveRegionModifier.weight(weight = 1f, fill = false),
                 )
                 if (expanded != null) {
-                    Text(
-                        text =
-                            stringResource(
-                                if (expanded) {
-                                    R.string.onboarding_step4_document_collapse_icon
-                                } else {
-                                    R.string.onboarding_step4_document_expand_icon
-                                },
-                            ),
-                        modifier = Modifier.clearAndSetSemantics {},
-                        color = if (enabled) colors.mutedContent else colors.disabledContent,
-                        style = CareerCompassTheme.typography.caption,
+                    Icon(
+                        imageVector =
+                            if (expanded) CareerCompassIcons.ExpandLess else CareerCompassIcons.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (enabled) colors.mutedContent else colors.disabledContent,
                     )
                 }
             }

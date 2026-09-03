@@ -74,6 +74,10 @@ public enum class CareerCompassButtonSize(
  *
  * [contentDescription] replaces the text announced for icon-assisted buttons when callers need
  * a more descriptive accessibility label.
+ *
+ * [leadingIcon] and [trailingIcon] receive [LocalContentColor] so the icon follows the variant's
+ * content color without the caller repeating it. Both must render decorative icons
+ * (`contentDescription = null`) — the button owns the accessible name.
  */
 @Composable
 public fun CareerCompassButton(
@@ -84,6 +88,7 @@ public fun CareerCompassButton(
     size: CareerCompassButtonSize = CareerCompassButtonSize.Medium,
     enabled: Boolean = true,
     leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
     contentDescription: String? = null,
 ) {
     require(text.isNotBlank()) { "text must not be blank" }
@@ -138,6 +143,11 @@ public fun CareerCompassButton(
                 maxLines = 1,
                 style = size.textStyle(CareerCompassTheme.typography.labelMedium),
             )
+
+            if (trailingIcon != null) {
+                Spacer(modifier = Modifier.width(spacing.small))
+                trailingIcon()
+            }
         }
     }
 }

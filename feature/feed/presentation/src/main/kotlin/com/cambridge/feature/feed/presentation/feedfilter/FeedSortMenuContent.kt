@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,8 +23,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
+import com.cambridge.feature.feed.presentation.shared.component.FEED_ICON_SIZE
 import com.cambridge.feature.feed.presentation.shared.component.FeedIconButton
 
 /** Radio list of the feed sort orders (spec F2-3). The host decides how it is anchored. */
@@ -53,7 +57,7 @@ public fun FeedSortMenuContent(
                 style = CareerCompassTheme.typography.headline4,
             )
             FeedIconButton(
-                icon = stringResource(R.string.feed_icon_close),
+                icon = CareerCompassIcons.Close,
                 contentDescription = stringResource(R.string.feed_sort_close),
                 onClick = { onEvent(FeedSortMenuEvent.DismissClicked) },
             )
@@ -110,11 +114,11 @@ private fun FeedSortOptionRow(
                 ),
         )
         if (selected) {
-            Text(
-                text = stringResource(R.string.feed_icon_check),
-                modifier = Modifier.clearAndSetSemantics {},
-                color = colors.primaryEmphasis,
-                style = CareerCompassTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            Icon(
+                imageVector = CareerCompassIcons.Check,
+                contentDescription = null,
+                modifier = Modifier.size(FEED_ICON_SIZE),
+                tint = colors.primaryEmphasis,
             )
         }
     }

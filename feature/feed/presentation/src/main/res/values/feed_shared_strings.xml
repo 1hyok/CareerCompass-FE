@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feed_back">뒤로가기</string>
-    <string name="feed_icon_back" translatable="false">←</string>
     <string name="feed_category_all">전체</string>
     <string name="feed_category_employment">채용</string>
     <string name="feed_category_scholarship">장학금</string>

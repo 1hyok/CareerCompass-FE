@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.cambridge.core.ui.component.CareerCompassTextField
 import com.cambridge.core.ui.component.CareerCompassTextFieldSize
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /**
@@ -84,7 +86,11 @@ private fun OnboardingFields(
             size = CareerCompassTextFieldSize.Large,
             onClick = { onEvent(OnboardingStep1Event.SchoolPickerClicked) },
             trailingIcon = {
-                FieldIndicator(text = stringResource(R.string.onboarding_step1_school_indicator))
+                Icon(
+                    imageVector = CareerCompassIcons.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(INDICATOR_SIZE),
+                )
             },
         )
         CareerCompassTextField(
@@ -133,23 +139,13 @@ private fun OnboardingFields(
 }
 
 @Composable
-private fun FieldIndicator(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier.clearAndSetSemantics {},
-        color = LocalContentColor.current,
-        style = CareerCompassTheme.typography.bodyLarge,
-    )
-}
-
-@Composable
 private fun CalendarIndicator() {
     val color = LocalContentColor.current
 
     Canvas(
         modifier =
             Modifier
-                .size(20.dp)
+                .size(INDICATOR_SIZE)
                 .clearAndSetSemantics {},
     ) {
         val strokeWidth = 1.5.dp.toPx()
@@ -188,3 +184,6 @@ private fun CalendarIndicator() {
         )
     }
 }
+
+/** 입력칸 오른쪽 표시(달력·펼침)의 크기. 둘이 나란히 놓이지는 않지만 같은 줄에서 같은 무게로 읽혀야 한다. */
+private val INDICATOR_SIZE = 20.dp

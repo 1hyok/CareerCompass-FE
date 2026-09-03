@@ -41,10 +41,4 @@
     <string name="feed_icon_wave" translatable="false">👋</string>
     <string name="feed_icon_offline" translatable="false">📴</string>
     <string name="feed_icon_profile_notice" translatable="false">🧭</string>
-    <string name="feed_icon_notification" translatable="false">🔔</string>
-    <string name="feed_icon_search" translatable="false">🔍</string>
-    <string name="feed_icon_sort" translatable="false">⌄</string>
-    <string name="feed_icon_filter" translatable="false">▽</string>
-    <string name="feed_icon_bookmark" translatable="false">♡</string>
-    <string name="feed_icon_bookmark_selected" translatable="false">♥</string>
 </resources>

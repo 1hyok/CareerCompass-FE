@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,6 +42,7 @@ import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.R
@@ -48,6 +50,8 @@ import com.cambridge.feature.feed.presentation.postingdetail.component.SimilarPo
 import com.cambridge.feature.feed.presentation.postingdetail.component.SuitabilityBreakdownRow
 import com.cambridge.feature.feed.presentation.postingdetail.component.SuitabilityGauge
 import com.cambridge.feature.feed.presentation.postingdetail.component.badgeTone
+import com.cambridge.feature.feed.presentation.shared.component.FEED_ICON_SIZE
+import com.cambridge.feature.feed.presentation.shared.component.FEED_INLINE_ICON_SIZE
 import com.cambridge.feature.feed.presentation.shared.component.FeedCard
 import com.cambridge.feature.feed.presentation.shared.component.FeedIconButton
 import com.cambridge.feature.feed.presentation.shared.component.FeedLoadingContent
@@ -137,7 +141,7 @@ private fun PostingDetailTopActions(
         onClick = { onEvent(PostingDetailEvent.BookmarkToggled) },
     )
     FeedIconButton(
-        icon = stringResource(R.string.feed_icon_share),
+        icon = CareerCompassIcons.Share,
         contentDescription = stringResource(R.string.feed_posting_detail_share),
         onClick = { onEvent(PostingDetailEvent.ShareClicked) },
     )
@@ -173,22 +177,11 @@ private fun PostingBookmarkToggle(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text =
-                stringResource(
-                    if (bookmarked) {
-                        R.string.feed_icon_bookmark_selected
-                    } else {
-                        R.string.feed_icon_bookmark
-                    },
-                ),
-            modifier = Modifier.clearAndSetSemantics {},
-            color = if (bookmarked) colors.primaryEmphasis else colors.onSurface,
-            style =
-                CareerCompassTheme.typography.bodyLarge.copy(
-                    fontSize = 22.sp,
-                    lineHeight = 26.sp,
-                ),
+        Icon(
+            imageVector = if (bookmarked) CareerCompassIcons.Bookmark else CareerCompassIcons.BookmarkBorder,
+            contentDescription = null,
+            modifier = Modifier.size(FEED_ICON_SIZE),
+            tint = if (bookmarked) colors.primaryEmphasis else colors.onSurface,
         )
     }
 }
@@ -480,11 +473,11 @@ private fun PostingBulletCard(
         Column(verticalArrangement = Arrangement.spacedBy(spacing.xSmall)) {
             items.forEach { item ->
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    Text(
-                        text = stringResource(R.string.feed_icon_bullet),
-                        modifier = Modifier.clearAndSetSemantics {},
-                        color = colors.mutedContent,
-                        style = CareerCompassTheme.typography.bodyMedium,
+                    Icon(
+                        imageVector = CareerCompassIcons.Bullet,
+                        contentDescription = null,
+                        modifier = Modifier.size(FEED_INLINE_ICON_SIZE),
+                        tint = colors.mutedContent,
                     )
                     Text(
                         text = item,

@@ -31,6 +31,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +61,11 @@ import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
 import com.cambridge.core.ui.component.CareerCompassTag
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.cambridge.feature.feed.presentation.shared.component.FEED_ICON_SIZE
+import com.cambridge.feature.feed.presentation.shared.component.FEED_INLINE_ICON_SIZE
+import com.cambridge.feature.feed.presentation.shared.component.FeedIconButton
 import com.cambridge.feature.feed.presentation.shared.component.FeedSuitabilityChip
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -188,12 +193,10 @@ private fun FeedHeader(
                         ),
                 )
             }
-            CareerCompassButton(
-                text = stringResource(R.string.feed_icon_notification),
-                onClick = { onEvent(FeedUiEvent.NotificationsSelected) },
-                variant = CareerCompassButtonVariant.Ghost,
-                size = CareerCompassButtonSize.Small,
+            FeedIconButton(
+                icon = CareerCompassIcons.Notifications,
                 contentDescription = stringResource(R.string.feed_notification_content_description),
+                onClick = { onEvent(FeedUiEvent.NotificationsSelected) },
             )
         }
 
@@ -283,11 +286,11 @@ private fun FeedSearchField(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = stringResource(R.string.feed_icon_search),
-                    modifier = Modifier.clearAndSetSemantics {},
-                    color = colors.mutedContent,
-                    style = CareerCompassTheme.typography.bodyMedium,
+                Icon(
+                    imageVector = CareerCompassIcons.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(FEED_INLINE_ICON_SIZE),
+                    tint = colors.mutedContent,
                 )
                 Box(modifier = Modifier.weight(1f)) {
                     if (value.isEmpty()) {
@@ -341,11 +344,11 @@ private fun FeedFilterButton(
                 },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = stringResource(R.string.feed_icon_filter),
-            modifier = Modifier.clearAndSetSemantics {},
-            color = if (activeFilterCount > 0) colors.primaryEmphasis else colors.onSurface,
-            style = CareerCompassTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 24.sp),
+        Icon(
+            imageVector = CareerCompassIcons.Filter,
+            contentDescription = null,
+            modifier = Modifier.size(FEED_INLINE_ICON_SIZE),
+            tint = if (activeFilterCount > 0) colors.primaryEmphasis else colors.onSurface,
         )
         if (activeFilterCount > 0) {
             Box(
@@ -399,12 +402,17 @@ private fun FeedSortRow(
                 ),
         )
         CareerCompassButton(
-            text =
-                "${state.selectedSort.label} " +
-                    stringResource(R.string.feed_icon_sort),
+            text = state.selectedSort.label,
             onClick = { onEvent(FeedUiEvent.SortMenuRequested) },
             variant = CareerCompassButtonVariant.Ghost,
             size = CareerCompassButtonSize.Small,
+            trailingIcon = {
+                Icon(
+                    imageVector = CareerCompassIcons.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(FEED_INLINE_ICON_SIZE),
+                )
+            },
             contentDescription =
                 stringResource(
                     R.string.feed_sort_content_description,
@@ -621,22 +629,11 @@ private fun FeedBookmarkToggle(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text =
-                stringResource(
-                    if (bookmarked) {
-                        R.string.feed_icon_bookmark_selected
-                    } else {
-                        R.string.feed_icon_bookmark
-                    },
-                ),
-            modifier = Modifier.clearAndSetSemantics {},
-            color = if (bookmarked) CareerCompassTheme.colors.primaryEmphasis else CareerCompassTheme.colors.mutedContent,
-            style =
-                CareerCompassTheme.typography.bodyLarge.copy(
-                    fontSize = 20.sp,
-                    lineHeight = 24.sp,
-                ),
+        Icon(
+            imageVector = if (bookmarked) CareerCompassIcons.Bookmark else CareerCompassIcons.BookmarkBorder,
+            contentDescription = null,
+            modifier = Modifier.size(FEED_ICON_SIZE),
+            tint = if (bookmarked) CareerCompassTheme.colors.primaryEmphasis else CareerCompassTheme.colors.mutedContent,
         )
     }
 }

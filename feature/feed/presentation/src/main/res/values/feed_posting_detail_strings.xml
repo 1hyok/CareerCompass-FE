@@ -43,8 +43,6 @@
     <string name="feed_posting_detail_qualification_year">학년 %1$s</string>
     <string name="feed_posting_detail_qualification_gpa">학점 %1$s</string>
 
-    <string name="feed_icon_share" translatable="false">↗</string>
     <string name="feed_icon_strength" translatable="false">✅</string>
     <string name="feed_icon_weakness" translatable="false">⚠️</string>
-    <string name="feed_icon_bullet" translatable="false">•</string>
 </resources>

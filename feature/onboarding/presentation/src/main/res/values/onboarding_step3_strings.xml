@@ -8,8 +8,6 @@
     <string name="onboarding_step3_experience_metadata">%1$s · %2$s</string>
     <string name="onboarding_step3_experience_edit">%1$s 수정</string>
     <string name="onboarding_step3_experience_delete">%1$s 삭제</string>
-    <string name="onboarding_step3_experience_delete_icon" translatable="false">✕</string>
     <string name="onboarding_step3_add_experience">경험 추가하기</string>
-    <string name="onboarding_step3_add_icon" translatable="false">+</string>
     <string name="onboarding_step3_next">다음</string>
 </resources>

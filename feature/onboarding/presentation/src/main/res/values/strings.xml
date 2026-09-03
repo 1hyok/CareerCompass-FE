@@ -5,7 +5,6 @@
     <string name="onboarding_error_dismiss">닫기</string>
     <string name="onboarding_error_dismiss_description">오류 안내 닫기</string>
     <string name="onboarding_back">뒤로가기</string>
-    <string name="onboarding_back_icon" translatable="false">←</string>
     <string name="onboarding_progress_description">%1$d단계 중 %2$d단계</string>
     <string name="onboarding_step_label" translatable="false">STEP %1$d / %2$d</string>
     <string name="onboarding_step1_title">기본 정보를 알려주세요</string>
@@ -14,7 +13,6 @@
     <string name="onboarding_step1_name_placeholder">이름을 입력해 주세요</string>
     <string name="onboarding_step1_school_label">학교 *</string>
     <string name="onboarding_step1_school_placeholder">학교를 선택해 주세요</string>
-    <string name="onboarding_step1_school_indicator" translatable="false">⌄</string>
     <string name="onboarding_step1_major_label">학과 *</string>
     <string name="onboarding_step1_major_placeholder">학과를 입력해 주세요</string>
     <string name="onboarding_step1_gpa_label">학점</string>
@@ -29,7 +27,6 @@
     <string name="onboarding_step4_upload_requirements">PDF · DOCX · TXT · 최대 %1$dMB</string>
     <string name="onboarding_step4_upload_content_description">지원서 파일 업로드</string>
     <string name="onboarding_step4_or">또는</string>
-    <string name="onboarding_step4_direct_input_icon" translatable="false">✎</string>
     <string name="onboarding_step4_direct_input">직접 입력하기</string>
     <string name="onboarding_step4_uploaded_count">업로드한 지원서 (%1$d/%2$d)</string>
     <string name="onboarding_step4_document_processing">분류 중</string>
@@ -37,11 +34,8 @@
     <string name="onboarding_step4_document_failed_retry">%1$s · 재시도</string>
     <string name="onboarding_step4_document_retry_description">%1$s 분류 재시도</string>
     <string name="onboarding_step4_document_menu">%1$s 메뉴</string>
-    <string name="onboarding_step4_document_options_icon" translatable="false">⋯</string>
     <string name="onboarding_step4_document_expand">%1$s 분류 항목 펼치기</string>
     <string name="onboarding_step4_document_collapse">%1$s 분류 항목 접기</string>
-    <string name="onboarding_step4_document_expand_icon" translatable="false">⌄</string>
-    <string name="onboarding_step4_document_collapse_icon" translatable="false">⌃</string>
     <string name="onboarding_step4_item_needs_review">분류 확인 필요</string>
     <string name="onboarding_step4_item_change_category">%1$s 분류 바꾸기</string>
     <string name="onboarding_step4_skip">건너뛰기</string>

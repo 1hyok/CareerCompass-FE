@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
+import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedChoiceTag
@@ -61,7 +62,7 @@ public fun FeedFilterSheetContent(
                 style = CareerCompassTheme.typography.headline2,
             )
             FeedIconButton(
-                icon = stringResource(R.string.feed_icon_close),
+                icon = CareerCompassIcons.Close,
                 contentDescription = stringResource(R.string.feed_filter_close),
                 onClick = { onEvent(FeedFilterEvent.DismissClicked) },
             )
