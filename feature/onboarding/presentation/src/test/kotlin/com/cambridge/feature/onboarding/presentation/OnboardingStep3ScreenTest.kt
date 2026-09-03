@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasStateDescription
@@ -181,6 +182,61 @@ public class OnboardingStep3ScreenTest {
     }
 
     @Test
+    public fun deleteAction_staysOutsideCardBodyAndEmitsItsOwnEvent() {
+        val events = mutableListOf<OnboardingStep3Event>()
+        setScreen(state = completeState, onEvent = events::add)
+
+        val body = composeRule.onNodeWithContentDescription("CareerCompass - 졸업 프로젝트 수정")
+        val delete =
+            composeRule
+                .onNodeWithContentDescription("CareerCompass - 졸업 프로젝트 삭제")
+                .assertWidthIsEqualTo(48.dp)
+                .assertHeightIsEqualTo(48.dp)
+
+        assertTrue(
+            "card body overlaps the delete target: " +
+                "body=${body.getUnclippedBoundsInRoot()}, delete=${delete.getUnclippedBoundsInRoot()}",
+            body.getUnclippedBoundsInRoot().right <= delete.getUnclippedBoundsInRoot().left,
+        )
+
+        body.performClick()
+        delete.performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    OnboardingStep3Event.ExperienceSelected("career-compass"),
+                    OnboardingStep3Event.ExperienceDeleteClicked("career-compass"),
+                ),
+                events,
+            )
+        }
+    }
+
+    @Test
+    public fun cardLimit_disablesOnlyTheAddAction() {
+        val fullState =
+            completeState.copy(
+                experiences =
+                    List(ONBOARDING_MAX_EXPERIENCE_CARDS) { index ->
+                        experiences.first().copy(id = "experience-$index")
+                    },
+            )
+
+        assertFalse(fullState.isAddEnabled)
+        assertTrue(fullState.isNextEnabled)
+        assertTrue(completeState.isAddEnabled)
+
+        setScreen(state = fullState)
+
+        composeRule
+            .onNodeWithText("경험 추가하기")
+            .performScrollTo()
+            .assertIsNotEnabled()
+        nextButton().assertIsEnabled()
+    }
+
+    @Test
     public fun disabledState_disablesEveryMutatingAction() {
         val events = mutableListOf<OnboardingStep3Event>()
         setScreen(
@@ -194,6 +250,10 @@ public class OnboardingStep3ScreenTest {
             .performClick()
         composeRule
             .onNodeWithText("CareerCompass - 졸업 프로젝트")
+            .assertIsNotEnabled()
+            .performClick()
+        composeRule
+            .onNodeWithContentDescription("CareerCompass - 졸업 프로젝트 삭제")
             .assertIsNotEnabled()
             .performClick()
         composeRule

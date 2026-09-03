@@ -7,13 +7,17 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 /**
- * Step 3 「경험 추가」 시트 상태 — 온보딩용 빠른 입력이라 유형별 상세 폼(F1-3) 대신 공통 5개 필드만 받는다.
+ * Step 3 「경험 추가·수정」 시트 상태 — 온보딩용 빠른 입력이라 유형별 상세 폼(F1-3) 대신 공통 5개 필드만 받는다.
  *
  * [primary]·[secondary] 의 뜻은 [type] 에 따라 다르다 — [ExperienceEditorRules] 참고.
  * 필드 오류는 사유만 두고 문구는 시트가 리소스로 만든다.
+ *
+ * @property experienceId 수정 중인 카드의 id. null 이면 신규 등록이다. 수정 중에는 [type] 을 바꾸지 않는다 —
+ * 유형마다 필드 의미가 달라 바꾸려면 지우고 다시 만들어야 한다.
  */
 @Immutable
 public data class ExperienceEditorState(
+    public val experienceId: Long? = null,
     public val type: ExperienceType = ExperienceType.Project,
     public val title: String = "",
     public val startDate: String = "",
@@ -33,6 +37,10 @@ public data class ExperienceEditorState(
     /** 제목만 있으면 제출을 시도할 수 있다 — 나머지 검증은 제출 시점에 필드 오류로 돌려준다. */
     public val isSubmitEnabled: Boolean
         get() = !isSubmitting && title.isNotBlank()
+
+    /** 기존 카드를 고치는 중인가. 시트 제목·제출 문구와 유형 잠금이 이 값으로 갈린다. */
+    public val isEditing: Boolean
+        get() = experienceId != null
 }
 
 /** User intentions emitted by [ExperienceQuickAddSheet]. */

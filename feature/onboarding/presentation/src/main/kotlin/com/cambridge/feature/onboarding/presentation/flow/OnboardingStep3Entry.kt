@@ -14,6 +14,7 @@ import com.cambridge.feature.onboarding.presentation.OnboardingStep3Event
 import com.cambridge.feature.onboarding.presentation.OnboardingStep3Screen
 import com.cambridge.feature.onboarding.presentation.OnboardingStep3UiState
 import com.cambridge.feature.onboarding.presentation.R
+import com.cambridge.feature.onboarding.presentation.experience.ExperienceDeleteDialog
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddEvent
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddSheet
 import com.cambridge.feature.onboarding.presentation.experience.labelResId
@@ -54,6 +55,10 @@ public fun OnboardingStep3Entry(
         OnboardingSheetHost(onDismissRequest = { viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Dismissed) }) {
             ExperienceQuickAddSheet(state = editor, onEvent = viewModel::onExperienceEditorEvent)
         }
+    }
+
+    state.experienceDelete?.let { pending ->
+        ExperienceDeleteDialog(state = pending, onEvent = viewModel::onExperienceDeleteEvent)
     }
 }
 

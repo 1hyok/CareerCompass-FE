@@ -80,6 +80,51 @@ class ExperienceUseCasesTest {
         }
 
     @Test
+    fun `경험 수정은 저장소의 같은 카드를 갈아 끼운다`() =
+        runTest {
+            val repository = FakeExperienceRepository(initial = listOf(existing))
+            val draft =
+                ExperienceDraft(
+                    title = "CareerCompass 리뉴얼",
+                    startDate = LocalDate.of(2025, 9, 1),
+                    endDate = LocalDate.of(2026, 2, 1),
+                    details = ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin"), summary = "요약", link = null),
+                )
+
+            val updated = UpdateExperienceUseCase(repository)(id = 7L, draft = draft).getOrThrow()
+
+            assertEquals("CareerCompass 리뉴얼", updated.title)
+            assertEquals(LocalDate.of(2026, 2, 1), updated.endDate)
+            assertEquals(listOf(updated), repository.experiences.toList())
+        }
+
+    @Test
+    fun `경험 수정 실패는 그대로 전파한다`() =
+        runTest {
+            val failure = IOException("offline")
+            val repository = FakeExperienceRepository(onUpdateExperience = { _, _ -> Result.failure(failure) })
+            val draft =
+                ExperienceDraft(
+                    title = "CareerCompass",
+                    startDate = LocalDate.of(2025, 9, 1),
+                    endDate = null,
+                    details = ExperienceDetails.Project(role = null, techs = emptyList(), summary = null, link = null),
+                )
+
+            assertSame(failure, UpdateExperienceUseCase(repository)(id = 7L, draft = draft).exceptionOrNull())
+        }
+
+    @Test
+    fun `경험 삭제는 목록에서 카드를 빼고 실패는 전파한다`() =
+        runTest {
+            val repository = FakeExperienceRepository(initial = listOf(existing))
+
+            assertTrue(DeleteExperienceUseCase(repository)(7L).isSuccess)
+            assertTrue(repository.experiences.isEmpty())
+            assertTrue(DeleteExperienceUseCase(repository)(7L).isFailure)
+        }
+
+    @Test
     fun `Step 3 를 지나면 진행 상태만 PastApplication 으로 옮긴다`() =
         runTest {
             val progressRepository = FakeOnboardingProgressRepository()
