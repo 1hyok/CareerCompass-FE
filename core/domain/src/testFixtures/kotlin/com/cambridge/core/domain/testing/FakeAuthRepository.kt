@@ -32,6 +32,7 @@ public class FakeAuthRepository(
     public var onClearSession: (suspend () -> Result<Unit>)? = null,
     public var onRegisterBiometric: (suspend () -> Result<Unit>)? = null,
     public var onDeclineBiometricEnroll: (suspend () -> Result<Unit>)? = null,
+    public var onSetBiometricEnabled: (suspend (Boolean) -> Result<Unit>)? = null,
 ) : AuthRepository {
     public val loggedInState: MutableStateFlow<Boolean> = MutableStateFlow(loggedIn)
     public val biometricEnabledState: MutableStateFlow<Boolean> = MutableStateFlow(biometricEnabled)
@@ -60,12 +61,14 @@ public class FakeAuthRepository(
     private val clearCounter = AtomicInteger()
     private val registerBiometricCounter = AtomicInteger()
     private val declineBiometricEnrollCounter = AtomicInteger()
+    private val setBiometricEnabledCounter = AtomicInteger()
 
     public val rotateTokenCalls: Int get() = rotateCounter.get()
     public val logoutCalls: Int get() = logoutCounter.get()
     public val clearSessionCalls: Int get() = clearCounter.get()
     public val registerBiometricCalls: Int get() = registerBiometricCounter.get()
     public val declineBiometricEnrollCalls: Int get() = declineBiometricEnrollCounter.get()
+    public val setBiometricEnabledCalls: Int get() = setBiometricEnabledCounter.get()
 
     override suspend fun socialLogin(
         provider: SocialProvider,
@@ -139,6 +142,8 @@ public class FakeAuthRepository(
     }
 
     override suspend fun setBiometricEnabled(enabled: Boolean): Result<Unit> {
+        setBiometricEnabledCounter.incrementAndGet()
+        onSetBiometricEnabled?.let { return it(enabled) }
         biometricEnabledState.value = enabled
         return Result.success(Unit)
     }
@@ -166,6 +171,7 @@ public class FakeAuthRepository(
                 onClearSession = { unexpectedCall("AuthRepository.clearSession") },
                 onRegisterBiometric = { unexpectedCall("AuthRepository.registerBiometric") },
                 onDeclineBiometricEnroll = { unexpectedCall("AuthRepository.declineBiometricEnroll") },
+                onSetBiometricEnabled = { unexpectedCall("AuthRepository.setBiometricEnabled") },
             )
     }
 }

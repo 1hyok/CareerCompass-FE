@@ -110,6 +110,18 @@ class MainViewModelTest {
         assertEquals(AppStartDestination.BiometricLogin, mainViewModel(authRepository, profiles).destination)
     }
 
+    /** 마이 탭 스위치로 끈 뒤(#113) — 등록 기록이 지워져 다음 콜드 스타트는 지문 화면을 건너뛴다. */
+    @Test
+    fun `지문 로그인을 끈 뒤 앱을 다시 켜면 피드로 시작한다`() {
+        val authRepository = FakeAuthRepository(loggedIn = true, biometricEnabled = true)
+        val profiles = FakeUserProfileRepository(profile(onboardingDone = true))
+        assertEquals(AppStartDestination.BiometricLogin, mainViewModel(authRepository, profiles).destination)
+
+        runBlocking { authRepository.setBiometricEnabled(false).getOrThrow() }
+
+        assertEquals(AppStartDestination.Main, mainViewModel(authRepository, profiles).destination)
+    }
+
     @Test
     fun `온보딩을 마치지 않은 세션은 온보딩으로, 마친 세션은 메인으로 간다`() {
         val notDone = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)))
