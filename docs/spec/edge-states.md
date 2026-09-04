@@ -2,7 +2,7 @@
 
 Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 연결 실패 · 분석 중 · 검색 결과 없음 · 알림 권한 꺼짐 · 서버 점검. 어느 화면에서 어떤 문구로 쓰는지는 시안에 없고, 그래서 FE 가 화면마다 문구를 스스로 지었다. 이 문서는 **지어낸 규칙이 아니라 이미 코드에 흩어져 있는 판정을 한자리에 모은 것**이다.
 
-- 기준 커밋: `develop` `4c4b472`. 표의 문구는 전부 실제 리소스에서 그대로 옮겼다 — 지어낸 문장은 하나도 없다.
+- 기준 커밋: `develop` `4c4b472`(원문 보기·게시판 등록의 서버 점검 칸은 #212 가 채웠다). 표의 문구는 전부 실제 리소스에서 그대로 옮겼다 — 지어낸 문장은 하나도 없다.
 - 판정 이력: [#127](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/127)(빈 피드 사유 5종과 우선순위) · [#144](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/144)(조건 때문에 실패했을 때 조건을 되돌릴 길) · [#101](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/101)(서버 점검을 별도 사유로).
 - **진행 중인 이슈가 바꿀 칸은 표에 그렇게 적어 두었다** — #204(에러 코드 14종 → 문구 매핑) · #206(빈 피드에 「사라진 게시판」 사유 추가) · #197(알림 권한 동의 흐름) · #200(적합도 경계) · #205(색 대비). 그 칸의 지금 값은 곧 바뀐다.
 - 이 표를 채우다 드러난 결함은 [#211](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/211)(온보딩 세션 만료의 막다른 길) · [#212](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/212)(원문 보기·게시판 등록이 503 을 안 가른다)로 나갔다. **이 문서는 고치지 않고 기록만 한다.**
@@ -54,9 +54,9 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 | 온보딩 완료 | 없음 | 없음 | — | 없음 | 없음 | 없음 |
 | 피드 홈 | `CareerCompassNetworkErrorState` | `FeedLoading` | `CareerCompassEmptyState` × 6사유 | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
 | 공고 상세 | `PostingDetailError`(손으로 그림) | `FeedLoadingContent` | — | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
-| 원문 보기 | `CareerCompassNetworkErrorState` | `FeedLoadingContent` | 본문 자리 대체 문구 | 없음 | **일반 실패로 접힘 ⚠️ #212** | 셸에 알림 → 로그인 |
+| 원문 보기 | `CareerCompassNetworkErrorState` | `FeedLoadingContent` | 본문 자리 대체 문구 | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
 | 내 게시판(목록) | `CareerCompassNetworkErrorState` | `FeedLoadingContent` | `BoardListEmpty`(손으로 그림) | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
-| 게시판 등록 | 스낵바 / 타임아웃 상자 | 인라인 진행 줄 × 2 | 감지 실패 상자 4종 | 없음 | **스낵바 일반 문구로 접힘 ⚠️ #212** | 셸에 알림 → 로그인 |
+| 게시판 등록 | 스낵바 / 타임아웃 상자 | 인라인 진행 줄 × 2 | 감지 실패 상자 4종 | 없음 | 감지 = `FeedMaintenanceNotice` 상자 · 제출 = 점검 스낵바 | 셸에 알림 → 로그인 |
 | 게시판 수정 시트 | 스낵바 | 저장 중 표시 | — | 없음 | 스낵바 일반 문구 | 셸에 알림 → 로그인 |
 | 마이 탭 | 없음 | 없음 | `CareerCompassEmptyState`(자리표시자) | 없음 | 없음 | 로그아웃만(`SessionEndCause.LoggedOut`) |
 | 분석·지원서·알림 탭 | 미구현 | 미구현 | `CareerCompassEmptyState`(자리표시자) | 미구현 | 미구현 | 미구현 |
@@ -165,8 +165,9 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 피드 홈 | `FeedMaintenanceState` | 실패 표의 `ServiceUnavailable` 행(#204) — `core_ui_failure_service_unavailable_title` = 서비스가 잠시 점검 중이에요 / `core_ui_failure_service_unavailable_description` = AI 분석 서버를 손보고 있어요.(줄바꿈)조금 뒤에 다시 열어 주세요 / 배지는 피드 몫으로 남는다(`feed_maintenance_status` = 점검 진행 중) | 「새로고침」 → `retry()` · 「오프라인 모드로 보기」 → `showOfflineSnapshot()`(**스냅샷이 있을 때만**) · 조건이 걸려 있으면 「조건 지우고 다시 보기」(§4) |
 | 공고 상세 | `FeedMaintenanceState` | 같음 | 「새로고침」 → `RetryClicked` · 오프라인 모드 **없음** |
 | 내 게시판 | `FeedMaintenanceState` | 같음 | 「새로고침」 → `retryLoad()` · 오프라인 모드 **없음** |
-| 원문 보기 | ⚠️ **가르지 않는다**(#212) — `isNetworkUnavailable` 만 보고 나머지를 전부 일반 실패로 접는다 | `feed_posting_raw_error_title` = 원문을 불러오지 못했어요 / `feed_posting_raw_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」 → 같은 요청을 되풀이한다 |
-| 게시판 등록 | ⚠️ **가르지 않는다**(#212) — 감지는 `BoardRegisterMessage.DetectFailed`, 제출은 `RegisterFailed` 로 접힌다 | `feed_board_register_detect_failed` = 구조를 분석하지 못했어요. 잠시 후 다시 시도해 주세요 / `feed_board_register_failed` = 게시판을 등록하지 못했어요. 잠시 후 다시 시도해 주세요 | 스낵바라 버튼 없음 |
+| 원문 보기 | `FeedMaintenanceState` (#212 에서 붙임 — 실패 상태가 `FeedFailureReason` 을 든다) | 같음 | 「새로고침」 → `retry()` · 오프라인 모드 **없음**(원문은 스냅샷을 저장하지 않는다) |
+| 게시판 등록 — 감지 | `FeedMaintenanceNotice` — 화면에 남는 인라인 상자(`BoardDetectionState.Maintenance`). 폼이 살아 있어야 해 화면 한 장을 쓸 수 없다 | 실패 표의 `ServiceUnavailable` 행(#204) — `FeedMaintenanceState` 와 같은 제목·본문 | **버튼 없음** — 서버가 돌아와야 답이 달라진다(§3). 위의 「구조 분석하기」는 그대로 눌린다 |
+| 게시판 등록 — 제출 | 점검 스낵바(`BoardRegisterMessage.Maintenance`) | 실패 표의 `ServiceUnavailable` 행 제목(#204) — `core_ui_failure_service_unavailable_title` = 서비스가 잠시 점검 중이에요(본문은 줄바꿈을 품어 스낵바에는 제목만) | 스낵바라 버튼 없음 — 감지 결과와 폼은 그대로 남는다 |
 | 온보딩 Step 1~4 | 일반 서버 오류로 접힌다(`ServiceUnavailable` 과 `ServerError` 를 한 사유로 묶는다) | `onboarding_failure_server` = 서버에 문제가 있어요. 잠시 후 다시 시도해 주세요 | 「닫기」 |
 
 문의처(`contactLabel`)는 **넘기지 않는다** — 아직 공개된 창구가 없고, 없는 주소를 적으면 사용자를 막다른 길로 보낸다. 점검은 리포팅에서도 「보고할 결함」이 아니다(네트워크 단절과 같은 취급, #101).
@@ -199,7 +200,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 공고 상세 | `PostingDetailError`(손으로 그림) | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) |
 | 원문 보기 | `CareerCompassEmptyState` | `feed_posting_raw_error_title` = 원문을 불러오지 못했어요 / `feed_posting_raw_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_raw_error_retry`) |
 | 온보딩 Step 1~4 | 하단 배너 | 사유가 좁혀지면 그 문구, 아니면 `onboarding_failure_unknown` = 문제가 생겼어요. 잠시 후 다시 시도해 주세요 | 「닫기」 |
-| 게시판 등록 | 스낵바 | `feed_board_register_detect_failed` / `feed_board_register_failed` | 없음 |
+| 게시판 등록 | 스낵바 | `feed_board_register_detect_failed` / `feed_board_register_failed` (503 은 #212 에서 빠져나갔다) | 없음 |
 
 > **#204 에서 정리됐다** — API_SPEC §9 의 에러 코드 14종이 [`docs/spec/error-copy.md`](error-copy.md) 의 표로 모였다. 코드마다 제목·본문과 「사용자가 할 수 있는 일」이 정해져 있고, **재시도해도 답이 갈리지 않는 실패에는 재시도가 붙지 않는다** — 상한 초과는 「정리하러 가기」로, 프로필 미완성은 「프로필 입력하기」로 갈린다. 화면이 `FailureSurface` 를 넘기면 표가 명사까지 채운다(공고 / 게시판). 여기 남은 Generic 행은 **표의 `Unexpected` 행**이다 — `INTERNAL_ERROR` 와 사유를 확인하지 못한 실패만 들어온다.
 
@@ -218,7 +219,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 빈 피드 · 수집 전 | **기다린다** | 첫 수집을 기다리는 중 — 누를 것이 없다. 대신 언제쯤인지 한 줄로 말한다 | 버튼 없음 ✅ |
 | 빈 피드 · 오프라인 스냅샷 | **기다린다** | 되돌릴 조건이 없고, 재조회는 실패 화면으로 튄다 | 버튼 없음 ✅ |
 | 네트워크 실패 | **할 수 있다**(연결 확인 후 재시도 / 스냅샷 보기) | 재시도는 사용자가 연결을 살린 뒤 눌러야 뜻이 있다 | 「다시 시도」 + 스냅샷 있으면 「오프라인 모드로 보기」 ✅ |
-| 서버 점검 | **기다린다** — 단, **조건 탓일 수 있으면 할 수 있다** | 503 `LLM_UNAVAILABLE` 은 「그 조건은 지금 못 한다」는 답이라 적합도 정렬·최소 점수를 풀면 갈린다 | 「새로고침」 + 조건이 있으면 「조건 지우고 다시 보기」 ✅ |
+| 서버 점검 | **기다린다** — 단, **조건 탓일 수 있으면 할 수 있다** | 503 `LLM_UNAVAILABLE` 은 「그 조건은 지금 못 한다」는 답이라 적합도 정렬·최소 점수를 풀면 갈린다 | 「새로고침」 + 조건이 있으면 「조건 지우고 다시 보기」 ✅ · 게시판 등록의 감지에는 조건이 없어 **버튼 없이 알리기만 한다**(#212) ✅ |
 | 세션 만료 | **할 수 있다**(다시 로그인) | 로그인 화면에 닿아야 할 수 있는 일이 된다 | 피드·상세·게시판 ✅ · 온보딩 ✅(#211) |
 | 알림 권한 꺼짐 | **할 수 있다**(설정에서 켜기) | 권한은 사용자만 켤 수 있다 | **상태 자체가 없음 ❌ #197** |
 | 감지 타임아웃 | **할 수 있다** | 사이트가 느렸을 뿐이라 다시 시도하면 된다 | 「다시 시도」 ✅ |
@@ -228,7 +229,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 ### 빈 칸으로 드러난 결함
 
 1. ~~**온보딩에서 세션이 만료되면 나갈 길이 없다**~~ — **#211 에서 고침.** 배너가 「다시 로그인해 주세요」라고 말하는데 로그인으로 가는 길이 화면에 없었다(#144 와 같은 유형). 이제 Step 1~4 도 피드와 같은 `sessionEnded` 배선으로 앱 셸에 올리고, 배너는 그리지 않는다.
-2. **원문 보기와 게시판 등록이 서버 점검을 가르지 않는다** — #101 이 세 화면만 고쳤고 나머지 두 자리는 남았다. 같은 503 에 앱이 화면마다 다른 말을 한다. → **#212**
+2. ~~**원문 보기와 게시판 등록이 서버 점검을 가르지 않는다**~~ — **#212 에서 고침.** 원문 보기는 실패를 `FeedFailureReason` 으로 들어 `FeedMaintenanceState` 를 쓰고, 게시판 등록은 서버가 알린 감지 결과(`detect_status`)와 요청 자체의 실패를 갈라 503 을 `BoardDetectionState.Maintenance` 로 남긴다.
 3. **알림 권한 꺼짐 상태가 통째로 없다** — Figma 09 의 다섯 장 중 한 장이 앱에 존재하지 않고, 문구와 부품만 미리 만들어 놓고 방치돼 있다. → **#197 에서 정리 중**(그 이슈의 완료 조건에 `CareerCompassPermissionDeniedState` 를 쓰는 자리가 명시돼 있다). 새 이슈를 내지 않는다.
 4. ~~**재시도해도 소용없는 실패에 재시도 버튼이 붙어 있다**(게시판 감지의 로그인 필요·SPA·차단)~~ — **#204 에서 고쳤다.** 「목록 페이지 주소인지 확인해 주세요」(`Failed`)만 재시도를 남긴다 — 거기서는 주소를 고치면 답이 실제로 갈린다.
 

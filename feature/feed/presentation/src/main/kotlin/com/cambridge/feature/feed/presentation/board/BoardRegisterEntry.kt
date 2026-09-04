@@ -20,6 +20,7 @@ import com.cambridge.core.ui.failure.FailureKind
 import com.cambridge.core.ui.failure.FailureSurface
 import com.cambridge.core.ui.failure.display
 import com.cambridge.core.ui.failure.sentence
+import com.cambridge.core.ui.failure.title
 import com.cambridge.feature.feed.presentation.R
 import kotlinx.coroutines.launch
 
@@ -119,6 +120,12 @@ internal fun BoardRegisterMessage.toLabel(resources: Resources): String =
 
         BoardRegisterMessage.RegisterFailed -> {
             resources.getString(R.string.feed_board_register_failed)
+        }
+
+        // 점검 문구도 표에서 읽는다 — 화면 한 장을 쓰는 자리(FeedMaintenanceState)와 같은 행이다. 본문은
+        // 화면 한 장용으로 줄바꿈을 품고 있어 한 줄짜리 스낵바에는 제목만 싣는다.
+        BoardRegisterMessage.Maintenance -> {
+            FailureKind.ServiceUnavailable.display().title(resources)
         }
 
         BoardRegisterMessage.SubmitInProgress -> {
