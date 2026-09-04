@@ -274,39 +274,39 @@ public class PostingDetailViewModel
          */
         private suspend fun recheckSuitability() {
             openPostingDetail(postingId)
-                .onSuccess { fresh ->
-                    _state.update { state ->
-                        val current = state.detail ?: return@update state
-                        state.copy(loadState = PostingDetailLoadState.Loaded(fresh.copy(isBookmarked = current.isBookmarked)))
-                    }
-                }.onFailure { throwable -> recordFailure(FeedFailureStage.SuitabilityRecheck, throwable) }
+                .onSuccess { fresh -> updateDetail { current -> fresh.copy(isBookmarked = current.isBookmarked) } }
+                .onFailure { throwable -> recordFailure(FeedFailureStage.SuitabilityRecheck, throwable) }
         }
 
         private fun isStillAnalyzing(): Boolean = _state.value.suitabilityJudgement == SuitabilityJudgement.Analyzing
 
+        /**
+         * 북마크는 먼저 뒤집고, 응답이 오면 **그 필드만** 지금 상세 위에 확정한다.
+         *
+         * 요청을 보내던 순간의 상세를 통째로 되돌려 놓으면 안 된다(#235) — 응답이 오가는 사이 상세는 바뀔 수
+         * 있다. 「분석 중」이면 [recheckSuitability] 가 적합도를 실어 오는데, 옛 스냅샷으로 덮으면 방금 나타난
+         * 점수가 사라진다. 그래서 성공은 서버가 준 북마크 값을, 실패는 누르기 전 북마크 값을 **지금 상세**에
+         * 얹는다.
+         */
         private fun toggleBookmark() {
-            val before = _state.value.detail ?: return
-            replaceDetail(before.copy(isBookmarked = !before.isBookmarked))
+            val wasBookmarked = _state.value.detail?.isBookmarked ?: return
+            updateDetail { it.copy(isBookmarked = !wasBookmarked) }
             viewModelScope.launch {
-                togglePostingBookmark(postingId, currentlyBookmarked = before.isBookmarked)
-                    .onSuccess { bookmarked -> replaceDetail(before.copy(isBookmarked = bookmarked)) }
+                togglePostingBookmark(postingId, currentlyBookmarked = wasBookmarked)
+                    .onSuccess { bookmarked -> updateDetail { it.copy(isBookmarked = bookmarked) } }
                     .onFailure { throwable ->
                         recordFailure(FeedFailureStage.Bookmark, throwable)
-                        replaceDetail(before)
+                        updateDetail { it.copy(isBookmarked = wasBookmarked) }
                         _state.update { it.copy(message = PostingDetailMessage.BookmarkFailed) }
                     }
             }
         }
 
-        private fun replaceDetail(detail: PostingDetail) {
+        /** 읽은 상세가 있을 때만 그 위에 [transform] 을 적용한다 — 로딩·실패 중에는 아무것도 하지 않는다. */
+        private fun updateDetail(transform: (PostingDetail) -> PostingDetail) {
             _state.update { state ->
-                if (state.loadState is PostingDetailLoadState.Loaded) {
-                    state.copy(
-                        loadState = PostingDetailLoadState.Loaded(detail),
-                    )
-                } else {
-                    state
-                }
+                val loaded = state.loadState as? PostingDetailLoadState.Loaded ?: return@update state
+                state.copy(loadState = PostingDetailLoadState.Loaded(transform(loaded.detail)))
             }
         }
 

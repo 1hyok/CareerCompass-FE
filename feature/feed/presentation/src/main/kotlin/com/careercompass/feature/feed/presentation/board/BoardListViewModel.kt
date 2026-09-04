@@ -286,7 +286,9 @@ public class BoardListViewModel
                     .onSuccess { updated -> replaceBoard(updated) }
                     .onFailure { throwable ->
                         recordFailure(FeedFailureStage.BoardToggle, throwable)
-                        replaceBoard(before)
+                        // 되돌리는 것은 토글이 건드린 두 필드뿐이다 — 요청이 오가는 사이 수정 시트가 저장한
+                        // 이름·주기를 옛 스냅샷으로 덮지 않는다(#235).
+                        updateBoard(boardId) { it.copy(isActive = before.isActive, status = before.status) }
                         _state.update { it.copy(message = BoardListMessage.ToggleFailed) }
                     }
             }
@@ -342,6 +344,13 @@ public class BoardListViewModel
 
         private fun replaceBoard(board: Board) {
             updateBoards { boards -> boards.map { if (it.id == board.id) board else it } }
+        }
+
+        private fun updateBoard(
+            boardId: Long,
+            transform: (Board) -> Board,
+        ) {
+            updateBoards { boards -> boards.map { if (it.id == boardId) transform(it) else it } }
         }
 
         private fun updateBoards(transform: (List<Board>) -> List<Board>) {

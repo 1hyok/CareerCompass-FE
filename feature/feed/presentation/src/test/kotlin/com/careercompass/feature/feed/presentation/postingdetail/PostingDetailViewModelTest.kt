@@ -390,6 +390,57 @@ class PostingDetailViewModelTest {
             )
         }
 
+    // ---- 북마크 응답과 재조회의 경합 (#235) ----
+
+    /** 북마크 응답이 오가는 사이 재조회가 적합도를 실어 와도, 응답이 그것을 옛 스냅샷으로 덮지 않는다. */
+    @Test
+    fun `북마크 응답이 늦어도 그 사이 재조회로 도착한 적합도를 지우지 않는다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true, isBookmarked = false))
+            counting.repository.onSetBookmarked = { _, _ ->
+                gate.await()
+                Result.success(Unit)
+            }
+            val viewModel = viewModel(counting.repository)
+
+            viewModel.onEvent(PostingDetailEvent.BookmarkToggled)
+            assertTrue(requireNotNull(viewModel.state.value.detail).isBookmarked)
+
+            counting.detail = counting.detail.copy(suitability = sampleSuitability())
+            advanceInterval()
+            assertEquals(SuitabilityJudgement.Ready, viewModel.state.value.suitabilityJudgement)
+
+            gate.complete(Unit)
+
+            val detail = requireNotNull(viewModel.state.value.detail)
+            assertTrue(detail.isBookmarked)
+            assertEquals(SuitabilityJudgement.Ready, viewModel.state.value.suitabilityJudgement)
+        }
+
+    @Test
+    fun `북마크 실패의 되돌리기도 그 사이 도착한 적합도를 지우지 않는다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true, isBookmarked = false))
+            counting.repository.onSetBookmarked = { _, _ ->
+                gate.await()
+                Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", RuntimeException()))
+            }
+            val viewModel = viewModel(counting.repository)
+
+            viewModel.onEvent(PostingDetailEvent.BookmarkToggled)
+            counting.detail = counting.detail.copy(suitability = sampleSuitability())
+            advanceInterval()
+
+            gate.complete(Unit)
+
+            val detail = requireNotNull(viewModel.state.value.detail)
+            assertFalse(detail.isBookmarked)
+            assertEquals(SuitabilityJudgement.Ready, viewModel.state.value.suitabilityJudgement)
+            assertEquals(PostingDetailMessage.BookmarkFailed, viewModel.state.value.message)
+        }
+
     private fun PostingDetailUiState.loadedSuitability(): PostingSuitabilityState =
         (content as PostingDetailContentState.Loaded).posting.suitability
 

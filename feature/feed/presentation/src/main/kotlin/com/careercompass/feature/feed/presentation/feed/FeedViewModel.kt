@@ -548,22 +548,31 @@ public class FeedViewModel
                 _state.update { it.copy(message = FeedMessage.OfflineReadOnly) }
                 return
             }
-            val before = _state.value.postings.firstOrNull { it.id == postingId } ?: return
-            replacePosting(before.copy(isBookmarked = !before.isBookmarked))
+            // 확정·되돌리기는 북마크 필드만 지금 카드 위에 얹는다 — 요청이 오가는 사이 새로고침이 목록을
+            // 갈아 끼웠을 수 있고, 옛 스냅샷으로 덮으면 그 변화(읽음 표시 등)가 지워진다(#235).
+            val wasBookmarked =
+                _state.value.postings
+                    .firstOrNull { it.id == postingId }
+                    ?.isBookmarked ?: return
+            updatePosting(postingId) { it.copy(isBookmarked = !wasBookmarked) }
             viewModelScope.launch {
-                togglePostingBookmark(postingId, currentlyBookmarked = before.isBookmarked)
-                    .onSuccess { bookmarked -> replacePosting(before.copy(isBookmarked = bookmarked)) }
+                togglePostingBookmark(postingId, currentlyBookmarked = wasBookmarked)
+                    .onSuccess { bookmarked -> updatePosting(postingId) { it.copy(isBookmarked = bookmarked) } }
                     .onFailure { throwable ->
                         recordFailure(FeedFailureStage.Bookmark, throwable)
-                        replacePosting(before)
+                        updatePosting(postingId) { it.copy(isBookmarked = wasBookmarked) }
                         _state.update { it.copy(message = FeedMessage.BookmarkFailed) }
                     }
             }
         }
 
-        private fun replacePosting(posting: Posting) {
+        /** 목록에 그 공고가 남아 있을 때만 그 카드 위에 [transform] 을 적용한다. */
+        private fun updatePosting(
+            postingId: Long,
+            transform: (Posting) -> Posting,
+        ) {
             _state.update { state ->
-                state.copy(postings = state.postings.map { if (it.id == posting.id) posting else it })
+                state.copy(postings = state.postings.map { if (it.id == postingId) transform(it) else it })
             }
         }
 
