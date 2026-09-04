@@ -20,6 +20,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cambridge.core.domain.error.CoreDataFailure
+import com.cambridge.core.domain.testing.FakeAppSettingsRepository
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakeBoardRepository
 import com.cambridge.core.domain.testing.FakePostingRepository
@@ -31,6 +32,7 @@ import com.cambridge.core.model.posting.Posting
 import com.cambridge.core.model.posting.PostingBoardRef
 import com.cambridge.core.model.posting.PostingDetail
 import com.cambridge.core.model.posting.PostingType
+import com.cambridge.core.model.settings.ThemeMode
 import com.cambridge.core.model.user.JobInterest
 import com.cambridge.core.model.user.UserProfile
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -70,6 +72,9 @@ class AppNavigationAndroidTest {
 
     @Inject
     lateinit var fakeBoardRepository: FakeBoardRepository
+
+    @Inject
+    lateinit var fakeAppSettingsRepository: FakeAppSettingsRepository
 
     private var scenario: ActivityScenario<MainActivity>? = null
 
@@ -218,6 +223,30 @@ class AppNavigationAndroidTest {
         composeRule.waitUntil(timeoutMillis = BIOMETRIC_TIMEOUT_MILLIS) { !fakeAuthRepository.biometricEnabledState.value }
         composeRule.onNodeWithTag(BIOMETRIC_SWITCH_TAG, useUnmergedTree = true).assertIsOff()
         assertEquals(1, fakeAuthRepository.setBiometricEnabledCalls)
+    }
+
+    /**
+     * 화면 테마(#210) — 마이 탭에서 고른 값이 저장소에 남고 줄의 표시가 그 값을 따라간다.
+     *
+     * 실제로 어둡게 그려지는지는 계측이 색을 재지 않으므로 골든·수동 QA 몫이다. 여기서 지키는 것은 **고르는
+     * 경로가 살아 있는가** 다 — 셸이 값을 읽어 테마에 넣는 배선은 `MainViewModelTest` 가 덮는다.
+     */
+    @Test
+    fun myTabThemeMode_picksDarkAndKeepsIt() {
+        fakeAuthRepository.loggedIn = true
+        fakeUserProfileRepository.profileState.value = profile(onboardingDone = true)
+
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+
+        composeRule.onNodeWithText("마이").performClick()
+        composeRule.onNodeWithText("화면 테마").assertIsDisplayed()
+        composeRule.onNodeWithTag(THEME_ROW_TAG, useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("어둡게").performClick()
+
+        composeRule.waitUntil(timeoutMillis = BIOMETRIC_TIMEOUT_MILLIS) {
+            fakeAppSettingsRepository.themeModeState.value == ThemeMode.Dark
+        }
+        composeRule.onNodeWithText("어둡게").assertIsDisplayed()
     }
 
     @Test
@@ -389,5 +418,8 @@ class AppNavigationAndroidTest {
         /** `MyTabPlaceholderScreen` 의 `MY_TAB_BIOMETRIC_SWITCH_TAG` — 라벨은 스위치의 토글 상태를 병합하지 않는다. */
         const val BIOMETRIC_SWITCH_TAG = "my_tab_biometric_switch"
         const val BIOMETRIC_UNAVAILABLE_TEXT = "이 기기에서는 지문 로그인을 켤 수 없어요"
+
+        /** `MyTabPlaceholderScreen` 의 `MY_TAB_THEME_ROW_TAG` — 라벨과 현재 값이 한 줄에 병합돼 문구만으로는 집기 어렵다. */
+        const val THEME_ROW_TAG = "my_tab_theme_row"
     }
 }
