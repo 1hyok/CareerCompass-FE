@@ -17,6 +17,10 @@ import com.cambridge.core.model.experience.ExperienceDraft
 import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_LINK_LENGTH
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
+import com.cambridge.core.model.experience.isAllowedExperienceLink
 import com.cambridge.core.model.user.MAX_JOB_INTERESTS
 import com.cambridge.core.model.user.MAX_PROFILE_TAGS
 import com.cambridge.core.model.user.MIN_GRADUATION_YEAR
@@ -1252,15 +1256,15 @@ internal fun ExperienceEditorState.withTechTagCommitted(): ExperienceEditorState
             copy(techInput = "", techInputError = null)
         }
 
-        tag.length > ExperienceEditorRules.MAX_TECH_TAG_LENGTH -> {
-            copy(techInputError = OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_TECH_TAG_LENGTH))
+        tag.length > MAX_EXPERIENCE_TECH_TAG_LENGTH -> {
+            copy(techInputError = OnboardingFieldError.TooLong(MAX_EXPERIENCE_TECH_TAG_LENGTH))
         }
 
         techs.any { it.equals(tag, ignoreCase = true) } -> {
             copy(techInput = "", techInputError = null)
         }
 
-        techs.size >= ExperienceEditorRules.MAX_TECH_TAGS -> {
+        techs.size >= MAX_EXPERIENCE_TECH_TAGS -> {
             copy(techInputError = OnboardingFieldError.OutOfRange)
         }
 
@@ -1321,11 +1325,11 @@ internal fun validateExperienceEditor(editor: ExperienceEditorState): Experience
                 null
             }
 
-            editor.link.trim().length > ExperienceEditorRules.MAX_LINK_LENGTH -> {
-                OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_LINK_LENGTH)
+            editor.link.trim().length > MAX_EXPERIENCE_LINK_LENGTH -> {
+                OnboardingFieldError.TooLong(MAX_EXPERIENCE_LINK_LENGTH)
             }
 
-            !ExperienceEditorRules.isValidLink(editor.link) -> {
+            !isAllowedExperienceLink(editor.link) -> {
                 OnboardingFieldError.InvalidFormat
             }
 

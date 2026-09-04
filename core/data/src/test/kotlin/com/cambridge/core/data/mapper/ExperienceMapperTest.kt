@@ -4,10 +4,13 @@ import com.cambridge.core.model.experience.ExperienceDetails
 import com.cambridge.core.model.experience.ExperienceDraft
 import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
 import com.cambridge.core.network.dto.ExperienceDto
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -41,6 +44,44 @@ class ExperienceMapperTest {
         assertEquals(listOf("Android", "Kotlin"), details.techs)
         assertEquals(null, details.summary)
         assertEquals(null, details.link)
+    }
+
+    @Test
+    fun `상한을 넘는 서버 태그는 앱을 죽이지 않고 담을 수 있는 만큼만 담는다`() {
+        // 다른 클라이언트가 만든 카드일 수 있고 우리가 못 고치는 값이다 — 카드 하나로 목록 전체가 안 열리면
+        // 사용자가 할 수 있는 일이 없다. 길이를 넘는 태그는 **자르지 않고 버린다**(자르면 없던 이름이 된다).
+        val techs = (1..12).joinToString(",") { "\"tech$it\"" }
+        val tooLong = "a".repeat(MAX_EXPERIENCE_TECH_TAG_LENGTH + 1)
+        val experience =
+            ExperienceMapper.toExperience(
+                ExperienceDto(
+                    id = 11,
+                    type = "project",
+                    title = "CareerCompass",
+                    data = json.parseToJsonElement("""{"techs":[$techs,"$tooLong"]}""").jsonObject,
+                ),
+            )
+
+        val details = experience.details as ExperienceDetails.Project
+        assertEquals(MAX_EXPERIENCE_TECH_TAGS, details.techs.size)
+        assertEquals("tech1", details.techs.first())
+        assertFalse(details.techs.contains(tooLong))
+    }
+
+    @Test
+    fun `모델이 받지 않는 서버 링크는 버린다`() {
+        // 잘라 담으면 다른 곳을 가리키거나 열리지 않는 주소가 된다. 스킴이 어긋난 링크도 카드에 싣지 않는다.
+        val experience =
+            ExperienceMapper.toExperience(
+                ExperienceDto(
+                    id = 12,
+                    type = "project",
+                    title = "CareerCompass",
+                    data = json.parseToJsonElement("""{"link":"javascript:alert(1)"}""").jsonObject,
+                ),
+            )
+
+        assertNull((experience.details as ExperienceDetails.Project).link)
     }
 
     @Test

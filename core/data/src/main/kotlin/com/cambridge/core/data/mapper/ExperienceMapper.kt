@@ -5,6 +5,9 @@ import com.cambridge.core.model.experience.ExperienceDetails
 import com.cambridge.core.model.experience.ExperienceDraft
 import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
+import com.cambridge.core.model.experience.isAllowedExperienceLink
 import com.cambridge.core.network.dto.ExperienceDto
 import com.cambridge.core.network.dto.ExperienceRequestDto
 import kotlinx.serialization.json.JsonArray
@@ -54,9 +57,9 @@ internal object ExperienceMapper {
             ExperienceType.Project -> {
                 ExperienceDetails.Project(
                     role = data.stringOrNull("role"),
-                    techs = data.stringsOrEmpty("techs"),
+                    techs = data.stringsOrEmpty("techs").withinTechLimits(),
                     summary = data.stringOrNull("summary"),
-                    link = data.stringOrNull("link"),
+                    link = data.stringOrNull("link")?.takeIf(::isAllowedExperienceLink),
                 )
             }
 
@@ -88,6 +91,21 @@ internal object ExperienceMapper {
                 ExperienceDetails.Certificate(issuer = data.stringOrNull("issuer"))
             }
         }
+
+    /**
+     * 상한을 넘는 서버 태그를 모델이 받을 수 있는 만큼으로 줄인다 (#208).
+     *
+     * ### 왜 `require` 로 실패시키지 않는가
+     * 다른 클라이언트나 예전 버전이 만든 카드일 수 있고, **우리가 못 고치는 값이다.** 카드 하나 때문에 목록
+     * 전체가 안 열리면 사용자가 할 수 있는 일이 없다.
+     *
+     * ### 왜 「잘라 담기」가 아니라 「버리기」인가
+     * 긴 태그를 20자에서 자르면 사용자가 준 적 없는 이름의 태그가 된다 — #166 에서 없던 날짜를 만든 것과
+     * 같은 날조다. 링크는 더 나빠서, 자른 주소는 **다른 곳을 가리키거나 열리지 않는다.** 그래서 길이를 넘는
+     * 태그와 링크는 잘라 담지 않고 버린다. 개수 상한만은 앞에서부터 담는다 — 순서가 서버가 준 우선순위다.
+     */
+    private fun List<String>.withinTechLimits(): List<String> =
+        filter { it.length <= MAX_EXPERIENCE_TECH_TAG_LENGTH }.take(MAX_EXPERIENCE_TECH_TAGS)
 
     /**
      * 상세 필드를 `data` 객체로 옮긴다.
