@@ -348,13 +348,16 @@ private fun BoardDetectionFailedBox(
             color = colors.onErrorContainer,
             style = CareerCompassTheme.typography.bodyMedium,
         )
-        CareerCompassButton(
-            text = stringResource(R.string.feed_board_register_retry),
-            onClick = onRetryClick,
-            variant = CareerCompassButtonVariant.Secondary,
-            size = CareerCompassButtonSize.Small,
-            enabled = retryEnabled,
-        )
+        // 재시도해도 같은 답이 오는 사유에는 버튼을 주지 않는다([BoardDetectionFailure.isRetryable], #204).
+        if (reason.isRetryable) {
+            CareerCompassButton(
+                text = stringResource(R.string.feed_board_register_retry),
+                onClick = onRetryClick,
+                variant = CareerCompassButtonVariant.Secondary,
+                size = CareerCompassButtonSize.Small,
+                enabled = retryEnabled,
+            )
+        }
     }
 }
 

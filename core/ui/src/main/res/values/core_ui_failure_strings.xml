@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  실패 → 사용자 문구 표(API_SPEC v0.1 §9). 정본 설명은 docs/spec/error-copy.md 다.
+  화면이 스스로 문구를 짓지 않는다 — 여기서 읽는다.
+-->
+<resources>
+    <!-- 한 줄로 말해야 하는 자리(스낵바)에서 제목과 본문을 잇는 형식. -->
+    <string name="core_ui_failure_sentence">%1$s. %2$s</string>
+
+    <!-- 행동 버튼 문구. 「없음」에는 버튼이 붙지 않으므로 문구도 없다. -->
+    <string name="core_ui_failure_action_complete_profile">프로필 입력하기</string>
+    <string name="core_ui_failure_action_free_up_space">정리하러 가기</string>
+    <string name="core_ui_failure_action_sign_in">다시 로그인</string>
+
+    <!-- 코드 없는 실패 · 우리가 먼저 끊음 (CoreDataFailure.NetworkUnavailable.isTimeout) -->
+    <string name="core_ui_failure_timeout_title">응답이 너무 늦어요</string>
+    <string name="core_ui_failure_timeout_description">기다리는 동안 답이 오지 않았어요. 잠시 후 다시 시도해 주세요</string>
+
+    <!-- INVALID_INPUT (400) -->
+    <string name="core_ui_failure_invalid_input_title">입력한 내용을 확인해 주세요</string>
+    <string name="core_ui_failure_invalid_input_description">형식에 맞지 않는 값이 있어요. 고쳐서 다시 보내 주세요</string>
+
+    <!-- AUTH_REQUIRED · AUTH_INVALID (401) -->
+    <string name="core_ui_failure_auth_expired_title">다시 로그인해 주세요</string>
+    <string name="core_ui_failure_auth_expired_description">로그인 정보가 만료됐어요. 다시 로그인하면 이어서 할 수 있어요</string>
+
+    <!-- PERMISSION_DENIED (403) -->
+    <string name="core_ui_failure_permission_denied_title">접근할 수 없어요</string>
+    <string name="core_ui_failure_permission_denied_description">이 내용을 볼 권한이 없어요</string>
+
+    <!-- RESOURCE_NOT_FOUND · POSTING_NOT_FOUND (404) -->
+    <string name="core_ui_failure_not_found_title">찾을 수 없어요</string>
+    <string name="core_ui_failure_not_found_description">이미 지워졌거나 주소가 바뀐 것 같아요</string>
+    <string name="core_ui_failure_not_found_posting_title">공고를 찾을 수 없어요</string>
+    <string name="core_ui_failure_not_found_posting_description">삭제됐거나 마감돼 내려간 공고예요</string>
+    <string name="core_ui_failure_not_found_board_title">게시판을 찾을 수 없어요</string>
+    <string name="core_ui_failure_not_found_board_description">이미 지워진 게시판이에요. 내 게시판 목록을 새로고침해 주세요</string>
+
+    <!-- DUPLICATE_BOARD (409) -->
+    <string name="core_ui_failure_duplicate_board_title">이미 등록된 게시판이에요</string>
+    <string name="core_ui_failure_duplicate_board_description">내 게시판 목록에서 확인해 주세요</string>
+
+    <!-- LIMIT_EXCEEDED (422) — 문맥을 넘기면 무엇이 몇 개까지인지까지 말한다. -->
+    <string name="core_ui_failure_limit_exceeded_title">더 담을 수 없어요</string>
+    <string name="core_ui_failure_limit_exceeded_description">쓰지 않는 항목을 지우고 다시 시도해 주세요</string>
+    <string name="core_ui_failure_limit_exceeded_board_title">게시판을 더 등록할 수 없어요</string>
+    <string name="core_ui_failure_limit_exceeded_board_description">최대 %1$d개까지 등록할 수 있어요</string>
+    <string name="core_ui_failure_limit_exceeded_experience_title">경험 카드를 더 만들 수 없어요</string>
+    <string name="core_ui_failure_limit_exceeded_experience_description">최대 %1$d개까지 만들 수 있어요</string>
+    <string name="core_ui_failure_limit_exceeded_application_title">지원서를 더 저장할 수 없어요</string>
+    <string name="core_ui_failure_limit_exceeded_application_description">최대 %1$d개까지 저장할 수 있어요</string>
+
+    <!-- PROFILE_INCOMPLETE (422) -->
+    <string name="core_ui_failure_profile_incomplete_title">프로필이 아직 비어 있어요</string>
+    <string name="core_ui_failure_profile_incomplete_description">기본 정보를 채우면 적합도를 계산할 수 있어요</string>
+
+    <!-- PARSING_FAILED (422) -->
+    <string name="core_ui_failure_parsing_failed_title">공고를 읽지 못했어요</string>
+    <string name="core_ui_failure_parsing_failed_description">원문 형식을 알아보지 못했어요. 원문 보기로 확인해 주세요</string>
+
+    <!-- BOARD_BLOCKED (422) -->
+    <string name="core_ui_failure_board_blocked_title">자동 수집이 허용되지 않는 사이트예요</string>
+    <string name="core_ui_failure_board_blocked_description">사이트가 수집을 막아 두었어요. 다른 게시판 주소로 등록해 주세요</string>
+
+    <!-- RATE_LIMITED (429) -->
+    <string name="core_ui_failure_rate_limited_title">요청이 너무 많아요</string>
+    <string name="core_ui_failure_rate_limited_description">잠시 후 다시 시도해 주세요</string>
+
+    <!-- LLM_UNAVAILABLE (503) -->
+    <string name="core_ui_failure_service_unavailable_title">서비스가 잠시 점검 중이에요</string>
+    <string name="core_ui_failure_service_unavailable_description">AI 분석 서버를 손보고 있어요.\n조금 뒤에 다시 열어 주세요</string>
+
+    <!-- INTERNAL_ERROR (500·5xx) 및 사유를 확인하지 못한 실패 -->
+    <string name="core_ui_failure_unexpected_title">문제가 생겼어요</string>
+    <string name="core_ui_failure_unexpected_description">잠시 후 다시 시도해 주세요</string>
+    <string name="core_ui_failure_unexpected_posting_title">공고를 불러오지 못했어요</string>
+    <string name="core_ui_failure_unexpected_board_title">게시판을 불러오지 못했어요</string>
+    <string name="core_ui_failure_unexpected_experience_title">경험 카드를 불러오지 못했어요</string>
+    <string name="core_ui_failure_unexpected_application_title">지원서를 불러오지 못했어요</string>
+</resources>

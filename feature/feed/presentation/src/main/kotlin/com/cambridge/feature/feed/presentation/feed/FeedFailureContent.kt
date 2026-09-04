@@ -16,10 +16,16 @@ import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassEmptyState
 import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
+import com.cambridge.core.ui.failure.FailureSurface
+import com.cambridge.core.ui.failure.actionLabel
+import com.cambridge.core.ui.failure.description
+import com.cambridge.core.ui.failure.display
+import com.cambridge.core.ui.failure.title
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.cambridge.feature.feed.presentation.shared.model.failureKind
 
 /**
  * 목록을 못 받았을 때 사유별로 갈리는 화면 — [FeedEntry] 가 상태 없이 그리는 부분만 떼어 냈다.
@@ -93,11 +99,14 @@ private fun FeedFailureNotice(
         }
 
         FeedFailureReason.Generic -> {
+            // 문구는 화면이 짓지 않고 실패 표에서 읽는다(#204). 「공고」라는 명사는 문맥이 채운다.
+            val display = reason.failureKind.display(FailureSurface.Posting)
+            val actionText = display.actionLabel()
             CareerCompassEmptyState(
-                title = stringResource(R.string.feed_error_title),
-                description = stringResource(R.string.feed_error_description),
-                actionText = stringResource(R.string.feed_error_retry),
-                onActionClick = onRetryClick,
+                title = display.title(),
+                description = display.description(),
+                actionText = actionText,
+                onActionClick = onRetryClick.takeIf { actionText != null },
                 modifier = modifier,
             )
         }

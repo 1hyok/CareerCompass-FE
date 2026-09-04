@@ -18,9 +18,13 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.model.posting.Suitability
+import com.cambridge.core.ui.failure.FailureSurface
+import com.cambridge.core.ui.failure.display
+import com.cambridge.core.ui.failure.sentence
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
+import com.cambridge.feature.feed.presentation.shared.model.failureKind
 import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
 import com.cambridge.feature.feed.presentation.shared.util.toDetailUiModel
 import com.cambridge.feature.feed.presentation.shared.util.toSuitabilityUiModel
@@ -128,12 +132,17 @@ internal fun PostingDetailViewState.toUiState(
                             PostingDetailContentState.Maintenance
                         }
 
-                        FeedFailureReason.NetworkUnavailable -> {
-                            PostingDetailContentState.Error(resources.getString(R.string.feed_posting_detail_error_network))
-                        }
-
-                        FeedFailureReason.Generic -> {
-                            PostingDetailContentState.Error(resources.getString(R.string.feed_posting_detail_error_generic))
+                        // 문구는 실패 표에서 읽는다(#204). 이 자리는 한 줄만 허용하므로 제목과 본문을 잇는다 —
+                        // 본문만 띄우면 무슨 일이 일어났는지가, 제목만 띄우면 무엇을 하라는지가 빠진다.
+                        FeedFailureReason.NetworkUnavailable,
+                        FeedFailureReason.Generic,
+                        -> {
+                            PostingDetailContentState.Error(
+                                loadState.reason
+                                    .failureKind
+                                    .display(FailureSurface.Posting)
+                                    .sentence(resources),
+                            )
                         }
                     }
                 }
