@@ -256,6 +256,133 @@ class FeedEmptyReasonTest {
         assertEquals(FeedEmptyReason.Search("백엔드"), reasonOf(state))
     }
 
+    /**
+     * 이슈 #206 — 조건이 지워진 게시판을 가리키고 있으면 뭉뚱그린 [FeedEmptyReason.Filter] 보다 이것이 먼저다.
+     *
+     * 나머지 조건은 화면에서 볼 수 있다(검색칸의 글자·켜진 칩·배지의 숫자). 지워진 게시판만은 어디에도
+     * 보이지 않아, 화면이 한 번에 말할 수 있는 사유 하나를 여기에 쓴다.
+     */
+    @Test
+    fun `조건이 지워진 게시판을 가리키면 뭉뚱그린 필터 대신 그것을 말한다`() {
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                query = FeedQuery(boardIds = setOf(9L)),
+            )
+
+        assertEquals(FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = true), reasonOf(state))
+    }
+
+    @Test
+    fun `사라진 게시판이 여럿이면 그 수를 그대로 말한다`() {
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                query = FeedQuery(boardIds = setOf(8L, 9L)),
+            )
+
+        assertEquals(FeedEmptyReason.MissingBoards(count = 2, isOnlyCondition = true), reasonOf(state))
+    }
+
+    @Test
+    fun `사라진 게시판이 검색어보다 앞이다`() {
+        // 검색어는 입력칸에 그대로 보여 사용자가 스스로 벗길 수 있는 겹이다. 지워진 게시판은 아니다.
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                query = FeedQuery(boardIds = setOf(9L), searchQuery = "백엔드"),
+            )
+
+        assertEquals(FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = false), reasonOf(state))
+    }
+
+    @Test
+    fun `게시판 목록을 못 받았으면 사라졌다고 판정하지 않고 필터 사유로 내려간다`() {
+        // 조회 실패로 비어 있는 목록을 근거로 「지워졌어요」라고 하면 없는 사실을 알리게 된다.
+        val state =
+            FeedViewState(
+                boards = emptyList(),
+                boardsLoaded = false,
+                query = FeedQuery(boardIds = setOf(9L)),
+            )
+
+        assertEquals(FeedEmptyReason.Filter, reasonOf(state))
+    }
+
+    @Test
+    fun `게시판이 0개면 조건이 사라진 게시판을 가리켜도 등록이 먼저다`() {
+        // 모을 곳이 아예 없으면 조건을 빼도 나올 공고가 없다.
+        val state =
+            FeedViewState(
+                boards = emptyList(),
+                boardsLoaded = true,
+                query = FeedQuery(boardIds = setOf(9L)),
+            )
+
+        assertEquals(FeedEmptyReason.NoBoards, reasonOf(state))
+    }
+
+    @Test
+    fun `커서가 남았으면 사라진 게시판 탓도 하지 않는다`() {
+        // 아직 안 읽은 페이지가 있으면 「없다」고 말할 근거가 없다 — 조건을 빼라고 할 자리가 아니다.
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                nextCursor = "100",
+                query = FeedQuery(boardIds = setOf(9L)),
+            )
+
+        assertEquals(FeedEmptyReason.MoreAvailable, reasonOf(state))
+    }
+
+    @Test
+    fun `오프라인이면 사라진 게시판보다도 앞이다`() {
+        // 조건을 빼는 행동은 곧 재조회다 — 오프라인에서 권하면 실패 화면으로 튄다.
+        val state =
+            FeedViewState(
+                boards = listOf(board(id = 1)),
+                boardsLoaded = true,
+                isOffline = true,
+                offlineSavedAt = NOON_TODAY,
+                query = FeedQuery(boardIds = setOf(9L)),
+            )
+
+        assertEquals(FeedEmptyReason.OfflineSnapshot, reasonOf(state))
+    }
+
+    /**
+     * 전부인가 일부인가 — 문구가 「빼면 보여요」라고 약속해도 되는지가 여기서 갈린다.
+     *
+     * 빼고 나서도 좁히는 조건이 남으면 눌러도 같은 빈 화면이 나올 수 있다. 그걸 약속하면 화면이 방금 한
+     * 말을 스스로 깬다.
+     */
+    @Test
+    fun `사라진 게시판을 빼도 남는 조건이 있으면 조건의 전부라고 하지 않는다`() {
+        val base = FeedViewState(boards = listOf(board(id = 1)), boardsLoaded = true)
+        val onlyMissing = base.copy(query = FeedQuery(boardIds = setOf(9L)))
+
+        assertEquals(FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = true), reasonOf(onlyMissing))
+        // 살아 있는 게시판이 함께 걸려 있으면, 빼도 그 게시판으로 좁힌 조회 그대로다.
+        assertEquals(
+            FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = false),
+            reasonOf(base.copy(query = FeedQuery(boardIds = setOf(1L, 9L)))),
+        )
+        // 시트 조건이 남는 경우.
+        assertEquals(
+            FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = false),
+            reasonOf(base.copy(query = FeedQuery(boardIds = setOf(9L), unreadOnly = true))),
+        )
+        // 카테고리 칩이 남는 경우 — 배지는 세지 않지만 풀면 결과가 달라지므로 여기서는 센다.
+        assertEquals(
+            FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = false),
+            reasonOf(base.copy(query = FeedQuery(boardIds = setOf(9L), types = setOf(PostingType.Recruit)))),
+        )
+    }
+
     @Test
     fun `꺼 둔 게시판의 주기는 세지 않고 전부 꺼져 있으면 아무 말도 하지 않는다`() {
         val paused = board(id = 1, cycleHours = 12, isActive = false)

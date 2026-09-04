@@ -935,6 +935,28 @@ private fun FeedEmpty(
             )
         }
 
+        is FeedEmptyReason.MissingBoards -> {
+            // 행동은 시트를 여는 것이 아니라 그 조건을 바로 빼는 것이다 — 시트 안 태그를 찾아 누르게 하면
+            // 「열어 보기 전에는 원인을 알 수 없다」는, 이 사유가 생긴 이유가 그대로 남는다(이슈 #206).
+            //
+            // 문구는 뺀 뒤에 무엇이 남는지에 따라 갈린다. 다른 조건이 남아 있는데 「빼면 보여요」라고 하면
+            // 눌러도 같은 빈 화면이 나와, 화면이 방금 한 약속을 스스로 깬다.
+            CareerCompassEmptyState(
+                title = stringResource(R.string.feed_empty_missing_boards_title, reason.count),
+                description =
+                    stringResource(
+                        if (reason.isOnlyCondition) {
+                            R.string.feed_empty_missing_boards_description
+                        } else {
+                            R.string.feed_empty_missing_boards_description_partial
+                        },
+                    ),
+                actionText = stringResource(R.string.feed_empty_missing_boards_action),
+                onActionClick = { onEvent(FeedUiEvent.MissingBoardsCleared) },
+                modifier = modifier,
+            )
+        }
+
         is FeedEmptyReason.NotCollected -> {
             CareerCompassEmptyState(
                 title = stringResource(R.string.feed_empty_not_collected_title),
