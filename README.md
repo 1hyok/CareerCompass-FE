@@ -86,7 +86,7 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 
 에이전트 하네스(`AGENTS.md`·`CLAUDE.md`·`.claude/`·`.codex/`)는 각자 쓰는 것이 달라 저장소에 올리지 않는다 — `.gitignore` 가 막는다. 저장소가 공유하는 규약은 아래 문서와 `.github/` 의 정책 스크립트다.
 
-- [`docs/convention/`](docs/convention) — presentation 패키지 구조, Composable 콜백 기본값, 리소스 네이밍
+- [`docs/convention/`](docs/convention) — presentation 패키지 구조, Composable 콜백 기본값, 리소스 네이밍, [색 대비(WCAG AA)](docs/convention/color-contrast.md)
 - [`docs/testing/screenshot.md`](docs/testing/screenshot.md) — Compose Preview 스크린샷 테스트
 - [`docs/release/`](docs/release) — 배포·Firebase WIF
 - [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마
