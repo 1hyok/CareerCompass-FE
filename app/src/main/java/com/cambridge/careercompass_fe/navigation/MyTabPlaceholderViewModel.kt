@@ -6,7 +6,9 @@ import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.common.reporting.recordStagedFailure
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
+import com.cambridge.core.domain.settings.AppSettingsRepository
 import com.cambridge.core.domain.usecase.auth.LogoutUseCase
+import com.cambridge.core.model.settings.ThemeMode
 import com.cambridge.core.model.user.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -33,6 +35,8 @@ internal data class MyTabPlaceholderUiState(
     val canEnrollBiometric: Boolean? = null,
     val isBiometricBusy: Boolean = false,
     val isEnrollPromptRequested: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.System,
+    val isThemeDialogVisible: Boolean = false,
     val isLogoutDialogVisible: Boolean = false,
     val isLoggingOut: Boolean = false,
     val sessionEnded: Boolean = false,
@@ -56,6 +60,14 @@ internal sealed interface MyTabPlaceholderEvent {
     data class BiometricToggled(
         val enabled: Boolean,
     ) : MyTabPlaceholderEvent
+
+    data object ThemeClicked : MyTabPlaceholderEvent
+
+    data class ThemeSelected(
+        val mode: ThemeMode,
+    ) : MyTabPlaceholderEvent
+
+    data object ThemeDismissed : MyTabPlaceholderEvent
 
     data object LogoutClicked : MyTabPlaceholderEvent
 
@@ -87,6 +99,7 @@ internal class MyTabPlaceholderViewModel
         userProfileRepository: UserProfileRepository,
         private val authRepository: AuthRepository,
         private val logout: LogoutUseCase,
+        private val appSettingsRepository: AppSettingsRepository,
         private val errorReporter: ErrorReporter,
     ) : ViewModel() {
         private val _state = MutableStateFlow(MyTabPlaceholderUiState())
@@ -106,11 +119,19 @@ internal class MyTabPlaceholderViewModel
                     _state.update { it.copy(isBiometricEnabled = enabled) }
                 }
             }
+            viewModelScope.launch {
+                appSettingsRepository.themeMode.collect { mode ->
+                    _state.update { it.copy(themeMode = mode) }
+                }
+            }
         }
 
         fun onEvent(event: MyTabPlaceholderEvent) {
             when (event) {
                 is MyTabPlaceholderEvent.BiometricToggled -> toggleBiometric(event.enabled)
+                MyTabPlaceholderEvent.ThemeClicked -> _state.update { it.copy(isThemeDialogVisible = true) }
+                MyTabPlaceholderEvent.ThemeDismissed -> _state.update { it.copy(isThemeDialogVisible = false) }
+                is MyTabPlaceholderEvent.ThemeSelected -> selectThemeMode(event.mode)
                 MyTabPlaceholderEvent.LogoutClicked -> _state.update { it.copy(isLogoutDialogVisible = true) }
                 MyTabPlaceholderEvent.LogoutDismissed -> _state.update { it.copy(isLogoutDialogVisible = false) }
                 MyTabPlaceholderEvent.LogoutConfirmed -> endSession()
@@ -180,6 +201,21 @@ internal class MyTabPlaceholderViewModel
                 }
         }
 
+        /**
+         * 고른 테마를 저장한다. 다이얼로그는 **저장을 기다리지 않고** 닫는다 — 화면은 저장소 흐름을 되비추므로
+         * 저장이 실패하면 값이 저절로 원래대로 남는다(지문 스위치와 같은 규칙).
+         */
+        private fun selectThemeMode(mode: ThemeMode) {
+            _state.update { it.copy(isThemeDialogVisible = false) }
+            if (mode == _state.value.themeMode) return
+            viewModelScope.launch {
+                runCatching { appSettingsRepository.setThemeMode(mode) }
+                    .onFailure { cause ->
+                        errorReporter.recordStagedFailure(stageKey = KEY_STAGE, stage = STAGE_THEME, throwable = cause)
+                    }
+            }
+        }
+
         /** 진행 중인 로그아웃이 있으면 무시한다 — 다이얼로그를 닫아도 버튼 연타가 요청을 겹치게 하지 않는다. */
         private fun endSession() {
             if (logoutJob?.isActive == true) return
@@ -206,5 +242,6 @@ internal class MyTabPlaceholderViewModel
             const val KEY_STAGE = "app_stage"
             const val STAGE_LOGOUT = "logout"
             const val STAGE_BIOMETRIC = "biometric_toggle"
+            const val STAGE_THEME = "theme_mode"
         }
     }

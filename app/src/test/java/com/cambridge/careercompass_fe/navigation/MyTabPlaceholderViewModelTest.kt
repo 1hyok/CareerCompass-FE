@@ -1,9 +1,11 @@
 package com.cambridge.careercompass_fe.navigation
 
 import com.cambridge.core.common.reporting.ErrorReporter
+import com.cambridge.core.domain.testing.FakeAppSettingsRepository
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
 import com.cambridge.core.domain.usecase.auth.LogoutUseCase
+import com.cambridge.core.model.settings.ThemeMode
 import com.cambridge.core.model.user.UserProfile
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +37,7 @@ class MyTabPlaceholderViewModelTest {
     private val reporter = RecordingReporter()
     private val authRepository = FakeAuthRepository(loggedIn = true)
     private val userProfileRepository = FakeUserProfileRepository()
+    private val appSettingsRepository = FakeAppSettingsRepository()
 
     @Before
     fun setUp() {
@@ -52,6 +55,7 @@ class MyTabPlaceholderViewModelTest {
             authRepository = authRepository,
             logout = LogoutUseCase(authRepository),
             errorReporter = reporter,
+            appSettingsRepository = appSettingsRepository,
         )
 
     /** 기기가 지문을 등록할 수 있다고 화면이 알려 준 상태 — 실제 배선에서 스위치를 켤 수 있는 유일한 조건이다. */
@@ -329,5 +333,61 @@ class MyTabPlaceholderViewModelTest {
 
         assertEquals(0, authRepository.setBiometricEnabledCalls)
         assertFalse(viewModel.state.value.isBiometricBusy)
+    }
+
+    @Test
+    fun `저장된 테마를 그대로 되비춘다`() {
+        appSettingsRepository.themeModeState.value = ThemeMode.Dark
+
+        assertEquals(ThemeMode.Dark, viewModel().state.value.themeMode)
+    }
+
+    @Test
+    fun `테마를 고르면 저장하고 다이얼로그를 닫는다`() {
+        val viewModel = viewModel()
+        viewModel.onEvent(MyTabPlaceholderEvent.ThemeClicked)
+        assertTrue(viewModel.state.value.isThemeDialogVisible)
+
+        viewModel.onEvent(MyTabPlaceholderEvent.ThemeSelected(ThemeMode.Light))
+
+        assertFalse(viewModel.state.value.isThemeDialogVisible)
+        assertEquals(ThemeMode.Light, appSettingsRepository.themeModeState.value)
+        assertEquals(ThemeMode.Light, viewModel.state.value.themeMode)
+    }
+
+    @Test
+    fun `테마 다이얼로그를 닫기만 하면 값이 그대로다`() {
+        appSettingsRepository.themeModeState.value = ThemeMode.Dark
+        val viewModel = viewModel()
+
+        viewModel.onEvent(MyTabPlaceholderEvent.ThemeClicked)
+        viewModel.onEvent(MyTabPlaceholderEvent.ThemeDismissed)
+
+        assertFalse(viewModel.state.value.isThemeDialogVisible)
+        assertEquals(ThemeMode.Dark, appSettingsRepository.themeModeState.value)
+    }
+
+    @Test
+    fun `저장이 실패해도 화면은 저장소 값을 따른다`() {
+        // 화면이 낙관적으로 갱신하지 않으므로, 실패하면 아무것도 되돌리지 않아도 원래 값이 남는다.
+        val failing =
+            object : com.cambridge.core.domain.settings.AppSettingsRepository {
+                override val themeMode = appSettingsRepository.themeMode
+
+                override suspend fun setThemeMode(mode: ThemeMode) = throw IllegalStateException("저장 실패")
+            }
+        val viewModel =
+            MyTabPlaceholderViewModel(
+                userProfileRepository = userProfileRepository,
+                authRepository = authRepository,
+                logout = LogoutUseCase(authRepository),
+                errorReporter = reporter,
+                appSettingsRepository = failing,
+            )
+
+        viewModel.onEvent(MyTabPlaceholderEvent.ThemeSelected(ThemeMode.Dark))
+
+        assertEquals(ThemeMode.System, viewModel.state.value.themeMode)
+        assertTrue(reporter.recorded.any { it.values.contains("theme_mode") })
     }
 }
