@@ -120,7 +120,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 
 ### 2.3 빈 결과 (사유별)
 
-빈 결과의 사유를 가르는 판정은 피드 홈에만 있다([`FeedViewState.toEmptyReason`](../../feature/feed/presentation/src/main/kotlin/com/cambridge/feature/feed/presentation/feed/FeedStateMapping.kt), 사유 정의는 [`FeedEmptyReason`](../../feature/feed/presentation/src/main/kotlin/com/cambridge/feature/feed/presentation/FeedContract.kt)). 나머지 화면은 빈 결과가 한 가지 뜻뿐이라 사유를 가를 것이 없다.
+빈 결과의 사유를 가르는 판정은 피드 홈에만 있다([`FeedViewState.toEmptyReason`](../../feature/feed/presentation/src/main/kotlin/com/careercompass/feature/feed/presentation/feed/FeedStateMapping.kt), 사유 정의는 [`FeedEmptyReason`](../../feature/feed/presentation/src/main/kotlin/com/careercompass/feature/feed/presentation/FeedContract.kt)). 나머지 화면은 빈 결과가 한 가지 뜻뿐이라 사유를 가를 것이 없다.
 
 #### 피드 홈 — 우선순위와 사유별 문구
 
@@ -162,7 +162,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 
 ### 2.5 서버 점검 (503 `LLM_UNAVAILABLE`)
 
-판정은 `CoreDataFailure.ServiceUnavailable` → `FeedFailureReason.Maintenance`([`FeedFailureReason.kt`](../../feature/feed/presentation/src/main/kotlin/com/cambridge/feature/feed/presentation/shared/model/FeedFailureReason.kt)). 세 화면이 [`FeedMaintenanceState`](../../feature/feed/presentation/src/main/kotlin/com/cambridge/feature/feed/presentation/shared/component/FeedMaintenanceState.kt) 하나를 공유해 **같은 사실을 같은 문구로** 말한다.
+판정은 `CoreDataFailure.ServiceUnavailable` → `FeedFailureReason.Maintenance`([`FeedFailureReason.kt`](../../feature/feed/presentation/src/main/kotlin/com/careercompass/feature/feed/presentation/shared/model/FeedFailureReason.kt)). 세 화면이 [`FeedMaintenanceState`](../../feature/feed/presentation/src/main/kotlin/com/careercompass/feature/feed/presentation/shared/component/FeedMaintenanceState.kt) 하나를 공유해 **같은 사실을 같은 문구로** 말한다.
 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|
@@ -270,7 +270,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 
 ### 무엇을 저장하나
 
-[`FeedSnapshot`](../../feature/feed/domain/src/main/kotlin/com/cambridge/feature/feed/domain/model/FeedSnapshot.kt) — **마지막으로 성공한 기본 조건 첫 페이지의 사본 하나**뿐이다.
+[`FeedSnapshot`](../../feature/feed/domain/src/main/kotlin/com/careercompass/feature/feed/domain/model/FeedSnapshot.kt) — **마지막으로 성공한 기본 조건 첫 페이지의 사본 하나**뿐이다.
 
 - **기본 조건일 때만 저장한다**(`FeedQuery.isDefault`). 조건이 걸린 결과를 저장하면 오프라인에서 「전체」로 보이는 목록이 사실은 부분집합이 되어, 마감 임박 공고가 빠진 줄도 모른 채 읽게 된다.
 - **첫 페이지만**. 상한은 `FeedSnapshot.MAX_POSTINGS`(= `PostingQuery.DEFAULT_LIMIT`)이고 data 계층이 잘라 저장한다.

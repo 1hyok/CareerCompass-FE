@@ -5,8 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
-import com.cambridge.feature.feed.presentation.navigation.FeedNavActions
-import com.cambridge.feature.feed.presentation.navigation.FeedRoute
+import com.careercompass.feature.feed.presentation.navigation.FeedNavActions
+import com.careercompass.feature.feed.presentation.navigation.FeedRoute
 
 /**
  * 피드 그래프가 앱 셸에 요청하는 이동의 구현.

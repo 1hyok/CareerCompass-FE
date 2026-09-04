@@ -24,12 +24,12 @@ import androidx.navigation.toRoute
 import com.cambridge.careercompass_fe.R
 import com.cambridge.careercompass_fe.session.AppStartDestination
 import com.cambridge.careercompass_fe.session.SessionEndCause
-import com.cambridge.feature.feed.presentation.navigation.FeedGraphRoute
-import com.cambridge.feature.feed.presentation.navigation.FeedRoute
-import com.cambridge.feature.feed.presentation.navigation.feedNavGraph
 import com.careercompass.core.ui.component.CareerCompassBottomBar
 import com.careercompass.core.ui.component.CareerCompassBottomTab
 import com.careercompass.core.ui.theme.CareerCompassTheme
+import com.careercompass.feature.feed.presentation.navigation.FeedGraphRoute
+import com.careercompass.feature.feed.presentation.navigation.FeedRoute
+import com.careercompass.feature.feed.presentation.navigation.feedNavGraph
 import com.careercompass.feature.onboarding.presentation.navigation.OnboardingGraphRoute
 import com.careercompass.feature.onboarding.presentation.navigation.OnboardingRoute
 import com.careercompass.feature.onboarding.presentation.navigation.onboardingNavGraph

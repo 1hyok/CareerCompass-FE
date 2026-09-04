@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.feature.feed.data"
+    namespace = "com.careercompass.feature.feed.data"
     testOptions.unitTests.isReturnDefaultValues = true
 }
 
