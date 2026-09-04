@@ -63,7 +63,7 @@ public sealed interface FeedDeadlineFilter {
  * `data class` 가 아닌 이유 — [searchQuery] 를 **앞뒤 공백을 지운 값으로 저장**해야 하는데 data class 는
  * 생성자 인자를 가공해 저장할 수 없다. 대신 [copy]·[equals]·[hashCode]·[toString] 을 직접 제공한다.
  *
- * @property minScore 적합도 하한. 스펙의 선택지(60·70·80)만 허용한다 — null 은 「전체」.
+ * @property minScore 적합도 하한. [ALLOWED_MIN_SCORES] 의 값만 허용한다 — null 은 「전체」.
  * @property searchQuery 제목 검색어(앞뒤 공백 제거). 빈 문자열이면 검색하지 않는다.
  */
 public class FeedQuery(
@@ -192,8 +192,26 @@ public class FeedQuery(
             "unreadOnly=$unreadOnly, sort=$sort, searchQuery='$searchQuery')"
 
     public companion object {
-        /** 기능 스펙 F2-3 「적합도 점수」 필터 선택지. */
-        public val ALLOWED_MIN_SCORES: Set<Int> = setOf(60, 70, 80)
+        /**
+         * 「적합도 하한」 필터의 선택지 — **F3-2 의 레이블 경계 그대로**(이슈 #200).
+         *
+         * 기능 스펙 F2-3 은 60·70·80 을 적었지만 **70 은 레이블 경계가 아니다.** F3-2 는 80↑「매우 적합」·
+         * 60~79「적합」·40~59「보통」·39↓「낮음」으로 가르므로, 「70점 이상」으로 거르면 「적합」 구간이
+         * 한가운데서 잘린 목록이 나온다 — 카드에는 여전히 「적합」이라고 적히고, 왜 어떤 「적합」은 빠졌는지
+         * 화면이 설명할 말을 갖지 못한다. 사용자가 **고른 값**과 화면이 **부르는 이름**이 같은 경계를 쓰게
+         * 하려고 70 을 뺀다. 이미 #141 에서 4축 충족 경계를 F3-2 의 60 으로 모은 것과 같은 판정이다.
+         *
+         * **명세 F2-3 에서 벗어나는 선택이다.** 이탈의 근거와 명세 쪽 수정 요청은
+         * `docs/spec/suitability-score-boundary.md` 에 적었다.
+         *
+         * 40(「보통」 경계)을 넣지 않은 이유 — 「39점 이하만 빼는」 필터라 걸어도 거의 아무것도 걸러지지
+         * 않는다. 없는 선택지를 늘리는 대신 스펙이 준 개수(3개: 전체·60·80)를 지킨다.
+         *
+         * 이 집합이 줄었으므로 **저장된 옛 조건에 70 이 남아 있을 수 있다.** 되읽는 자리
+         * (presentation 의 `FeedInputDraft.restoredMinScore`)가 이 집합으로 거르고, 통과 못 한 값은
+         * 「전체」로 접는다 — 여기 `require` 가 살아난 프로세스를 죽이지 않게.
+         */
+        public val ALLOWED_MIN_SCORES: Set<Int> = setOf(60, 80)
 
         private const val WEEK_DAYS = 7L
         private const val MONTH_DAYS = 30L

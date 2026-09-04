@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -38,7 +39,10 @@ public class MainActivity : FragmentActivity() {
         splashScreen.setKeepOnScreenCondition { viewModel.launch.value == null }
 
         setContent {
-            CareerCompassTheme {
+            // 테마는 화면 안이 아니라 여기서 정한다 — 로그인 전 화면까지 같은 값을 쓰고, 「시스템 따름」의 뜻은
+            // ThemeMode 가 갖는다(#210).
+            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+            CareerCompassTheme(darkTheme = themeMode.resolveDark(isSystemInDarkTheme())) {
                 val launch by viewModel.launch.collectAsStateWithLifecycle()
                 val pendingDeepLink by viewModel.pendingDeepLink.collectAsStateWithLifecycle()
                 launch?.let { current ->

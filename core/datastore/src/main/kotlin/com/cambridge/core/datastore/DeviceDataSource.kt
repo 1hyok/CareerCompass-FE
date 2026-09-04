@@ -30,6 +30,10 @@ import javax.inject.Singleton
  * 등록 제안을 「나중에」로 넘긴 기록도 같은 이유로 사용자 id 로 남긴다 — 다만 이쪽은 **집합**이다. 등록은 기기당
  * 하나지만 거절은 여러 계정이 각자 할 수 있고, 한 칸이면 다음 계정의 거절이 앞 계정의 거절을 지워 이미 넘긴
  * 사용자에게 다시 묻게 된다.
+ *
+ * 화면 테마도 여기 있다. 계정이 아니라 **이 기기에서 보는 방식**이라 로그아웃해도 남아야 하고, 로그인 전
+ * (스플래시·로그인 화면)에도 이미 적용돼 있어야 하기 때문이다. 값의 뜻은 `core:model` 의 `ThemeMode` 가 갖고
+ * 여기서는 문자열로만 다룬다 — datastore 는 모델을 모른다.
  */
 @Singleton
 public class DeviceDataSource
@@ -43,6 +47,8 @@ public class DeviceDataSource
 
             // Preferences 에 Long 집합 타입이 없어 문자열로 담는다. 읽을 때 파싱 실패한 항목은 버린다.
             val BIOMETRIC_ENROLL_DECLINED_USER_IDS = stringSetPreferencesKey("biometric_enroll_declined_user_ids")
+
+            val THEME_MODE = stringPreferencesKey("theme_mode")
         }
 
         private val preferencesFlow: Flow<Preferences> =
@@ -52,6 +58,9 @@ public class DeviceDataSource
 
         /** 이 기기에서 지문 로그인을 등록한 사용자 id. 등록한 적 없거나 껐으면 null. */
         public val biometricUserId: Flow<Long?> = preferencesFlow.map { prefs -> prefs[Keys.BIOMETRIC_USER_ID] }
+
+        /** 이 기기에서 고른 화면 테마의 저장 문자열. 고른 적 없으면 null — 뜻(기본값)은 읽는 쪽이 정한다. */
+        public val themeMode: Flow<String?> = preferencesFlow.map { prefs -> prefs[Keys.THEME_MODE] }
 
         /** 이 기기에서 지문 등록 제안을 「나중에」로 넘긴 사용자 id 들. */
         public val biometricEnrollDeclinedUserIds: Flow<Set<Long>> =
@@ -84,6 +93,11 @@ public class DeviceDataSource
         /** 지문 로그인을 끈다 — 등록 사용자 id 를 지운다. */
         public suspend fun disableBiometric() {
             dataStore.edit { prefs -> prefs.remove(Keys.BIOMETRIC_USER_ID) }
+        }
+
+        /** 화면 테마를 저장한다. */
+        public suspend fun setThemeMode(value: String) {
+            dataStore.edit { prefs -> prefs[Keys.THEME_MODE] = value }
         }
 
         /** [userId] 에게는 지문 등록을 다시 제안하지 않는다고 남긴다. 이미 남아 있으면 그대로다. */

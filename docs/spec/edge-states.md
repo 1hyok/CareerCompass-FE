@@ -76,17 +76,17 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|
 | 피드 홈 | `CareerCompassNetworkErrorState` | `core_ui_state_network_title` = 연결할 수 없어요 / `core_ui_state_network_description` = 인터넷 연결을 확인하고 다시 시도해 주세요 | 「다시 시도」 → `FeedViewModel.retry()`(**지금 조건 그대로** 재조회) · 「오프라인 모드로 보기」 → `showOfflineSnapshot()` (**스냅샷이 있을 때만 그린다**) · 조건이 걸려 있으면 하단에 「조건 지우고 다시 보기」가 따로 붙는다(§4) |
-| 공고 상세 | `PostingDetailError` — 부품이 아니라 `PostingDetailScreen.kt` 가 손으로 그린 `Column` | `feed_posting_detail_error_network` = 공고를 불러오지 못했어요. 네트워크 연결을 확인해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) → `PostingDetailEvent.RetryClicked` |
+| 공고 상세 | `PostingDetailError` — 부품이 아니라 `PostingDetailScreen.kt` 가 손으로 그린 `Column` | 실패 표의 `NoConnection` 행(#204) = 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) → `PostingDetailEvent.RetryClicked` |
 | 원문 보기 | `CareerCompassNetworkErrorState` | 부품 고정 문구 | 「다시 시도」 → `PostingRawViewModel.retry()` · 오프라인 모드 **없음**(원문은 스냅샷을 저장하지 않는다) |
 | 내 게시판 | `CareerCompassNetworkErrorState` | 부품 고정 문구 | 「다시 시도」 → `BoardListViewModel.retryLoad()` · 오프라인 모드 **없음**(목록은 스냅샷을 저장하지 않는다) · 상단 바의 뒤로가기는 남는다 |
-| 게시판 등록 — 감지 중 끊김 | 스낵바 | `feed_board_network_unavailable` = 네트워크에 연결할 수 없어요. 연결을 확인해 주세요 | 없음 — 감지 상태는 `Idle` 로 되돌아가고 「구조 분석하기」가 다시 눌린다 |
+| 게시판 등록 — 감지 중 끊김 | 스낵바 | 실패 표의 `NoConnection` 행(#204) = 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요 | 없음 — 감지 상태는 `Idle` 로 되돌아가고 「구조 분석하기」가 다시 눌린다 |
 | 게시판 등록 — 감지 타임아웃 | `BoardDetectionTimedOutBox`(경고 톤 상자) | `feed_board_detect_timeout_title` = 분석이 오래 걸려 멈췄어요 / `feed_board_detect_timeout_description` = 사이트 응답이 늦어 기다리기를 그만뒀어요. 지원되지 않는 게시판이라는 뜻은 아니니 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_board_register_retry`) → `DetectClicked` |
 | 로그인 | `OnboardingErrorCard`(하단 인라인 배너) | `onboarding_login_failure_network` = 네트워크 연결을 확인한 뒤 다시 시도해 주세요 | 「닫기」만 — 재시도는 소셜 로그인 버튼이 그대로 살아 있어 그것이 대신한다 |
 | 지문 로그인 | `OnboardingErrorCard` | 지문 실패 사유별(`onboarding_biometric_failure_*`) | 「닫기」 · 「다른 방법으로 로그인」은 상시 |
 | 온보딩 Step 1~4 | `OnboardingFlowFailureHost` 의 하단 배너 | `onboarding_failure_network` = 네트워크 연결을 확인한 뒤 다시 시도해 주세요 | 「닫기」만 — 재시도는 단계 하단의 「다음」이 대신한다 |
 | 온보딩 문서 업로드 카드 | 카드 상태 줄 | `onboarding_upload_failed_network` = 연결 실패 (`onboarding_step4_document_failed_retry` = `%1$s · 재시도` 틀에 끼워진다) | 「재시도」 → 그 문서만 다시 올린다 |
 
-**같은 사실을 네 가지로 말하고 있다.** 「연결할 수 없어요 / 인터넷 연결을 확인하고 다시 시도해 주세요」(부품) · 「공고를 불러오지 못했어요. 네트워크 연결을 확인해 주세요」(상세) · 「네트워크 연결을 확인한 뒤 다시 시도해 주세요」(온보딩) · 「네트워크에 연결할 수 없어요. 연결을 확인해 주세요」(게시판 등록). 화면 한 장을 쓰는 자리는 부품 문구로 통일돼 있고, **인라인 한 줄을 쓰는 자리마다 문구가 갈렸다.** 통일 여부는 #204 가 정한다.
+**같은 사실을 네 가지로 말하고 있었다.** 「연결할 수 없어요 / 인터넷 연결을 확인하고 다시 시도해 주세요」(부품) · 「공고를 불러오지 못했어요. 네트워크 연결을 확인해 주세요」(상세) · 「네트워크 연결을 확인한 뒤 다시 시도해 주세요」(온보딩) · 「네트워크에 연결할 수 없어요. 연결을 확인해 주세요」(게시판 등록). #204 가 [실패 표](error-copy.md)로 통일했다 — 부품·상세·게시판 등록이 모두 `NoConnection` 행 하나를 읽는다. 온보딩은 아직 옮기지 않았다.
 
 ### 2.2 로딩 · 분석 중
 
@@ -162,7 +162,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|
-| 피드 홈 | `FeedMaintenanceState` | `feed_maintenance_title` = 서비스가 잠시 점검 중이에요 / `feed_maintenance_description` = AI 분석 서버를 손보고 있어요.(줄바꿈)조금 뒤에 다시 열어 주세요 / 배지 `feed_maintenance_status` = 점검 진행 중 | 「새로고침」 → `retry()` · 「오프라인 모드로 보기」 → `showOfflineSnapshot()`(**스냅샷이 있을 때만**) · 조건이 걸려 있으면 「조건 지우고 다시 보기」(§4) |
+| 피드 홈 | `FeedMaintenanceState` | 실패 표의 `ServiceUnavailable` 행(#204) — `core_ui_failure_service_unavailable_title` = 서비스가 잠시 점검 중이에요 / `core_ui_failure_service_unavailable_description` = AI 분석 서버를 손보고 있어요.(줄바꿈)조금 뒤에 다시 열어 주세요 / 배지는 피드 몫으로 남는다(`feed_maintenance_status` = 점검 진행 중) | 「새로고침」 → `retry()` · 「오프라인 모드로 보기」 → `showOfflineSnapshot()`(**스냅샷이 있을 때만**) · 조건이 걸려 있으면 「조건 지우고 다시 보기」(§4) |
 | 공고 상세 | `FeedMaintenanceState` | 같음 | 「새로고침」 → `RetryClicked` · 오프라인 모드 **없음** |
 | 내 게시판 | `FeedMaintenanceState` | 같음 | 「새로고침」 → `retryLoad()` · 오프라인 모드 **없음** |
 | 원문 보기 | ⚠️ **가르지 않는다**(#212) — `isNetworkUnavailable` 만 보고 나머지를 전부 일반 실패로 접는다 | `feed_posting_raw_error_title` = 원문을 불러오지 못했어요 / `feed_posting_raw_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」 → 같은 요청을 되풀이한다 |
@@ -194,14 +194,14 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|
-| 피드 홈 | `CareerCompassEmptyState` | `feed_error_title` = 공고를 불러오지 못했어요 / `feed_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_error_retry`) → `retry()` · 조건이 걸려 있으면 「조건 지우고 다시 보기」도 붙는다(§4 — Generic 도 조건 탓일 여지가 있다) |
-| 내 게시판 | `CareerCompassEmptyState` | `feed_board_list_error_title` = 게시판을 불러오지 못했어요 / `feed_board_list_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_board_list_error_retry`) → `retryLoad()` |
-| 공고 상세 | `PostingDetailError`(손으로 그림) | `feed_posting_detail_error_generic` = 공고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) |
+| 피드 홈 | `CareerCompassEmptyState` | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_error_retry`) → `retry()` · 조건이 걸려 있으면 「조건 지우고 다시 보기」도 붙는다(§4 — Generic 도 조건 탓일 여지가 있다) |
+| 내 게시판 | `CareerCompassEmptyState` | 실패 표의 `Unexpected`×`Board` 행(#204) = 게시판을 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`core_ui_state_retry`) → `retryLoad()` |
+| 공고 상세 | `PostingDetailError`(손으로 그림) | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) |
 | 원문 보기 | `CareerCompassEmptyState` | `feed_posting_raw_error_title` = 원문을 불러오지 못했어요 / `feed_posting_raw_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_raw_error_retry`) |
 | 온보딩 Step 1~4 | 하단 배너 | 사유가 좁혀지면 그 문구, 아니면 `onboarding_failure_unknown` = 문제가 생겼어요. 잠시 후 다시 시도해 주세요 | 「닫기」 |
 | 게시판 등록 | 스낵바 | `feed_board_register_detect_failed` / `feed_board_register_failed` | 없음 |
 
-> **#204 에서 정리 중** — API_SPEC §9 의 에러 코드 14종은 이미 `CoreDataFailure` 로 전부 번역돼 있다(`InvalidInput`·`Forbidden`·`NotFound`·`DuplicateBoard`·`LimitExceeded`·`ProfileIncomplete`·`ParsingFailed`·`BoardBlocked`·`RateLimited`·`ServerError` 등). 그런데 화면까지 오면 위 세 사유를 뺀 **나머지가 전부 이 한 칸으로 뭉친다** — 「지우러 가면 되는 상한 초과」와 「재시도해도 소용없는 권한 없음」이 같은 「잠시 후 다시 시도해 주세요」가 된다. 이 표의 Generic 행은 #204 가 코드별 문구를 확정하면 여러 행으로 갈린다.
+> **#204 에서 정리됐다** — API_SPEC §9 의 에러 코드 14종이 [`docs/spec/error-copy.md`](error-copy.md) 의 표로 모였다. 코드마다 제목·본문과 「사용자가 할 수 있는 일」이 정해져 있고, **재시도해도 답이 갈리지 않는 실패에는 재시도가 붙지 않는다** — 상한 초과는 「정리하러 가기」로, 프로필 미완성은 「프로필 입력하기」로 갈린다. 화면이 `FailureSurface` 를 넘기면 표가 명사까지 채운다(공고 / 게시판). 여기 남은 Generic 행은 **표의 `Unexpected` 행**이다 — `INTERNAL_ERROR` 와 사유를 확인하지 못한 실패만 들어온다.
 
 ---
 
@@ -222,7 +222,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 세션 만료 | **할 수 있다**(다시 로그인) | 로그인 화면에 닿아야 할 수 있는 일이 된다 | 피드·상세·게시판 ✅ / **온보딩 ❌ #211** |
 | 알림 권한 꺼짐 | **할 수 있다**(설정에서 켜기) | 권한은 사용자만 켤 수 있다 | **상태 자체가 없음 ❌ #197** |
 | 감지 타임아웃 | **할 수 있다** | 사이트가 느렸을 뿐이라 다시 시도하면 된다 | 「다시 시도」 ✅ |
-| 감지 실패(로그인 필요·SPA·차단) | **기다릴 수도 없다** — 되돌릴 길이 사용자 손에 없다 | 재시도해도 같은 답이 온다 | 재시도 버튼이 붙어 있다 ⚠️ (#204 가 「재시도해도 소용없는 실패」 규칙을 정한다) |
+| 감지 실패(로그인 필요·SPA·차단) | **기다릴 수도 없다** — 되돌릴 길이 사용자 손에 없다 | 재시도해도 같은 답이 온다 | 재시도 버튼 없음 ✅ (#204 에서 뗐다. URL 입력란과 「구조 분석하기」가 위에 남아 주소를 고칠 길은 열려 있다) |
 | 로딩 · 분석 중 | **기다린다** | 진행 중인 요청을 사용자가 앞당길 수 없다 | 버튼 없음 ✅ |
 
 ### 빈 칸으로 드러난 결함
@@ -230,7 +230,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 1. **온보딩에서 세션이 만료되면 나갈 길이 없다** — 배너가 「다시 로그인해 주세요」라고 말하는데 로그인으로 가는 길이 화면에 없다. #144 와 같은 유형(할 수 있는 일이 있다고 말해 놓고 그 길을 안 준다)이다. → **#211**
 2. **원문 보기와 게시판 등록이 서버 점검을 가르지 않는다** — #101 이 세 화면만 고쳤고 나머지 두 자리는 남았다. 같은 503 에 앱이 화면마다 다른 말을 한다. → **#212**
 3. **알림 권한 꺼짐 상태가 통째로 없다** — Figma 09 의 다섯 장 중 한 장이 앱에 존재하지 않고, 문구와 부품만 미리 만들어 놓고 방치돼 있다. → **#197 에서 정리 중**(그 이슈의 완료 조건에 `CareerCompassPermissionDeniedState` 를 쓰는 자리가 명시돼 있다). 새 이슈를 내지 않는다.
-4. **재시도해도 소용없는 실패에 재시도 버튼이 붙어 있다**(게시판 감지의 로그인 필요·SPA·차단) — #204 의 완료 조건에 이미 들어 있어 따로 이슈를 내지 않는다.
+4. ~~**재시도해도 소용없는 실패에 재시도 버튼이 붙어 있다**(게시판 감지의 로그인 필요·SPA·차단)~~ — **#204 에서 고쳤다.** 「목록 페이지 주소인지 확인해 주세요」(`Failed`)만 재시도를 남긴다 — 거기서는 주소를 고치면 답이 실제로 갈린다.
 
 ---
 

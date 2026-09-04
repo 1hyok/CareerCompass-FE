@@ -4,9 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import com.cambridge.careercompass_fe.navigation.AppDeepLink
 import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.error.CoreDataFailure
+import com.cambridge.core.domain.testing.FakeAppSettingsRepository
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakeUserProfileRepository
 import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
+import com.cambridge.core.model.settings.ThemeMode
 import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.network.model.ApiException
 import kotlinx.coroutines.CompletableDeferred
@@ -81,12 +83,14 @@ class MainViewModelTest {
         authRepository: FakeAuthRepository,
         userProfileRepository: FakeUserProfileRepository,
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
+        appSettingsRepository: FakeAppSettingsRepository = FakeAppSettingsRepository(),
     ) = MainViewModel(
-        authRepository,
-        userProfileRepository,
-        ResolveSessionEntryUseCase(authRepository, userProfileRepository),
-        reporter,
-        savedStateHandle,
+        authRepository = authRepository,
+        userProfileRepository = userProfileRepository,
+        resolveSessionEntry = ResolveSessionEntryUseCase(authRepository, userProfileRepository),
+        appSettingsRepository = appSettingsRepository,
+        errorReporter = reporter,
+        savedStateHandle = savedStateHandle,
     )
 
     @Test
@@ -495,5 +499,35 @@ class MainViewModelTest {
         assertTrue(notified.sessionExpiryNotice)
         assertEquals(started.revision, notified.revision)
         assertEquals(AppStartDestination.BiometricLogin, notified.destination)
+    }
+
+    @Test
+    fun `저장된 테마를 시작부터 들고 있는다`() {
+        // 첫 컴포지션에서 이미 값이 있어야 반대 테마가 한 프레임 스쳤다 바뀌지 않는다.
+        val settings = FakeAppSettingsRepository(initialThemeMode = ThemeMode.Dark)
+
+        val viewModel =
+            mainViewModel(
+                FakeAuthRepository(loggedIn = false),
+                FakeUserProfileRepository.strict(),
+                appSettingsRepository = settings,
+            )
+
+        assertEquals(ThemeMode.Dark, viewModel.themeMode.value)
+    }
+
+    @Test
+    fun `테마가 바뀌면 셸이 따라간다`() {
+        val settings = FakeAppSettingsRepository()
+        val viewModel =
+            mainViewModel(
+                FakeAuthRepository(loggedIn = false),
+                FakeUserProfileRepository.strict(),
+                appSettingsRepository = settings,
+            )
+
+        settings.themeModeState.value = ThemeMode.Light
+
+        assertEquals(ThemeMode.Light, viewModel.themeMode.value)
     }
 }

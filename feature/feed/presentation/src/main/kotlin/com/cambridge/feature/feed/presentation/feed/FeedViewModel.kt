@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.repository.UserProfileRepository
-import com.cambridge.core.model.board.Board
 import com.cambridge.core.model.posting.Posting
 import com.cambridge.feature.feed.domain.model.FeedPage
 import com.cambridge.feature.feed.domain.model.FeedQuery
@@ -136,6 +135,19 @@ public class FeedViewModel
                     onBoardRegisterRequested()
                 }
 
+                FeedUiEvent.MissingBoardsCleared -> {
+                    // 시트의 같은 손짓(FeedFilterEvent.MissingBoardsCleared)과 **한 규칙**을 쓴다
+                    // (`missingFrom`) — 목록에 없는 id 만 턴다. 다른 것은 시트가 열려 있지 않아 초안이
+                    // 아니라 조회 조건을 바로 고치고 다시 읽는다는 것뿐이다.
+                    //
+                    // 시트와 달리 **확인된 것만** 뺀다([FeedViewState.hasDeletedBoardFilter]) — 시트의 태그는
+                    // 「확인 못 한 게시판」도 사용자가 보고 누르는 것이지만, 여기 버튼은 「지워졌어요」라고
+                    // 말한 화면에만 있다. 목록을 못 받은 채로 빼면 화면이 하지 않은 말을 근거로 조건을 지운다.
+                    val current = _state.value
+                    if (!current.hasDeletedBoardFilter) return
+                    applyQuery(current.query.copy(boardIds = current.query.boardIds - current.missingBoardIds))
+                }
+
                 FeedUiEvent.LoadMoreSelected -> {
                     onLoadMore()
                 }
@@ -177,10 +189,10 @@ public class FeedViewModel
                 }
 
                 FeedFilterEvent.MissingBoardsCleared -> {
-                    // 목록에 없는 id 만 턴다. 여기서만 지우는 이유 — 목록을 못 받았을 수도 있어(#155)
-                    // 앱이 알아서 버리면 잠깐 끊긴 사이 사용자의 조건이 사라진다. 지우는 것은 이 손짓뿐이다.
-                    val knownIds = _state.value.boards.mapTo(mutableSetOf(), Board::id)
-                    updateDraft { draft -> draft.copy(boardIds = draft.boardIds.intersect(knownIds)) }
+                    // 목록에 없는 id 만 턴다. 사용자의 손짓으로만 지우는 이유 — 목록을 못 받았을 수도 있어
+                    // (#155) 앱이 알아서 버리면 잠깐 끊긴 사이 사용자의 조건이 사라진다.
+                    val boards = _state.value.boards
+                    updateDraft { draft -> draft.copy(boardIds = draft.boardIds - draft.boardIds.missingFrom(boards)) }
                 }
 
                 is FeedFilterEvent.DeadlineSelected -> {

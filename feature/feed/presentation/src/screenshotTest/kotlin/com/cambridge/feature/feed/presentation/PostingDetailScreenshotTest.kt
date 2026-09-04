@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.component.CareerCompassScoreLevel
+import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.postingdetail.PostingDetailContentState
 import com.cambridge.feature.feed.presentation.postingdetail.PostingDetailScreen
@@ -84,6 +84,26 @@ public fun PostingDetailBreakdownUnavailablePreview() {
                 ),
             ),
     )
+}
+
+/**
+ * 게이지 색 구간이 F3-2 레이블 구간과 같은지 눈으로 확인하는 자리 — 이슈 #200.
+ *
+ * 「매우 적합」(88점)·「적합」(64점)은 위쪽 preview 들이 이미 덮으므로, 새로 갈라진 아래 두 구간만 더한다.
+ * 색이 갈려도 배지 글자가 함께 갈리는지도 이 골든이 본다.
+ */
+@PreviewTest
+@Preview(name = "Posting detail score band neutral", widthDp = 360, heightDp = 772)
+@Composable
+public fun PostingDetailScoreBandNeutralPreview() {
+    PostingDetailPreviewSurface(state = scoreBandPreviewState(score = 48, levelLabel = "보통", level = SuitabilityLabel.Neutral))
+}
+
+@PreviewTest
+@Preview(name = "Posting detail score band low", widthDp = 360, heightDp = 772)
+@Composable
+public fun PostingDetailScoreBandLowPreview() {
+    PostingDetailPreviewSurface(state = scoreBandPreviewState(score = 24, levelLabel = "낮음", level = SuitabilityLabel.Low))
 }
 
 @PreviewTest
@@ -234,7 +254,7 @@ private fun employmentPostingPreview(): PostingDetailUiModel =
                     // 총점은 축 가중합 그대로다: 95*.4 + 88*.3 + 78*.2 + 50*.1 = 85.
                     score = 85,
                     levelLabel = "매우 적합",
-                    level = CareerCompassScoreLevel.High,
+                    level = SuitabilityLabel.VerySuitable,
                     breakdown =
                         listOf(
                             SuitabilityAxisUiModel(label = "분야 유사도", score = 95, weightLabel = "40%"),
@@ -290,7 +310,7 @@ private fun contestPostingPreview(): PostingDetailUiModel =
                 SuitabilityUiModel(
                     score = 64,
                     levelLabel = "적합",
-                    level = CareerCompassScoreLevel.Mid,
+                    level = SuitabilityLabel.Suitable,
                     breakdown =
                         listOf(
                             SuitabilityAxisUiModel(label = "분야 유사도", score = 72, weightLabel = "40%"),
@@ -325,3 +345,22 @@ private fun contestPostingPreview(): PostingDetailUiModel =
             ),
         canCreateDraft = false,
     )
+
+private fun scoreBandPreviewState(
+    score: Int,
+    levelLabel: String,
+    level: SuitabilityLabel,
+): PostingDetailUiState {
+    val posting = contestPostingPreview()
+    val ready = posting.suitability as PostingSuitabilityState.Ready
+    return PostingDetailUiState(
+        PostingDetailContentState.Loaded(
+            posting.copy(
+                suitability =
+                    PostingSuitabilityState.Ready(
+                        ready.suitability.copy(score = score, levelLabel = levelLabel, level = level),
+                    ),
+            ),
+        ),
+    )
+}

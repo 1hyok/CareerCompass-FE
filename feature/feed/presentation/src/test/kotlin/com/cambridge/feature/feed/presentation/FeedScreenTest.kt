@@ -93,6 +93,53 @@ class FeedScreenTest {
         }
     }
 
+    /**
+     * 이슈 #206 — 필터 시트를 열어 보기 전에 원인과 손잡이가 화면에 있어야 한다.
+     *
+     * 그래서 행동이 「필터 열기」가 아니라 조건을 바로 빼는 [FeedUiEvent.MissingBoardsCleared] 다. 시트를
+     * 열어 주는 것으로 끝나면 태그를 찾아 누르고 「적용」까지 눌러야 해서, 열기 전에는 모른다는 문제가
+     * 그대로 남는다.
+     *
+     * 안내와 행동이 **함께** 보여야 하는데 기본 로볼렉트릭 화면(h470dp)에는 헤더까지 얹은 빈 상태가 다
+     * 들어가지 않는다 — 실제 기기에 가까운 크기로 잰다.
+     */
+    @Test
+    @Config(sdk = [34], qualifiers = "w360dp-h800dp")
+    fun emptyStateWithDeletedBoards_clearsThatConditionInsteadOfOpeningTheSheet() {
+        val events = mutableListOf<FeedUiEvent>()
+        composeRule.setFeedContent(
+            state = emptyState(FeedEmptyReason.MissingBoards(count = 2, isOnlyCondition = true)),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("고른 게시판 2개가 지워졌어요").assertIsDisplayed()
+        composeRule.onNodeWithText("조건에서 빼면 다른 공고가 보여요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("필터 초기화").assertCountEquals(0)
+        composeRule.onNodeWithText("사라진 게시판 조건 빼기").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(FeedUiEvent.MissingBoardsCleared), events)
+        }
+    }
+
+    /**
+     * 조건이 더 남아 있으면 빼도 여전히 0개일 수 있다 — 문구가 「빼면 보여요」라고 약속하지 않는다.
+     *
+     * 화면 크기를 키운 이유는 위 테스트와 같다.
+     */
+    @Test
+    @Config(sdk = [34], qualifiers = "w360dp-h800dp")
+    fun emptyStateWithDeletedBoardsAmongOtherConditions_doesNotPromiseResults() {
+        composeRule.setFeedContent(
+            state = emptyState(FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = false)),
+        )
+
+        composeRule.onNodeWithText("고른 게시판 1개가 지워졌어요").assertIsDisplayed()
+        composeRule.onNodeWithText("이 조건을 뺀 뒤에도 비면 남은 조건을 풀어 보세요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("조건에서 빼면 다른 공고가 보여요").assertCountEquals(0)
+        composeRule.onNodeWithText("사라진 게시판 조건 빼기").assertIsDisplayed()
+    }
+
     @Test
     fun emptyStateBeforeFirstCollection_saysWhenPostingsArriveAndOffersNoAction() {
         composeRule.setFeedContent(

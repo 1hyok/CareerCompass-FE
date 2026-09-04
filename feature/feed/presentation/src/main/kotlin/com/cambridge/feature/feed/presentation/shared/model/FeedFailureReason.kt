@@ -1,6 +1,7 @@
 package com.cambridge.feature.feed.presentation.shared.model
 
 import com.cambridge.core.domain.error.CoreDataFailure
+import com.cambridge.core.ui.failure.FailureKind
 
 /**
  * 실패 화면이 갈라 그려야 하는 사유. 사용자가 할 일이 다른 것만 가른다.
@@ -50,4 +51,23 @@ public val FeedFailureReason.isQueryAttributable: Boolean
             FeedFailureReason.Maintenance,
             FeedFailureReason.Generic,
             -> true
+        }
+
+/**
+ * 이 사유를 실패 표(`core:ui` 의 `FailureDisplay`)의 어느 행으로 읽을지 — **문구의 정본은 표 하나다**(#204).
+ *
+ * 사유를 지우고 표로 갈아치우지 않았다. 이 셋은 「사용자가 할 일이 다르다」로 갈라 놓은 판정이고
+ * ([isQueryAttributable] 의 #144, 점검 전용 화면의 #101), 표는 그 갈래마다 **무슨 문장을 띄울지**만
+ * 정한다. 판정과 문구가 한 몸이었다면 문구를 고치려다 판정이 함께 흔들린다.
+ *
+ * [FeedFailureReason.NetworkUnavailable] 이 [FailureKind.NoConnection] 으로만 가는 것은 의도다 —
+ * 「우리가 먼저 끊었다」(타임아웃)를 갈라 안내하는 화면은 게시판 구조 감지 하나뿐이고, 그 화면은
+ * 이 사유를 거치지 않고 `CoreDataFailure.NetworkUnavailable.isTimeout` 을 직접 본다(#134).
+ */
+public val FeedFailureReason.failureKind: FailureKind
+    get() =
+        when (this) {
+            FeedFailureReason.NetworkUnavailable -> FailureKind.NoConnection
+            FeedFailureReason.Maintenance -> FailureKind.ServiceUnavailable
+            FeedFailureReason.Generic -> FailureKind.Unexpected
         }

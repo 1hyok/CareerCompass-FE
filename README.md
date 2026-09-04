@@ -27,7 +27,7 @@ Android 명령 전에는 `local.properties` 의 `sdk.dir` 로 SDK 위치를 제�
 
 | 범위 | 현재 구현 | 아직 구현하지 않은 경계 |
 | --- | --- | --- |
-| [`:core:ui`](core/ui) | 색상(라이트·다크 테마, 시스템 설정 연동)·타이포그래피·간격·모양 테마와 버튼, 텍스트 필드, 배지, 태그, 적합도 칩, 하단 탭, 앱 바, 카드, 엣지 상태 화면 5종. 단위 테스트(팔레트 대비 검사 포함)와 Compose Preview screenshot baseline(라이트·다크) 포함 | 앱 내 테마 수동 전환 |
+| [`:core:ui`](core/ui) | 색상(라이트·다크 테마, 시스템 설정 연동)·타이포그래피·간격·모양 테마와 버튼, 텍스트 필드, 배지, 태그, 적합도 칩, 하단 탭, 앱 바, 카드, 엣지 상태 화면 5종. 단위 테스트(팔레트 대비 검사 포함)와 Compose Preview screenshot baseline(라이트·다크) 포함. 화면 테마는 시스템 설정을 따르거나 밝게·어둡게로 직접 고를 수 있고(마이 탭), 고른 값은 기기 수명으로 남는다 | — |
 | `core` 데이터 계층 ([`common`](core/common) · [`datastore`](core/datastore) · [`model`](core/model) · [`domain`](core/domain) · [`network`](core/network) · [`data`](core/data)) | API_SPEC v0.1 §1~§5(인증·프로필·경험 카드·과거 지원서·게시판·공고)의 모델, 리포지토리 계약과 fake(`src/testFixtures`), Retrofit 서비스·DTO·토큰 재발급(single-flight)·401 재시도·`ApiException` 변환, DataStore 세션·기기 저장소, 리포지토리 구현과 Hilt 바인딩. `ApiWireContractSmokeTest` 가 전 엔드포인트의 route·body·응답 스키마를 검증 | 지원서 작성(§6)·For You·로드맵·Export(§7)·알림(§8) 계약, 실제 서버 주소 |
 | [`:feature:onboarding`](feature/onboarding) | 소셜 로그인(카카오·Google)·지문 로그인(계정 귀속·성공 뒤 세션 검증)·Step 1~4·완료 화면, 그래프 스코프 ViewModel(검증·저장·업로드·재개), 진행 상태 DataStore, 학교/졸업 피커·경험 빠른 추가·직접 입력 시트, 내비게이션 그래프. 단위/Compose 테스트와 screenshot baseline 포함 | 직무·학교 목록의 서버 연동(현재 로컬 상수), 경험 카드 편집(profile 모듈) |
 | [`:feature:feed`](feature/feed) | 메인 피드(검색·카테고리·필터 시트·정렬·커서 페이징·북마크), 공고 상세(적합도 분석·키워드·자격/우대·지원서 항목·유사 공고)·원문, 게시판 등록(구조 감지·미리보기)·목록·수정 시트(이름·유형·수집 주기 부분 수정), 오프라인 스냅샷(마지막 기본 조회 첫 페이지를 세션 저장소에 남겨 네트워크 단절 시 「오프라인 모드로 보기」로 제공), domain use case(마감·검색 클라이언트 규칙), 내비게이션 그래프 | 지원서 초안 작성 진입(editor 모듈), 알림 화면(notification 모듈), 상세 화면 분석 축 문구의 서버 연동 |
@@ -88,6 +88,7 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 
 - [`docs/convention/`](docs/convention) — presentation 패키지 구조, Composable 콜백 기본값, 리소스 네이밍, [색 대비(WCAG AA)](docs/convention/color-contrast.md)
 - [`docs/spec/edge-states.md`](docs/spec/edge-states.md) — 엣지 상태 화면별 확정표(오프라인·로딩·빈 결과·권한·점검·세션 만료). **새 화면을 만들기 전에 채울 칸이 마지막 절에 있다**
+- [`docs/spec/error-copy.md`](docs/spec/error-copy.md) — 서버 에러 코드 14종의 사용자 문구·행동·재시도 가능 여부
 - [`docs/testing/screenshot.md`](docs/testing/screenshot.md) — Compose Preview 스크린샷 테스트
 - [`docs/release/`](docs/release) — 배포·Firebase WIF
 - [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마

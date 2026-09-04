@@ -31,6 +31,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.model.experience.ExperienceType
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
@@ -325,8 +327,8 @@ private fun TechTagField(
         supportingText =
             stringResource(
                 R.string.onboarding_experience_tech_support,
-                ExperienceEditorRules.MAX_TECH_TAGS,
-                ExperienceEditorRules.MAX_TECH_TAG_LENGTH,
+                MAX_EXPERIENCE_TECH_TAGS,
+                MAX_EXPERIENCE_TECH_TAG_LENGTH,
             ),
         errorMessage = state.techInputError?.techMessage(),
         isError = state.techInputError != null,
@@ -396,7 +398,7 @@ private fun RemovableTechTag(
 @Composable
 private fun OnboardingFieldError.techMessage(): String =
     when (this) {
-        OnboardingFieldError.OutOfRange -> stringResource(R.string.onboarding_experience_tech_limit, ExperienceEditorRules.MAX_TECH_TAGS)
+        OnboardingFieldError.OutOfRange -> stringResource(R.string.onboarding_experience_tech_limit, MAX_EXPERIENCE_TECH_TAGS)
         else -> toMessage()
     }
 

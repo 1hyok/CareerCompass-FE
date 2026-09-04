@@ -148,20 +148,24 @@ public fun FeedDeadlineFilter.toDomainDeadlineFilter(range: FeedDeadlineRange): 
 private fun FeedDeadlineRange.toDomainRange(): DomainDeadlineFilter.Range? =
     if (error == null) DomainDeadlineFilter.Range(start = start, end = end) else null
 
+/**
+ * 조회에 걸린 하한 → 시트 선택지.
+ *
+ * 선택지에 없는 값은 **「전체」로 접는다.** 예전 선택지였던 70 이 그렇다(이슈 #200) — 시트가 그릴 수 없는
+ * 값을 만나면 예외로 화면을 죽이는 대신, 걸린 조건이 없다고 말한다. `FeedQuery` 가 이미 그 값을 거절하므로
+ * 여기까지 오는 경로는 남아 있지 않지만, 매핑 하나가 앱을 죽일 수 있는 자리로 남지 않게 한다.
+ */
 public fun Int?.toMinScoreFilter(): FeedMinScoreFilter =
     when (this) {
-        null -> FeedMinScoreFilter.All
         MIN_SCORE_60 -> FeedMinScoreFilter.AtLeast60
-        MIN_SCORE_70 -> FeedMinScoreFilter.AtLeast70
         MIN_SCORE_80 -> FeedMinScoreFilter.AtLeast80
-        else -> throw IllegalArgumentException("minScore must be null or one of 60·70·80: $this")
+        else -> FeedMinScoreFilter.All
     }
 
 public fun FeedMinScoreFilter.toMinScore(): Int? =
     when (this) {
         FeedMinScoreFilter.All -> null
         FeedMinScoreFilter.AtLeast60 -> MIN_SCORE_60
-        FeedMinScoreFilter.AtLeast70 -> MIN_SCORE_70
         FeedMinScoreFilter.AtLeast80 -> MIN_SCORE_80
     }
 
@@ -305,7 +309,7 @@ public fun Suitability.toSuitabilityUiModel(resources: Resources): SuitabilityUi
     SuitabilityUiModel(
         score = score,
         levelLabel = resources.getString(label.labelRes()),
-        level = label.toScoreLevel(),
+        level = label,
         breakdown =
             breakdown.map { axis ->
                 SuitabilityAxisUiModel(
@@ -327,7 +331,13 @@ public fun SuitabilityLabel.labelRes(): Int =
         SuitabilityLabel.Low -> R.string.feed_posting_detail_level_low
     }
 
-/** 점수 해석 레이블(F3-2) → 칩 강조. 「보통」·「낮음」은 같은 낮은 강조다. */
+/**
+ * 점수 해석 레이블(F3-2) → 목록 카드 점수 칩의 강조 3단계. 「보통」·「낮음」은 같은 낮은 강조다.
+ *
+ * 칩에는 레이블 글자가 없고 숫자만 실리므로 네 단계를 다 그릴 자리가 없다. 다만 **강조가 갈리는 지점은
+ * 전부 레이블 경계**(80·60)다 — 공고 상세의 게이지가 네 구간으로 더 잘게 나뉘어도 두 화면이 같은 눈금
+ * 위에 있는 이유다(이슈 #200).
+ */
 public fun SuitabilityLabel.toScoreLevel(): CareerCompassScoreLevel =
     when (this) {
         SuitabilityLabel.VerySuitable -> CareerCompassScoreLevel.High
@@ -442,9 +452,10 @@ public fun BoardDetection.toDetectionState(): BoardDetectionState =
         }
     }
 
-private const val MIN_SCORE_60 = 60
-private const val MIN_SCORE_70 = 70
-private const val MIN_SCORE_80 = 80
+// 선택지 값은 F3-2 레이블 경계다 — 도메인의 `SuitabilityLabel.minScore` 와 같은 수여야 한다
+// (`FeedUiMappersTest` 가 고정한다).
+private val MIN_SCORE_60 = SuitabilityLabel.Suitable.minScore
+private val MIN_SCORE_80 = SuitabilityLabel.VerySuitable.minScore
 
 /** 마감 임박 판정 일수(당일 포함). */
 public const val URGENT_DEADLINE_DAYS: Long = 3L

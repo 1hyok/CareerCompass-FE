@@ -7,6 +7,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.model.experience.Experience
 import com.cambridge.core.model.experience.ExperienceDetails
+import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.feature.onboarding.presentation.OnboardingExperience
 import com.cambridge.feature.onboarding.presentation.OnboardingExperienceType
@@ -20,8 +21,6 @@ import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickA
 import com.cambridge.feature.onboarding.presentation.experience.labelResId
 import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 /** Step 3(경험) 화면의 상태 배선. [viewModel] 은 그래프 스코프 [OnboardingViewModel] 이어야 한다. */
 @Composable
@@ -85,24 +84,19 @@ private fun Experience.toUiModel(): OnboardingExperience =
         tags = (details as? ExperienceDetails.Project)?.techs.orEmpty(),
     )
 
+/**
+ * 카드 목록에 그릴 시점 글.
+ *
+ * 시점은 그 카드가 **아는 정밀도 그대로** 그린다 — 연도만 아는 수상은 「2025」, 연월 이상은 「2025.06」이다.
+ * 유형별로 어느 필드를 먼저 볼지 따지던 규칙은 모델의 [ExperiencePoint] 로 옮겨 갔다(#207).
+ */
 @Composable
 private fun Experience.periodText(): String {
     val unknown = stringResource(R.string.onboarding_experience_period_unknown)
-    return when (val details = details) {
-        is ExperienceDetails.Certificate -> {
-            details.acquiredYearMonth?.replace('-', '.') ?: startDate?.toYearMonthText() ?: unknown
-        }
-
-        is ExperienceDetails.Award -> {
-            details.year?.toString() ?: startDate?.toYearMonthText() ?: unknown
-        }
-
-        else -> {
-            val start = startDate?.toYearMonthText() ?: return unknown
-            val end = endDate?.toYearMonthText() ?: stringResource(R.string.onboarding_experience_period_ongoing)
-            stringResource(R.string.onboarding_experience_period_range, start, end)
-        }
-    }
+    val start = startPoint?.toPeriodText() ?: return unknown
+    if (!type.hasPeriod) return start
+    val end = endPoint?.toPeriodText() ?: stringResource(R.string.onboarding_experience_period_ongoing)
+    return stringResource(R.string.onboarding_experience_period_range, start, end)
 }
 
 @Composable
@@ -115,6 +109,8 @@ private fun Experience.roleText(): String =
         is ExperienceDetails.Certificate -> details.issuer ?: stringResource(R.string.onboarding_experience_role_fallback_certificate)
     }
 
-private val YEAR_MONTH_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM")
-
-private fun LocalDate.toYearMonthText(): String = format(YEAR_MONTH_FORMATTER)
+private fun ExperiencePoint.toPeriodText(): String =
+    when (this) {
+        is ExperiencePoint.Year -> "%04d".format(year)
+        is ExperiencePoint.WithMonth -> "%04d.%02d".format(year, month)
+    }
