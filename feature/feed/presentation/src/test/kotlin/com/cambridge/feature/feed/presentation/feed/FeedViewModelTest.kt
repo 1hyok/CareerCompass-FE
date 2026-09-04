@@ -296,6 +296,62 @@ class FeedViewModelTest {
         assertEquals(1, state.activeFilterCount)
     }
 
+    /**
+     * 이슈 #206 — 빈 목록의 「사라진 게시판 조건 빼기」는 시트를 거치지 않고 조건을 빼고 다시 읽는다.
+     *
+     * 시트 경로(`FeedFilterEvent.MissingBoardsCleared` + 「적용」)와 **같은 규칙**을 쓰되(`missingFrom`)
+     * 초안이 아니라 조회 조건을 바로 고친다. 시트를 열어 주는 것으로 끝나면 「열어 보기 전에는 원인을
+     * 모른다」는, 이 사유가 생긴 문제가 그대로 남는다.
+     */
+    @Test
+    fun `빈 목록에서 사라진 게시판 조건을 빼면 그 id 만 빠지고 곧바로 다시 조회한다`() {
+        val repository = FakePostingRepository(initial = listOf(posting(id = 1, boardId = 1)))
+        val viewModel =
+            viewModel(
+                postingRepository = repository,
+                savedStateHandle = SavedStateHandle(mapOf("feed.draft.query.boardIds" to longArrayOf(1L, 9L))),
+            )
+        assertEquals(setOf(1L, 9L), viewModel.state.value.query.boardIds)
+        val queriesBefore = repository.queries.size
+
+        viewModel.onEvent(FeedUiEvent.MissingBoardsCleared)
+
+        val state = viewModel.state.value
+        // 고른 게시판은 남고 지워진 것만 빠진다 — 「필터 초기화」처럼 멀쩡한 조건까지 풀지 않는다.
+        assertEquals(setOf(1L), state.query.boardIds)
+        assertEquals(1, state.activeFilterCount)
+        // 시트를 열지 않는다. 조회는 「적용」을 기다리지 않고 바로 나간다.
+        assertNull(state.filterDraft)
+        assertTrue(repository.queries.size > queriesBefore)
+        assertEquals(listOf(1L), repository.queries.last().boardIds)
+    }
+
+    /**
+     * 게시판 목록을 못 받았으면 빈 목록 쪽 손잡이는 아무것도 하지 않는다(이슈 #206).
+     *
+     * 그 상태에서는 화면이 「지워졌어요」라고 말하지 않으므로 버튼도 없다. 그래도 계약을 여기서 한 번 더
+     * 지켜, 조회 실패를 근거로 사용자의 조건이 지워지는 길을 남기지 않는다. 시트의 태그는 다르다 —
+     * 그것은 「확인 못 한 게시판」이라고 밝힌 채 사용자가 직접 누르는 것이다(#155).
+     */
+    @Test
+    fun `게시판 목록을 못 받았으면 빈 목록의 조건 빼기는 아무 일도 하지 않는다`() {
+        val boardRepository = FakeBoardRepository.strict().apply { onGetBoards = { Result.failure(RuntimeException("boom")) } }
+        val repository = FakePostingRepository(initial = emptyList())
+        val viewModel =
+            viewModel(
+                postingRepository = repository,
+                boardRepository = boardRepository,
+                savedStateHandle = SavedStateHandle(mapOf("feed.draft.query.boardIds" to longArrayOf(9L))),
+            )
+        val queriesBefore = repository.queries.size
+
+        viewModel.onEvent(FeedUiEvent.MissingBoardsCleared)
+
+        assertFalse(viewModel.state.value.boardsLoaded)
+        assertEquals(setOf(9L), viewModel.state.value.query.boardIds)
+        assertEquals(queriesBefore, repository.queries.size)
+    }
+
     @Test
     fun `직접 지정 범위는 날짜를 고른 뒤에야 적용되고 다시 열면 그대로 남는다`() {
         val repository =

@@ -69,6 +69,37 @@ public fun EmptyFeedFilterPreview() {
     FeedPreviewSurface(state = emptyFeedPreviewState(FeedEmptyReason.Filter).copy(activeFilterCount = 2))
 }
 
+/**
+ * 이슈 #206 — 사라진 게시판 사유는 문구가 둘로 갈린다. 골든도 둘이다.
+ *
+ * 갈리는 것이 이 사유의 요점이다. 조건이 이것뿐이면 「빼면 보여요」라고 해도 되지만, 다른 조건이 남아
+ * 있으면 빼도 같은 빈 화면이 나올 수 있다 — 약속과 결과가 어긋나는 자리라 골든으로 문구를 붙든다.
+ */
+@PreviewTest
+@Preview(name = "Empty feed - missing boards", widthDp = 360, heightDp = 772)
+@Composable
+public fun EmptyFeedMissingBoardsPreview() {
+    FeedPreviewSurface(
+        state =
+            emptyFeedPreviewState(FeedEmptyReason.MissingBoards(count = 2, isOnlyCondition = true)).copy(
+                activeFilterCount = 1,
+            ),
+    )
+}
+
+@PreviewTest
+@Preview(name = "Empty feed - missing boards among others", widthDp = 360, heightDp = 772)
+@Composable
+public fun EmptyFeedMissingBoardsAmongOthersPreview() {
+    FeedPreviewSurface(
+        state =
+            emptyFeedPreviewState(FeedEmptyReason.MissingBoards(count = 1, isOnlyCondition = false)).copy(
+                searchQuery = "백엔드",
+                activeFilterCount = 2,
+            ),
+    )
+}
+
 @PreviewTest
 @Preview(name = "Empty feed - not collected", widthDp = 360, heightDp = 772)
 @Composable

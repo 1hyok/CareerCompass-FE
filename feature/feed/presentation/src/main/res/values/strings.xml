@@ -28,6 +28,10 @@
     <string name="feed_empty_filter_title">필터에 맞는 공고가 없어요</string>
     <string name="feed_empty_filter_description">걸어 둔 조건을 풀면 더 많은 공고를 볼 수 있어요</string>
     <string name="feed_empty_filter_action">필터 초기화</string>
+    <string name="feed_empty_missing_boards_title">고른 게시판 %1$d개가 지워졌어요</string>
+    <string name="feed_empty_missing_boards_description">조건에서 빼면 다른 공고가 보여요</string>
+    <string name="feed_empty_missing_boards_description_partial">이 조건을 뺀 뒤에도 비면 남은 조건을 풀어 보세요</string>
+    <string name="feed_empty_missing_boards_action">사라진 게시판 조건 빼기</string>
     <string name="feed_empty_not_collected_title">아직 모인 공고가 없어요</string>
     <string name="feed_empty_not_collected_description">등록한 게시판에 새 글이 올라오면 여기에 쌓여요</string>
     <string name="feed_empty_not_collected_description_with_notice">등록한 게시판에 새 글이 올라오면 여기에 쌓여요\n%1$s</string>

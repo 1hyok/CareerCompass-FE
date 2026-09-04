@@ -70,16 +70,31 @@ internal fun FeedViewState.toFeedUiState(
  *
  * 그 자리에서 이어 읽기가 실패했을 때도([FeedLoadMoreState.Failed]) 같은 사유를 쓴다 — 실패는 이미
  * 스낵바가 말했고, 화면이 할 말은 어느 쪽이든 「여기까지 찾았고, 더 찾아볼 수 있다」로 같다.
+ *
+ * **사라진 게시판은 검색어·필터보다 앞에 둔다**([FeedViewState.hasDeletedBoardFilter], 이슈 #206). 화면이
+ * 한 번에 말할 수 있는 사유는 하나인데, 나머지 조건은 사용자가 화면에서 볼 수 있고 이것만은 어디에도
+ * 보이지 않는다. 다만 「게시판 0개」·[FeedEmptyReason.MoreAvailable] 보다는 뒤다 — 모을 곳이 아예 없으면
+ * 조건을 빼도 나올 것이 없고, 아직 안 읽은 페이지가 남았으면 「없다」고 말할 근거가 아직 없다.
  */
 internal fun FeedViewState.toEmptyReason(resources: Resources): FeedEmptyReason =
     when {
         isOffline -> FeedEmptyReason.OfflineSnapshot
         boardsLoaded && boards.isEmpty() -> FeedEmptyReason.NoBoards
         hasNext -> FeedEmptyReason.MoreAvailable
+        hasDeletedBoardFilter -> toMissingBoardsReason()
         query.hasSearchQuery -> FeedEmptyReason.Search(query.searchQuery)
         hasActiveFilter -> FeedEmptyReason.Filter
         else -> FeedEmptyReason.NotCollected(boards.toCollectNotice(resources))
     }
+
+/**
+ * 사라진 게시판 사유 하나 — 개수와 「이 조건이 전부인가」를 함께 싣는다.
+ *
+ * 개수는 이름을 대신한다. 조건이 들고 있는 것은 id 뿐이고 그 게시판은 이미 목록에서 사라져, 이름을 알
+ * 길이 없다(시트의 태그가 개수로만 묶는 것과 같은 이유, 이슈 #155).
+ */
+private fun FeedViewState.toMissingBoardsReason(): FeedEmptyReason.MissingBoards =
+    FeedEmptyReason.MissingBoards(count = missingBoardIds.size, isOnlyCondition = missingBoardsAreOnlyCondition)
 
 /**
  * 「언제쯤 들어오나」 한 줄 — 수집이 도는 게시판이 없으면 null 이라 아무 말도 하지 않는다.
@@ -120,19 +135,18 @@ internal fun FeedFilterDraft.toFilterUiState(
     boardsLoaded: Boolean,
 ): FeedFilterUiState {
     val boardModels = boards.map { FeedBoardFilterUiModel(id = it.id.toString(), name = it.name) }
-    val knownIds = boards.map(Board::id).toSet()
-    val missingCount = boardIds.count { it !in knownIds }
+    val missingIds = boardIds.missingFrom(boards)
     return FeedFilterUiState(
         categories = feedCategoryFilters(resources),
         selectedCategory = category,
         boards = boardModels,
-        selectedBoardIds = boardIds.filter { it in knownIds }.map(Long::toString).toSet(),
+        selectedBoardIds = (boardIds - missingIds).map(Long::toString).toSet(),
         missingBoards =
-            if (missingCount == 0) {
+            if (missingIds.isEmpty()) {
                 null
             } else {
                 FeedMissingBoardsUiModel(
-                    count = missingCount,
+                    count = missingIds.size,
                     reason = if (boardsLoaded) FeedMissingBoardsReason.Deleted else FeedMissingBoardsReason.Unverified,
                 )
             },
