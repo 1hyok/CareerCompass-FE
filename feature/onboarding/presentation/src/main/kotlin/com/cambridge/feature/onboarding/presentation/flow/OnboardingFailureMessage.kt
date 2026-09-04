@@ -9,7 +9,6 @@ import com.cambridge.feature.onboarding.presentation.R
 internal fun OnboardingFailureReason.toMessage(): String =
     when (this) {
         OnboardingFailureReason.Network -> stringResource(R.string.onboarding_failure_network)
-        OnboardingFailureReason.SessionExpired -> stringResource(R.string.onboarding_failure_session_expired)
         OnboardingFailureReason.LimitExceeded -> stringResource(R.string.onboarding_failure_limit_exceeded)
         OnboardingFailureReason.InvalidInput -> stringResource(R.string.onboarding_failure_invalid_input)
         OnboardingFailureReason.Server -> stringResource(R.string.onboarding_failure_server)
@@ -23,8 +22,6 @@ internal fun OnboardingFailureReason.toMessage(): String =
 internal fun OnboardingFailureReason.toShortMessage(): String =
     when (this) {
         OnboardingFailureReason.Network -> stringResource(R.string.onboarding_upload_failed_network)
-
-        OnboardingFailureReason.SessionExpired -> stringResource(R.string.onboarding_upload_failed_session_expired)
 
         OnboardingFailureReason.LimitExceeded -> stringResource(R.string.onboarding_upload_failed_limit)
 

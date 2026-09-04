@@ -46,7 +46,7 @@ internal const val APP_START_SEMANTICS_TAG = "careercompass_app_start"
  * 예외적으로 세션 카드와 지문 로그인 스위치·로그아웃을 그린다([MyTabPlaceholderEntry]). 그 둘 말고는 세션을 끝낼
  * 방법도, 기기에 남은 지문 등록을 되돌릴 방법도 없어서다.
  *
- * 세션이 왜 끝났는지는 화면이 아니라 여기서 [SessionEndCause] 로 갈라 셸에 넘긴다 — 401 을 만난 피드 계열은
+ * 세션이 왜 끝났는지는 화면이 아니라 여기서 [SessionEndCause] 로 갈라 셸에 넘긴다 — 401 을 만난 피드·온보딩 계열은
  * 만료, 마이 탭은 로그아웃이다. 안내를 보일지는 셸이 정하고, 로그인 화면은 [isSessionExpiryNoticeVisible] 이라는
  * 입력만 받는다(#128).
  *
@@ -100,6 +100,8 @@ public fun AppNavigation(
                 navController.navigate(FeedRoute.BoardRegister) { launchSingleTop = true }
             },
             onAuthSessionExpired = onAuthSessionExpired,
+            // 온보딩 그래프가 세션 종료를 알리는 경우도 401 하나뿐이다(`OnboardingNavActions.onSessionEnded`).
+            onSessionEnded = { onSessionEnded(SessionEndCause.Expired) },
         )
     val feedNavActions =
         rememberFeedNavActions(

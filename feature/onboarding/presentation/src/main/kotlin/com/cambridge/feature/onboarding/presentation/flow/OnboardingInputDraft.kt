@@ -31,7 +31,7 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInput
  *   떠 있고, 「다음」을 누르면 어차피 다시 계산한다.
  * - **`isSubmitting`·`isResolvingEntry` 같은 진행 상태**: 살아난 프로세스에는 그 요청이 없다. 되살리면
  *   영원히 도는 버튼이 된다.
- * - **`failure`·`pendingNavigation` 같은 단발 신호**: 이미 지나간 사건이다. 죽기 직전의 실패 안내를 새 프로세스가
+ * - **`failure`·`pendingNavigation`·`sessionEnded` 같은 단발 신호**: 이미 지나간 사건이다. 죽기 직전의 실패 안내를 새 프로세스가
  *   다시 띄우면 방금 아무 일도 안 한 사용자에게 원인 없는 경고가 된다.
  * - **시트·피커가 열려 있었는지**: 프로세스 사망은 사용자가 의도한 이동이 아니다. 돌아왔는데 시트가 떠 있으면
  *   마지막으로 본 화면과 달라 놀란다. 대신 시트를 **다시 열면** 쓰던 글이 그대로 있다 —

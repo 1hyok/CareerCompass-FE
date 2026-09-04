@@ -56,6 +56,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
+                onSessionEnded = actions.onSessionEnded,
             )
         }
         composable<OnboardingRoute.Step2> { entry ->
@@ -63,6 +64,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
+                onSessionEnded = actions.onSessionEnded,
             )
         }
         composable<OnboardingRoute.Step3> { entry ->
@@ -70,6 +72,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
+                onSessionEnded = actions.onSessionEnded,
             )
         }
         composable<OnboardingRoute.Step4> { entry ->
@@ -77,6 +80,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
+                onSessionEnded = actions.onSessionEnded,
             )
         }
         composable<OnboardingRoute.Complete> { entry ->
