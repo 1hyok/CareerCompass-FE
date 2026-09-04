@@ -39,6 +39,7 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedCard
 import com.cambridge.feature.feed.presentation.shared.component.FeedChoiceTag
+import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceNotice
 import com.cambridge.feature.feed.presentation.shared.component.FeedSectionTitle
 import com.cambridge.feature.feed.presentation.shared.component.FeedTopBar
 
@@ -109,6 +110,12 @@ public fun BoardRegisterScreen(
                         retryEnabled = state.isDetectEnabled,
                         onRetryClick = { onEvent(BoardRegisterEvent.DetectClicked) },
                     )
+                }
+
+                // 점검은 재시도 버튼 없이 알리기만 한다 — 서버가 돌아와야 답이 달라진다. 그래도 막다른 길은
+                // 아니다: 위의 「구조 분석하기」가 그대로 눌린다.
+                BoardDetectionState.Maintenance -> {
+                    FeedMaintenanceNotice()
                 }
 
                 is BoardDetectionState.Failed -> {

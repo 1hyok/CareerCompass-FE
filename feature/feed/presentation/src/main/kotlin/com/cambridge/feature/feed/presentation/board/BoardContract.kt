@@ -60,6 +60,22 @@ public sealed interface BoardDetectionState {
      */
     public data object TimedOut : BoardDetectionState
 
+    /**
+     * 서버 점검(503 `LLM_UNAVAILABLE`)으로 감지 **요청 자체가** 끝난 상태.
+     *
+     * [Failed] 와 갈라 두는 이유는 둘이 서로 다른 층의 사실이기 때문이다. [Failed] 는 서버가 외부 사이트를
+     * 실제로 훑어보고 「이 게시판은 이래서 안 된다」고 알린 **감지 결과**(`detect_status` = `login_required`·
+     * `spa`·`blocked`·`failed`)이고, 여기는 서버가 훑어보지도 못한 **요청의 실패**다. 한 문구로 접으면
+     * 「구조를 분석하지 못했어요」가 되어, 사용자는 멀쩡한 자기 게시판 URL 을 의심하며 재시도를 되풀이한다
+     * (#134 가 타임아웃에서 고친 것과 같은 오해다). 감지는 서버가 외부 사이트를 처음부터 다시 크롤링하는
+     * 비싼 호출이라 헛된 재시도의 대가도 크다.
+     *
+     * [TimedOut] 과도 처방이 다르다. 타임아웃은 사이트가 느렸을 뿐이라 「다시 시도」가 뜻이 있지만, 점검은
+     * 서버가 돌아와야 답이 달라져 재시도를 권하면 안 된다(#144 — 「할 수 있는 일이 있는 상태에만 행동 버튼」).
+     * 그래서 화면은 이 상태에 행동 버튼을 그리지 않는다.
+     */
+    public data object Maintenance : BoardDetectionState
+
     public data class Success(
         val preview: List<BoardPreviewItemUiModel>,
         val dateDetected: Boolean,
@@ -71,6 +87,10 @@ public sealed interface BoardDetectionState {
         }
     }
 
+    /**
+     * 서버가 외부 사이트를 훑어보고 알린 **감지 결과**(`detect_status`)다 — 요청 자체가 실패한
+     * [Maintenance]·[TimedOut] 과 다른 층이다. 여기까지 왔다는 것은 서버가 답을 줬다는 뜻이다.
+     */
     public data class Failed(
         val reason: BoardDetectionFailure,
     ) : BoardDetectionState

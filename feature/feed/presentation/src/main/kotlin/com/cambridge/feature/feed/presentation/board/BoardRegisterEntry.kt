@@ -96,9 +96,17 @@ internal fun BoardRegisterViewState.toUiState(resources: Resources): BoardRegist
 internal fun BoardRegisterMessage.toLabel(resources: Resources): String =
     when (this) {
         BoardRegisterMessage.NetworkUnavailable -> resources.getString(R.string.feed_board_network_unavailable)
+
         BoardRegisterMessage.DetectFailed -> resources.getString(R.string.feed_board_register_detect_failed)
+
         BoardRegisterMessage.RegisterFailed -> resources.getString(R.string.feed_board_register_failed)
+
+        // 점검 문구는 새로 짓지 않는다 — 화면 한 장을 쓰는 자리(FeedMaintenanceState)와 같은 문장이다.
+        BoardRegisterMessage.Maintenance -> resources.getString(R.string.feed_maintenance_title)
+
         BoardRegisterMessage.SubmitInProgress -> resources.getString(R.string.feed_board_register_submit_in_progress)
+
         BoardRegisterMessage.AlreadyRegistered -> resources.getString(R.string.feed_board_register_duplicate_notice)
+
         is BoardRegisterMessage.LimitReached -> resources.getString(R.string.feed_board_register_limit_reached, limit)
     }
