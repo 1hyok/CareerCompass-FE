@@ -9,7 +9,7 @@ Figma 어느 페이지에도 알림 목록과 알림 설정 화면이 없다. 03
 - 정본: API_SPEC §8, 명세서 F2-4.
 - 구현 이슈: [FE #195](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/195)(목록)·[#196](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/196)(설정)·[#197](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/197)(FCM·권한 동의).
 - 쓰는 컴포넌트는 전부 `core:ui` 에 이미 있다 — `CareerCompassTopAppBar` · `CareerCompassCard` · `CareerCompassBadge` ·
-  `CareerCompassButton` · `CareerCompassStateView`(엣지 상태 5종) · `CareerCompassIcons`. **새 컴포넌트를 만들지 않는다.**
+  `CareerCompassButton` · `CareerCompassStateView`(엣지 상태 6종, 실패 전용 부품 포함) · `CareerCompassIcons`. **새 컴포넌트를 만들지 않는다.**
 
 ---
 
