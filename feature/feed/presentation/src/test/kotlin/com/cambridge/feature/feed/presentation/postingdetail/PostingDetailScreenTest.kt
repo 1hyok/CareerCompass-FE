@@ -247,12 +247,55 @@ class PostingDetailScreenTest {
         composeRule.setDetailContent(
             state =
                 PostingDetailUiState(
-                    content = PostingDetailContentState.Error(message = "공고를 불러오지 못했어요"),
+                    content =
+                        PostingDetailContentState.Error(
+                            title = "공고를 불러오지 못했어요",
+                            description = "잠시 후 다시 시도해 주세요",
+                            isRetryable = true,
+                        ),
                 ),
             onEvent = events::add,
         )
 
         composeRule.onNodeWithText("공고를 불러오지 못했어요").assertIsDisplayed()
+        composeRule.onNodeWithText("잠시 후 다시 시도해 주세요").assertIsDisplayed()
+        composeRule.onNode(hasText("다시 시도") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(PostingDetailEvent.RetryClicked), events)
+        }
+    }
+
+    /** 재시도해도 답이 갈리지 않는 실패 — 표의 판정이 거짓이면 「다시 시도」를 그리지 않는다(#222). */
+    @Test
+    fun nonRetryableError_showsCopyWithoutRetryButton() {
+        composeRule.setDetailContent(
+            state =
+                PostingDetailUiState(
+                    content =
+                        PostingDetailContentState.Error(
+                            title = "공고를 찾을 수 없어요",
+                            description = "지워졌거나 주소가 바뀐 공고예요",
+                            isRetryable = false,
+                        ),
+                ),
+        )
+
+        composeRule.onNodeWithText("공고를 찾을 수 없어요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("다시 시도").assertCountEquals(0)
+    }
+
+    /** 연결 없음은 한 줄 문장이 아니라 부품 고정 문구로 — 피드 홈·내 게시판·원문 보기와 같은 화면이다(#222). */
+    @Test
+    fun networkUnavailable_showsNetworkStateWithoutOfflineActionAndEmitsRetry() {
+        val events = mutableListOf<PostingDetailEvent>()
+        composeRule.setDetailContent(
+            state = PostingDetailUiState(content = PostingDetailContentState.NetworkUnavailable),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("연결할 수 없어요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("오프라인 모드로 보기").assertCountEquals(0)
         composeRule.onNode(hasText("다시 시도") and hasClickAction()).performClick()
 
         composeRule.runOnIdle {

@@ -9,7 +9,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 
 ---
 
-## 0. 부품 — `core:ui` 의 상태 화면 5종
+## 0. 부품 — `core:ui` 의 상태 화면 5종 + 실패 1종
 
 전부 [`core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt`](../../core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt) 한 파일에 있고, 공통 뼈대(`CareerCompassStateLayout`)가 `fillMaxSize` 로 **화면 한 장을 통째로 차지한다**. 카드 안이나 목록 끝에 끼워 넣는 용도가 아니다. **예외는 「분석 중」 하나다** — `presentation = Inline` 을 받아 카드 안에 들어간다(#221). 기다리는 상태만 화면의 나머지가 그대로 쓸모 있어서다(실패·빈 결과·권한·점검은 화면이 더 보여 줄 것이 없다).
 
@@ -18,6 +18,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 | `CareerCompassNetworkErrorState` | 연결 실패 | **부품이 고정** — 호출자는 문구를 못 바꾼다 | 「다시 시도」 고정 + 「오프라인 모드로 보기」(`onOfflineClick != null` 일 때만) | 📡 |
 | `CareerCompassAnalyzingState` | 분석 중 | 호출자(`title`·`description`·`progressLabel`) + `presentation`(FullScreen / **Inline**, #221) | **없음** — 행동 슬롯이 빈 `{}` 로 닫혀 있다 | 진행 인디케이터 |
 | `CareerCompassEmptyState` | 검색 결과 없음 | 호출자(`title`·`description`·`actionText`) | 행동 0개 또는 1개(`actionText`+`onActionClick` 은 둘 다 있거나 둘 다 없다) | 🔍 |
+| `CareerCompassFailureState` | **시안 없음** — #222 에서 더했다 | 호출자(`title`·`description`·`actionText`) **또는 실패 표의 행**(`FailureDisplay`, #204) | 행동 0개 또는 1개 — 표 판을 쓰면 **표의 행동이 있고 호출자가 콜백을 넘길 때만** 붙는다 | ⚠️ |
 | `CareerCompassPermissionDeniedState` | 알림 권한 꺼짐 | 호출자(`title`·`description`·`benefits`) | 「설정에서 권한 켜기」 + 「나중에」 고정 | 🔔 |
 | `CareerCompassMaintenanceState` | 서버 점검 | 호출자(`title`·`description`·`statusLabel`·`contactLabel`) | 「새로고침」 고정 + 「오프라인 모드로 보기」(선택) | 🛠 |
 
@@ -53,7 +54,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 | 온보딩 학교 선택 시트 | — (로컬 목록) | — | 맨 `Text` + 직접 입력 버튼 | — | — | — |
 | 온보딩 완료 | 없음 | 없음 | — | 없음 | 없음 | 없음 |
 | 피드 홈 | `CareerCompassNetworkErrorState` | `FeedLoading` | `CareerCompassEmptyState` × 6사유 | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
-| 공고 상세 | `PostingDetailError`(손으로 그림) | `FeedLoadingContent` · 적합도 카드는 `CareerCompassAnalyzingState(Inline)` → 소진 뒤 「다시 확인」(#221) | — | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
+| 공고 상세 | `CareerCompassNetworkErrorState`(#222) | `FeedLoadingContent` · 적합도 카드는 `CareerCompassAnalyzingState(Inline)` → 소진 뒤 「다시 확인」(#221) | — | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
 | 원문 보기 | `CareerCompassNetworkErrorState` | `FeedLoadingContent` | 본문 자리 대체 문구 | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
 | 내 게시판(목록) | `CareerCompassNetworkErrorState` | `FeedLoadingContent` | `BoardListEmpty`(손으로 그림) | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
 | 게시판 등록 | 스낵바 / 타임아웃 상자 | 인라인 진행 줄 × 2 | 감지 실패 상자 4종 | 없음 | 감지 = `FeedMaintenanceNotice` 상자 · 제출 = 점검 스낵바 | 셸에 알림 → 로그인 |
@@ -76,7 +77,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|
 | 피드 홈 | `CareerCompassNetworkErrorState` | `core_ui_state_network_title` = 연결할 수 없어요 / `core_ui_state_network_description` = 인터넷 연결을 확인하고 다시 시도해 주세요 | 「다시 시도」 → `FeedViewModel.retry()`(**지금 조건 그대로** 재조회) · 「오프라인 모드로 보기」 → `showOfflineSnapshot()` (**스냅샷이 있을 때만 그린다**) · 조건이 걸려 있으면 하단에 「조건 지우고 다시 보기」가 따로 붙는다(§4) |
-| 공고 상세 | `PostingDetailError` — 부품이 아니라 `PostingDetailScreen.kt` 가 손으로 그린 `Column` | 실패 표의 `NoConnection` 행(#204) = 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) → `PostingDetailEvent.RetryClicked` |
+| 공고 상세 | `CareerCompassNetworkErrorState`(#222 — 전에는 손으로 그린 `Column` 에 한 줄 문장) | 부품 고정 = 연결할 수 없어요 / 인터넷 연결을 확인하고 다시 시도해 주세요 | 「다시 시도」 → `PostingDetailEvent.RetryClicked` · 오프라인 모드 **없음**(스냅샷을 저장하지 않는다) |
 | 원문 보기 | `CareerCompassNetworkErrorState` | 부품 고정 문구 | 「다시 시도」 → `PostingRawViewModel.retry()` · 오프라인 모드 **없음**(원문은 스냅샷을 저장하지 않는다) |
 | 내 게시판 | `CareerCompassNetworkErrorState` | 부품 고정 문구 | 「다시 시도」 → `BoardListViewModel.retryLoad()` · 오프라인 모드 **없음**(목록은 스냅샷을 저장하지 않는다) · 상단 바의 뒤로가기는 남는다 |
 | 게시판 등록 — 감지 중 끊김 | 스낵바 | 실패 표의 `NoConnection` 행(#204) = 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요 | 없음 — 감지 상태는 `Idle` 로 되돌아가고 「구조 분석하기」가 다시 눌린다 |
@@ -194,14 +195,14 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 
 ### 2.7 사유를 특정하지 못한 실패 (Generic)
 
-`FeedFailureReason.Generic` — 네트워크 단절도 점검도 아닌 나머지 전부다. 400·403·404·409·422·429·500 이 여기로 접히고, 401 도 상태로는 여기 실리지만 §2.6 의 이동이 먼저 화면을 걷어낸다. **화면 한 장을 쓰는 자리는 `CareerCompassEmptyState` 로 그린다** — 「검색 결과 없음」 부품을 실패 화면으로 돌려 쓰는 셈이라 삽화가 🔍 다. 사유가 없는 실패에 쓸 부품이 따로 없어서다.
+`FeedFailureReason.Generic` — 네트워크 단절도 점검도 아닌 나머지 전부다. 400·403·404·409·422·429·500 이 여기로 접히고, 401 도 상태로는 여기 실리지만 §2.6 의 이동이 먼저 화면을 걷어낸다. **화면 한 장을 쓰는 자리는 `CareerCompassFailureState` 로 그린다**(#222) — 전에는 「검색 결과 없음」 부품을 돌려 써 삽화가 🔍 였고, 사용자는 서버가 500 을 준 것을 자기 조건이 잘못된 것으로 읽었다. 이제 삽화(⚠️)·문구·행동이 빈 결과와 갈리고, 버튼은 표의 행동이 있을 때만 붙는다.
 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|
-| 피드 홈 | `CareerCompassEmptyState` | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_error_retry`) → `retry()` · 조건이 걸려 있으면 「조건 지우고 다시 보기」도 붙는다(§4 — Generic 도 조건 탓일 여지가 있다) |
-| 내 게시판 | `CareerCompassEmptyState` | 실패 표의 `Unexpected`×`Board` 행(#204) = 게시판을 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`core_ui_state_retry`) → `retryLoad()` |
-| 공고 상세 | `PostingDetailError`(손으로 그림) | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) |
-| 원문 보기 | `CareerCompassEmptyState` | `feed_posting_raw_error_title` = 원문을 불러오지 못했어요 / `feed_posting_raw_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_raw_error_retry`) |
+| 피드 홈 | `CareerCompassFailureState` | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_error_retry`) → `retry()` · 조건이 걸려 있으면 「조건 지우고 다시 보기」도 붙는다(§4 — Generic 도 조건 탓일 여지가 있다) |
+| 내 게시판 | `CareerCompassFailureState` | 실패 표의 `Unexpected`×`Board` 행(#204) = 게시판을 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`core_ui_state_retry`) → `retryLoad()` |
+| 공고 상세 | `CareerCompassFailureState`(#222 — 전에는 손으로 그린 `Column` 에 한 줄 문장) | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) — 표의 `isRetryable` 이 거짓이면 버튼 없음 |
+| 원문 보기 | `CareerCompassFailureState` | `feed_posting_raw_error_title` = 원문을 불러오지 못했어요 / `feed_posting_raw_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_raw_error_retry`) |
 | 온보딩 Step 1~4 | 하단 배너 | 사유가 좁혀지면 그 문구, 아니면 `onboarding_failure_unknown` = 문제가 생겼어요. 잠시 후 다시 시도해 주세요 | 「닫기」 |
 | 게시판 등록 | 스낵바 | `feed_board_register_detect_failed` / `feed_board_register_failed` (503 은 #212 에서 빠져나갔다) | 없음 |
 

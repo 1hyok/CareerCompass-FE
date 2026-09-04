@@ -25,11 +25,15 @@ import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
 import com.cambridge.core.ui.component.CareerCompassCard
 import com.cambridge.core.ui.component.CareerCompassEmptyState
+import com.cambridge.core.ui.component.CareerCompassFailureState
 import com.cambridge.core.ui.component.CareerCompassMaintenanceState
 import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.core.ui.component.CareerCompassPermissionDeniedState
 import com.cambridge.core.ui.component.CareerCompassStatePresentation
 import com.cambridge.core.ui.component.CareerCompassTopAppBar
+import com.cambridge.core.ui.failure.FailureKind
+import com.cambridge.core.ui.failure.FailureSurface
+import com.cambridge.core.ui.failure.display
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
@@ -263,6 +267,31 @@ public fun CareerCompassAnalyzingStateInlinePreview() {
                 presentation = CareerCompassStatePresentation.Inline,
             )
         }
+    }
+}
+
+@PreviewTest
+@Preview(name = "State - Failure", widthDp = 360, heightDp = 772)
+@Composable
+public fun CareerCompassFailureStatePreview() {
+    FailureStatePreview(darkTheme = false)
+}
+
+@PreviewTest
+@Preview(name = "State - Failure - Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, heightDp = 772)
+@Composable
+public fun CareerCompassFailureStateDarkPreview() {
+    FailureStatePreview(darkTheme = true)
+}
+
+/** 「검색 결과 없음」 골든 바로 위에 두어 한눈에 갈리는지 본다(#222) — 표의 `Unexpected`×`Posting` 행이다. */
+@Composable
+private fun FailureStatePreview(darkTheme: Boolean) {
+    ShellPreviewSurface(darkTheme = darkTheme) {
+        CareerCompassFailureState(
+            display = FailureKind.Unexpected.display(FailureSurface.Posting),
+            onActionClick = {},
+        )
     }
 }
 

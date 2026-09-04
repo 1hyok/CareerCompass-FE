@@ -14,13 +14,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassEmptyState
+import com.cambridge.core.ui.component.CareerCompassFailureState
 import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.core.ui.failure.FailureSurface
-import com.cambridge.core.ui.failure.actionLabel
-import com.cambridge.core.ui.failure.description
 import com.cambridge.core.ui.failure.display
-import com.cambridge.core.ui.failure.title
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
@@ -99,14 +96,11 @@ private fun FeedFailureNotice(
         }
 
         FeedFailureReason.Generic -> {
-            // 문구는 화면이 짓지 않고 실패 표에서 읽는다(#204). 「공고」라는 명사는 문맥이 채운다.
-            val display = reason.failureKind.display(FailureSurface.Posting)
-            val actionText = display.actionLabel()
-            CareerCompassEmptyState(
-                title = display.title(),
-                description = display.description(),
-                actionText = actionText,
-                onActionClick = onRetryClick.takeIf { actionText != null },
+            // 문구는 화면이 짓지 않고 실패 표에서 읽는다(#204). 「공고」라는 명사는 문맥이 채우고, 버튼은 표의
+            // 행동이 있을 때만 붙는다. 실패 전용 부품이라 「검색 결과 없음」과 삽화부터 갈린다(#222).
+            CareerCompassFailureState(
+                display = reason.failureKind.display(FailureSurface.Posting),
+                onActionClick = onRetryClick,
                 modifier = modifier,
             )
         }
