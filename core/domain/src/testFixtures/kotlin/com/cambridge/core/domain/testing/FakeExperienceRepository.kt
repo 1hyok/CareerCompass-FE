@@ -37,8 +37,8 @@ public class FakeExperienceRepository(
             Experience(
                 id = nextId.getAndIncrement(),
                 title = draft.title,
-                startDate = draft.startDate,
-                endDate = draft.endDate,
+                startPoint = draft.startPoint,
+                endPoint = draft.endPoint,
                 details = draft.details,
                 createdAt = null,
             )
@@ -56,8 +56,8 @@ public class FakeExperienceRepository(
         val updated =
             experiences[index].copy(
                 title = draft.title,
-                startDate = draft.startDate,
-                endDate = draft.endDate,
+                startPoint = draft.startPoint,
+                endPoint = draft.endPoint,
                 details = draft.details,
             )
         experiences[index] = updated
