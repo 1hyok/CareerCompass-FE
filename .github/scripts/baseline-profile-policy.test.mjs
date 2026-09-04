@@ -44,7 +44,7 @@ test("Baseline Profile uses the AGP 9 compatible producer and explicit consumer 
 test("generator records startup without an absolute performance threshold", async () => {
     const [generator, profile, startupProfile] = await Promise.all([
         readRepositoryFile(
-            "baselineprofile/src/main/java/com/cambridge/baselineprofile/BaselineProfileGenerator.kt",
+            "baselineprofile/src/main/java/com/careercompass/baselineprofile/BaselineProfileGenerator.kt",
         ),
         readRepositoryFile("app/src/main/generated/baselineProfiles/baseline-prof.txt"),
         readRepositoryFile("app/src/main/generated/baselineProfiles/startup-prof.txt"),
@@ -57,8 +57,8 @@ test("generator records startup without an absolute performance threshold", asyn
     assert.match(generator, /startActivityAndWait\(\)/);
     assert.doesNotMatch(generator, /measureRepeated|timeToInitialDisplay|threshold/i);
 
-    assert.match(profile, /^Lcom\/cambridge\/careercompass_fe\/GlobalApplication;$/m);
-    assert.match(profile, /^Lcom\/cambridge\/careercompass_fe\/MainActivity;$/m);
+    assert.match(profile, /^Lcom\/careercompass\/careercompass_fe\/GlobalApplication;$/m);
+    assert.match(profile, /^Lcom\/careercompass\/careercompass_fe\/MainActivity;$/m);
     assert.ok(profile.split("\n").filter(Boolean).length > 100, "committed profile is only a seed");
     assert.equal(startupProfile, profile, "all collected startup rules must feed dex layout");
 });
@@ -68,7 +68,7 @@ test("API boundary devices are explicit and the smoke remains valid for existing
         readRepositoryFile("app/build.gradle.kts"),
         readRepositoryFile("gradle.properties"),
         readRepositoryFile(
-            "app/src/androidTest/java/com/cambridge/careercompass_fe/ApiBoundarySmokeAndroidTest.kt",
+            "app/src/androidTest/java/com/careercompass/careercompass_fe/ApiBoundarySmokeAndroidTest.kt",
         ),
     ]);
 

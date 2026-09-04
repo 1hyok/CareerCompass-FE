@@ -17,7 +17,7 @@ const sampleConfig = {
     unitTests: [
         {
             task: ":feature:timeletter:data:testDebugUnitTest",
-            className: "com.cambridge.feature.timeletter.data.dto.TimeLetterDtoContractTest",
+            className: "com.careercompass.feature.timeletter.data.dto.TimeLetterDtoContractTest",
             tests: ["발신 응답의 명시적 null과 빈 배열은 정상 파싱된다"],
             issues: [790],
             reason: "계약 게이트",
@@ -25,7 +25,7 @@ const sampleConfig = {
     ],
     androidTests: [
         {
-            className: "com.cambridge.careercompass_fe.SampleAndroidTest",
+            className: "com.careercompass.careercompass_fe.SampleAndroidTest",
             tests: ["flakyScenario"],
             issues: [1439],
             reason: "계측 게이트",
@@ -37,7 +37,7 @@ const sampleConfig = {
 };
 
 const androidCase = (name, status) => ({
-    className: "com.cambridge.careercompass_fe.SampleAndroidTest",
+    className: "com.careercompass.careercompass_fe.SampleAndroidTest",
     name,
     status,
 });
@@ -88,7 +88,7 @@ test("루트 kover aggregate 는 모든 unit 게이트를 probe 범위로 만든
     assert.equal(probes.length, 1);
     assert.equal(probes[0].task, ":feature:timeletter:data:testDebugUnitTest");
     assert.deepEqual(probes[0].filters, [
-        "com.cambridge.feature.timeletter.data.dto.TimeLetterDtoContractTest.발신 응답의 명시적 null과 빈 배열은 정상 파싱된다",
+        "com.careercompass.feature.timeletter.data.dto.TimeLetterDtoContractTest.발신 응답의 명시적 null과 빈 배열은 정상 파싱된다",
     ]);
 });
 
@@ -212,16 +212,16 @@ test("androidTest 스키마: FQCN·테스트 목록·추적 이슈가 강제된�
 test("androidTest 판정: 등재된 실패는 흡수하고 목록 밖 실패는 red 다", () => {
     const absorbed = evaluateAndroidTestResults([androidCase("flakyScenario", "failure")], sampleConfig, "api30");
     assert.equal(absorbed.failed, false);
-    assert.deepEqual(absorbed.absorbed, ["com.cambridge.careercompass_fe.SampleAndroidTest#flakyScenario"]);
+    assert.deepEqual(absorbed.absorbed, ["com.careercompass.careercompass_fe.SampleAndroidTest#flakyScenario"]);
     assert.match(absorbed.lines[0], /기대 실패 게이트 유지/);
 
     const regression = evaluateAndroidTestResults(
-        [{ className: "com.cambridge.careercompass_fe.OtherAndroidTest", name: "newlyBroken", status: "failure" }],
+        [{ className: "com.careercompass.careercompass_fe.OtherAndroidTest", name: "newlyBroken", status: "failure" }],
         sampleConfig,
         "api30",
     );
     assert.equal(regression.failed, true);
-    assert.deepEqual(regression.unexpected, ["com.cambridge.careercompass_fe.OtherAndroidTest#newlyBroken"]);
+    assert.deepEqual(regression.unexpected, ["com.careercompass.careercompass_fe.OtherAndroidTest#newlyBroken"]);
     assert.match(regression.lines[0], /목록에 없는 androidTest 실패/);
 });
 
@@ -229,7 +229,7 @@ test("androidTest 판정: XPASS 는 목록 제거를 요구하는 red 다", () =
     const verdict = evaluateAndroidTestResults([androidCase("flakyScenario", "passed")], sampleConfig, "api30");
 
     assert.equal(verdict.failed, true);
-    assert.deepEqual(verdict.xpassed, ["com.cambridge.careercompass_fe.SampleAndroidTest#flakyScenario"]);
+    assert.deepEqual(verdict.xpassed, ["com.careercompass.careercompass_fe.SampleAndroidTest#flakyScenario"]);
     assert.match(verdict.lines[0], new RegExp(CONFIG_RELATIVE_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 

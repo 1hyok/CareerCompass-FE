@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.core.data"
+    namespace = "com.careercompass.core.data"
     testOptions { unitTests.isReturnDefaultValues = true }
 }
 

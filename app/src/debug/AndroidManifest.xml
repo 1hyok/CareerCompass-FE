@@ -12,7 +12,7 @@
                 android:name="firebase_crashlytics_collection_enabled"
                 android:value="false" />
         <activity
-                android:name="com.cambridge.careercompass_fe.debug.DebugSettingsActivity"
+                android:name="com.careercompass.careercompass_fe.debug.DebugSettingsActivity"
                 android:exported="true"
                 android:label="CareerCompass DEV"
                 android:taskAffinity=".devsettings"
@@ -21,7 +21,7 @@
         <!--
           LAUNCHER intent-filter를 의도적으로 두지 않습니다.
           런처 아이콘 중복(.MainActivity와 2개) 방지 — 디버그 설정 화면은
-          `adb shell am start -n com.cambridge.careercompass_fe/.debug.DebugSettingsActivity` 로 진입합니다. (#396)
+          `adb shell am start -n com.cambridge.careercompass_fe/com.careercompass.careercompass_fe.debug.DebugSettingsActivity` 로 진입합니다. (#396)
         -->
     </application>
 

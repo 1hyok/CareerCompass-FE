@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.feature.notification.presentation"
+    namespace = "com.careercompass.feature.notification.presentation"
     resourcePrefix = "notification_"
     testOptions.unitTests.isIncludeAndroidResources = true
     experimentalProperties["android.experimental.enableScreenshotTest"] = true

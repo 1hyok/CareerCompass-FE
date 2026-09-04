@@ -8,7 +8,7 @@ import test from "node:test";
 // 그 상태는 어느 검사에도 걸리지 않았으므로, 접두사 자체를 여기서 대조한다.
 
 const konsistDirectory = new URL(
-    "../../konsist/src/test/kotlin/com/cambridge/konsist/",
+    "../../konsist/src/test/kotlin/com/careercompass/konsist/",
     import.meta.url,
 );
 

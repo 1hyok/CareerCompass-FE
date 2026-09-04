@@ -34,7 +34,7 @@ test('current allowed permissions and protected exported components pass', () =>
         <uses-permission android:name="android.permission.INTERNET" />
         <uses-permission android:name="com.example.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />`,
       components: `
-        <activity android:name="com.cambridge.careercompass_fe.MainActivity" android:exported="true" />
+        <activity android:name="com.careercompass.careercompass_fe.MainActivity" android:exported="true" />
         <service android:name="example.SystemService" android:exported="true"
                  android:permission="android.permission.BIND_JOB_SERVICE" />
         <provider android:name="example.PrivateProvider" android:exported="false" />`,

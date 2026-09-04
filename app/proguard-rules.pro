@@ -22,7 +22,7 @@
 
 # release APK에 URL·상태·예외를 남기는 앱 Log 호출 제거.
 # https://developer.android.com/topic/performance/app-optimization/additional-rule-types
--maximumremovedandroidloglevel 7 class com.cambridge.** {
+-maximumremovedandroidloglevel 7 class com.careercompass.** {
     <methods>;
 }
 
@@ -52,4 +52,4 @@
 # 난독화되면 이슈 제목이 `nq` 같은 축약명으로 떠 어떤 실패인지 알 수 없고
 # 같은 지점의 실패가 서로 다른 이슈로 그룹핑된다.
 # 이름만 필요하므로 멤버 난독화와 미사용 클래스 제거는 그대로 둔다.
--keepnames class com.cambridge.** extends java.lang.Throwable
+-keepnames class com.careercompass.** extends java.lang.Throwable

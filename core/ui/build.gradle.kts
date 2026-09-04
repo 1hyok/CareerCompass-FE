@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.core.ui"
+    namespace = "com.careercompass.core.ui"
     resourcePrefix = "core_ui_"
     experimentalProperties["android.experimental.enableScreenshotTest"] = true
     testFixtures.enable = true
