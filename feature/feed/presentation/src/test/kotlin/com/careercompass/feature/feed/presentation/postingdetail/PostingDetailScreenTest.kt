@@ -2,6 +2,7 @@ package com.careercompass.feature.feed.presentation.postingdetail
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -133,6 +134,47 @@ class PostingDetailScreenTest {
         composeRule.runOnIdle {
             assertEquals(listOf(PostingDetailEvent.SuitabilityRecheckClicked), events)
         }
+    }
+
+    /**
+     * 카드는 사용자가 아무것도 누르지 않아도 바뀐다(자동 재조회, #221). 제목이 live region 으로 상태 요약을 들고
+     * 있어야 스크린 리더가 점수 도착·소진을 알린다(#239).
+     */
+    @Test
+    fun suitabilityTitle_isPoliteLiveRegionWhileAnalyzing() {
+        composeRule.setDetailContent(
+            state = loadedState(posting = samplePosting(suitability = PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = false))),
+        )
+
+        composeRule
+            .onNodeWithText("AI 적합도 분석")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            .assert(hasStateDescription("AI가 분석 중이에요"))
+    }
+
+    @Test
+    fun suitabilityTitle_carriesPendingSummaryAfterRechecksRunOut() {
+        composeRule.setDetailContent(
+            state = loadedState(posting = samplePosting(suitability = PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = true))),
+        )
+
+        composeRule
+            .onNodeWithText("AI 적합도 분석")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            .assert(hasStateDescription("아직 적합도가 나오지 않았어요"))
+    }
+
+    /** 「준비됨」의 요약은 게이지와 같은 문장이고, 게이지·축은 여전히 따로 읽힌다 — 카드를 한 덩어리로 합치지 않았다. */
+    @Test
+    fun suitabilityTitle_carriesScoreSummaryWithoutMergingTheCard() {
+        composeRule.setDetailContent(state = loadedState())
+
+        composeRule
+            .onNodeWithText("AI 적합도 분석")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            .assert(hasStateDescription("적합도 88점, 매우 적합"))
+        composeRule.onNodeWithContentDescription("적합도 88점, 매우 적합").assertExists()
+        composeRule.onNodeWithContentDescription("분야 유사도 가중치 40%, 95점, 충족").assertExists()
     }
 
     @Test

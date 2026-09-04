@@ -26,10 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -303,6 +305,11 @@ private fun PostingHeaderCard(posting: PostingDetailUiModel) {
 /**
  * 적합도 카드 — 세 판정([PostingSuitabilityState])이 세 모양이다. 「분석 중」과 「프로필 미입력」을 섞지 않는다:
  * 뒤쪽은 사용자가 할 일이 있고 앞쪽은 기다리는 수밖에 없다(#100·#221).
+ *
+ * 이 카드는 사용자가 아무것도 누르지 않아도 스스로 바뀐다 — 자동 재조회가 점수를 실어 오거나 소진되면(#221).
+ * 그래서 제목이 **live region** 이다: 상태 요약을 `stateDescription` 으로 들고 있다가 바뀌면 스크린 리더가
+ * 알린다(#239). 카드 전체를 합쳐 live region 으로 만들지 않는 이유는 「준비됨」의 게이지와 축 4개가 각각
+ * 따로 읽혀야 해서다 — 합치면 한 덩어리로 읽힌다.
  */
 @Composable
 private fun PostingSuitabilityCard(
@@ -312,9 +319,17 @@ private fun PostingSuitabilityCard(
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
+    val summary = suitability.summary()
 
     FeedCard(onClick = null) {
-        FeedSectionTitle(text = stringResource(R.string.feed_posting_detail_suitability_title))
+        FeedSectionTitle(
+            text = stringResource(R.string.feed_posting_detail_suitability_title),
+            modifier =
+                Modifier.semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    stateDescription = summary
+                },
+        )
         when (suitability) {
             PostingSuitabilityState.ProfileIncomplete -> {
                 Column(
@@ -357,6 +372,34 @@ private fun PostingSuitabilityCard(
         }
     }
 }
+
+/**
+ * 제목의 `stateDescription` 에 실을 한 줄 요약 — 카드가 스스로 바뀔 때 스크린 리더가 읽는 문장이다(#239).
+ * 「준비됨」은 게이지의 접근성 이름과 같은 문장을 쓴다 — 같은 사실을 두 문장으로 말하지 않는다.
+ */
+@Composable
+private fun PostingSuitabilityState.summary(): String =
+    when (this) {
+        PostingSuitabilityState.ProfileIncomplete -> {
+            stringResource(R.string.feed_posting_detail_profile_incomplete)
+        }
+
+        is PostingSuitabilityState.Analyzing -> {
+            if (isAutoRecheckExhausted) {
+                stringResource(R.string.feed_posting_detail_analysis_pending_title)
+            } else {
+                stringResource(R.string.feed_posting_detail_analyzing)
+            }
+        }
+
+        is PostingSuitabilityState.Ready -> {
+            stringResource(
+                R.string.feed_posting_detail_suitability_content_description,
+                suitability.score,
+                suitability.levelLabel,
+            )
+        }
+    }
 
 /**
  * 자동 재조회를 다 쓴 뒤 — 진행 표시를 거둔다. 도는 인디케이터는 「무언가 하고 있다」는 뜻인데 이제 아무것도

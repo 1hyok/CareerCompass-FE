@@ -102,7 +102,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 | 피드 홈 — 이어 읽기 실패 | `FeedLoadMoreActionRow` | `feed_load_more_failed` = 공고를 더 불러오지 못했어요 | 「다시 시도」(`feed_error_retry`) → `LoadMoreSelected` |
 | 피드 카드 — 적합도 | `FeedSuitabilityChip` | `feed_suitability_analyzing` = 분석 중 | 없음 |
 | 공고 상세 — 화면 | `FeedLoadingContent` | `feed_posting_detail_loading` = 공고를 불러오는 중이에요 | 없음 |
-| 공고 상세 — 적합도 카드 | `CareerCompassAnalyzingState(presentation = Inline)` | `feed_posting_detail_analyzing` = AI가 분석 중이에요 / `feed_posting_detail_analyzing_description` = 적합도가 나오면 이 자리에 바로 보여 드릴게요 | 없음 — 화면이 스스로 5초 × 4회 조용히 다시 읽는다(`PostingDetailViewModel`, #221). 「분석 중」과 「프로필 미입력」은 판정(`judgeSuitability`)이 가르고, 재조회도 「분석 중」일 때만 돈다 |
+| 공고 상세 — 적합도 카드 | `CareerCompassAnalyzingState(presentation = Inline)` — 카드 제목이 `liveRegion = Polite` + `stateDescription`(상태 요약)을 들어 스스로 바뀔 때 스크린 리더가 알린다(#239) | `feed_posting_detail_analyzing` = AI가 분석 중이에요 / `feed_posting_detail_analyzing_description` = 적합도가 나오면 이 자리에 바로 보여 드릴게요 | 없음 — 화면이 스스로 5초 × 4회 조용히 다시 읽는다(`PostingDetailViewModel`, #221). 「분석 중」과 「프로필 미입력」은 판정(`judgeSuitability`)이 가르고, 재조회도 「분석 중」일 때만 돈다 |
 | 공고 상세 — 적합도 카드 · 자동 재조회 소진 | 카드 안 문구 + 버튼(`PostingSuitabilityPending`) — 진행 표시를 거둔다 | `feed_posting_detail_analysis_pending_title` = 아직 적합도가 나오지 않았어요 / `feed_posting_detail_analysis_pending_description` = 분석이 오래 걸리는 공고도 있고, 끝내 분석되지 않는 공고도 있어요.(줄바꿈)「원문 보기」로 내용을 먼저 확인할 수 있어요 | 「다시 확인」(`feed_posting_detail_analysis_recheck`) → `SuitabilityRecheckClicked` — 한 번만 더 묻고, 여전히 없으면 다시 이 상태 |
 | 원문 보기 | `FeedLoadingContent` | `feed_posting_detail_loading` = 공고를 불러오는 중이에요 (**상세 문구를 그대로 재사용한다**) | 없음 |
 | 내 게시판 | `FeedLoadingContent` | `feed_board_list_loading` = 게시판을 불러오는 중이에요 | 없음 |
