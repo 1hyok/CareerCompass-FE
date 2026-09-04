@@ -8,6 +8,7 @@ import com.careercompass.core.model.experience.Experience
 import com.careercompass.core.model.experience.ExperienceType
 import com.careercompass.core.model.user.MAX_JOB_INTERESTS
 import com.careercompass.core.model.user.MAX_PROFILE_TAGS
+import com.careercompass.core.ui.failure.FailureSurface
 import com.careercompass.feature.onboarding.domain.model.JobOptionCatalog
 import com.careercompass.feature.onboarding.domain.model.OnboardingStep
 import com.careercompass.feature.onboarding.presentation.basicinfo.GraduationPickerState
@@ -20,20 +21,46 @@ import com.careercompass.feature.onboarding.presentation.pastapplication.UploadL
 import com.careercompass.feature.onboarding.presentation.shared.model.OnboardingFieldError
 
 /**
- * 온보딩 흐름의 실패 사유. 문구는 Entry 가 리소스로 만든다.
+ * 온보딩 흐름의 실패 사유. 문구는 Entry 가 만든다 — §9 의 코드에서 온 사유는 실패 표(`FailureDisplay`, #204)를
+ * 읽고, 화면 고유 사유(파일 형식·크기)만 온보딩 문자열을 쓴다(#236).
  *
  * **세션 만료(401)는 여기 없다** — 화면에 그릴 사유가 아니라 화면을 떠날 신호이기 때문이다(#211).
  * 401 은 [OnboardingFlowState.sessionEnded] 로 올라가고 앱 셸이 로그인 화면으로 보낸다. 사유 목록에 없는 것이
  * 곧 답이다: 이 열거형이 만료를 담을 수 없으니 온보딩 화면에는 만료를 그리는 자리도 없다.
  */
-public enum class OnboardingFailureReason {
-    Network,
-    LimitExceeded,
-    InvalidInput,
-    Server,
-    UnsupportedFile,
-    FileTooLarge,
-    Unknown,
+public sealed interface OnboardingFailureReason {
+    /** 연결 없음 — 실패 표의 `NoConnection` 행(#204). */
+    public data object Network : OnboardingFailureReason
+
+    /** 우리가 먼저 끊은 요청 — 표의 `Timeout` 행. 연결 없음과 처방이 다르다(기다렸다 다시). */
+    public data object Timeout : OnboardingFailureReason
+
+    /**
+     * 상한 — 표의 `LimitExceeded` 행. 무엇이 몇 개까지인지는 [surface] 가 말한다(경험 카드 30 · 지원서 10).
+     * 표에 문맥이 없는 상한(관심 태그)은 [FailureSurface.Unspecified] 로 개수를 말하지 않는다 — 틀린 숫자를
+     * 말하느니 안 말한다.
+     */
+    public data class LimitExceeded(
+        val surface: FailureSurface,
+    ) : OnboardingFailureReason
+
+    /** 400 — 표의 `InvalidInput` 행. */
+    public data object InvalidInput : OnboardingFailureReason
+
+    /** 503 — 표의 `ServiceUnavailable` 행. 서버가 쉬는 것을 「서버에 문제가 있다」로 말하지 않는다(#236). */
+    public data object Maintenance : OnboardingFailureReason
+
+    /** 500 — 표의 `Unexpected` 행. */
+    public data object Server : OnboardingFailureReason
+
+    /** 화면 고유 — §9 의 코드가 아니라 온보딩 문자열로 남는다(파일 형식 검증). */
+    public data object UnsupportedFile : OnboardingFailureReason
+
+    /** 화면 고유 — 파일 크기 검증. */
+    public data object FileTooLarge : OnboardingFailureReason
+
+    /** 사유를 확인하지 못한 실패 — 표의 `Unexpected` 행. */
+    public data object Unknown : OnboardingFailureReason
 }
 
 /** [OnboardingViewModel] 이 요청하는 화면 이동. 뒤로 가기는 상태 변화가 없어 Entry 가 직접 처리한다. */

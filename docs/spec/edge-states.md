@@ -84,10 +84,10 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 | 게시판 등록 — 감지 타임아웃 | `BoardDetectionTimedOutBox`(경고 톤 상자) | `feed_board_detect_timeout_title` = 분석이 오래 걸려 멈췄어요 / `feed_board_detect_timeout_description` = 사이트 응답이 늦어 기다리기를 그만뒀어요. 지원되지 않는 게시판이라는 뜻은 아니니 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_board_register_retry`) → `DetectClicked` |
 | 로그인 | `OnboardingErrorCard`(하단 인라인 배너) | `onboarding_login_failure_network` = 네트워크 연결을 확인한 뒤 다시 시도해 주세요 | 「닫기」만 — 재시도는 소셜 로그인 버튼이 그대로 살아 있어 그것이 대신한다 |
 | 지문 로그인 | `OnboardingErrorCard` | 지문 실패 사유별(`onboarding_biometric_failure_*`) | 「닫기」 · 「다른 방법으로 로그인」은 상시 |
-| 온보딩 Step 1~4 | `OnboardingFlowFailureHost` 의 하단 배너 | `onboarding_failure_network` = 네트워크 연결을 확인한 뒤 다시 시도해 주세요 | 「닫기」만 — 재시도는 단계 하단의 「다음」이 대신한다 |
+| 온보딩 Step 1~4 | `OnboardingFlowFailureHost` 의 하단 배너 | 실패 표의 `NoConnection` 행(#204, #236 에서 옮김) = 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요 · 타임아웃은 `Timeout` 행 | 「닫기」만 — 재시도는 단계 하단의 「다음」이 대신한다 |
 | 온보딩 문서 업로드 카드 | 카드 상태 줄 | `onboarding_upload_failed_network` = 연결 실패 (`onboarding_step4_document_failed_retry` = `%1$s · 재시도` 틀에 끼워진다) | 「재시도」 → 그 문서만 다시 올린다 |
 
-**같은 사실을 네 가지로 말하고 있었다.** 「연결할 수 없어요 / 인터넷 연결을 확인하고 다시 시도해 주세요」(부품) · 「공고를 불러오지 못했어요. 네트워크 연결을 확인해 주세요」(상세) · 「네트워크 연결을 확인한 뒤 다시 시도해 주세요」(온보딩) · 「네트워크에 연결할 수 없어요. 연결을 확인해 주세요」(게시판 등록). #204 가 [실패 표](error-copy.md)로 통일했다 — 부품·상세·게시판 등록이 모두 `NoConnection` 행 하나를 읽는다. 온보딩은 아직 옮기지 않았다.
+**같은 사실을 네 가지로 말하고 있었다.** 「연결할 수 없어요 / 인터넷 연결을 확인하고 다시 시도해 주세요」(부품) · 「공고를 불러오지 못했어요. 네트워크 연결을 확인해 주세요」(상세) · 「네트워크 연결을 확인한 뒤 다시 시도해 주세요」(온보딩) · 「네트워크에 연결할 수 없어요. 연결을 확인해 주세요」(게시판 등록). #204 가 [실패 표](error-copy.md)로 통일했다 — 부품·상세·게시판 등록이 모두 `NoConnection` 행 하나를 읽고, 온보딩도 #236 에서 옮겼다(화면 고유 사유인 파일 형식·크기만 온보딩 문자열로 남는다).
 
 ### 2.2 로딩 · 분석 중
 
@@ -172,7 +172,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 | 원문 보기 | `FeedMaintenanceState` (#212 에서 붙임 — 실패 상태가 `FeedFailureReason` 을 든다) | 같음 | 「새로고침」 → `retry()` · 오프라인 모드 **없음**(원문은 스냅샷을 저장하지 않는다) |
 | 게시판 등록 — 감지 | `FeedMaintenanceNotice` — 화면에 남는 인라인 상자(`BoardDetectionState.Maintenance`). 폼이 살아 있어야 해 화면 한 장을 쓸 수 없다 | 실패 표의 `ServiceUnavailable` 행(#204) — `FeedMaintenanceState` 와 같은 제목·본문 | **버튼 없음** — 서버가 돌아와야 답이 달라진다(§3). 위의 「구조 분석하기」는 그대로 눌린다 |
 | 게시판 등록 — 제출 | 점검 스낵바(`BoardRegisterMessage.Maintenance`) | 실패 표의 `ServiceUnavailable` 행 제목(#204) — `core_ui_failure_service_unavailable_title` = 서비스가 잠시 점검 중이에요(본문은 줄바꿈을 품어 스낵바에는 제목만) | 스낵바라 버튼 없음 — 감지 결과와 폼은 그대로 남는다 |
-| 온보딩 Step 1~4 | 일반 서버 오류로 접힌다(`ServiceUnavailable` 과 `ServerError` 를 한 사유로 묶는다) | `onboarding_failure_server` = 서버에 문제가 있어요. 잠시 후 다시 시도해 주세요 | 「닫기」 |
+| 온보딩 Step 1~4 | 하단 배너 — `OnboardingFailureReason.Maintenance` 로 갈라 실패 표의 `ServiceUnavailable` 행을 읽는다(#236, 전에는 일반 서버 오류로 접혔다) | `core_ui_failure_service_unavailable_title` = 서비스가 잠시 점검 중이에요 / 본문은 표와 같다 | 「닫기」 |
 
 문의처(`contactLabel`)는 **넘기지 않는다** — 아직 공개된 창구가 없고, 없는 주소를 적으면 사용자를 막다른 길로 보낸다. 점검은 리포팅에서도 「보고할 결함」이 아니다(네트워크 단절과 같은 취급, #101).
 
@@ -203,7 +203,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 | 내 게시판 | `CareerCompassFailureState` | 실패 표의 `Unexpected`×`Board` 행(#204) = 게시판을 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`core_ui_state_retry`) → `retryLoad()` |
 | 공고 상세 | `CareerCompassFailureState`(#222 — 전에는 손으로 그린 `Column` 에 한 줄 문장) | 실패 표의 `Unexpected`×`Posting` 행(#204) = 공고를 불러오지 못했어요 / 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_detail_retry`) — 표의 `isRetryable` 이 거짓이면 버튼 없음 |
 | 원문 보기 | `CareerCompassFailureState` | `feed_posting_raw_error_title` = 원문을 불러오지 못했어요 / `feed_posting_raw_error_description` = 잠시 후 다시 시도해 주세요 | 「다시 시도」(`feed_posting_raw_error_retry`) |
-| 온보딩 Step 1~4 | 하단 배너 | 사유가 좁혀지면 그 문구, 아니면 `onboarding_failure_unknown` = 문제가 생겼어요. 잠시 후 다시 시도해 주세요 | 「닫기」 |
+| 온보딩 Step 1~4 | 하단 배너 | 실패 표의 `Unexpected` 행(#204·#236) = 문제가 생겼어요. 잠시 후 다시 시도해 주세요 — 사유가 좁혀지면 그 행(입력값·상한은 단계가 아는 문맥으로) | 「닫기」 |
 | 게시판 등록 | 스낵바 | `feed_board_register_detect_failed` / `feed_board_register_failed` (503 은 #212 에서 빠져나갔다) | 없음 |
 
 > **#204 에서 정리됐다** — API_SPEC §9 의 에러 코드 14종이 [`docs/spec/error-copy.md`](error-copy.md) 의 표로 모였다. 코드마다 제목·본문과 「사용자가 할 수 있는 일」이 정해져 있고, **재시도해도 답이 갈리지 않는 실패에는 재시도가 붙지 않는다** — 상한 초과는 「정리하러 가기」로, 프로필 미완성은 「프로필 입력하기」로 갈린다. 화면이 `FailureSurface` 를 넘기면 표가 명사까지 채운다(공고 / 게시판). 여기 남은 Generic 행은 **표의 `Unexpected` 행**이다 — `INTERNAL_ERROR` 와 사유를 확인하지 못한 실패만 들어온다.
