@@ -70,11 +70,22 @@ public data class FeedDeadlineRange(
         }
 }
 
-/** Minimum suitability score options of the feed filter sheet (spec F2-3). */
+/**
+ * 「적합도 하한」 선택지 — 값은 F3-2 의 **레이블 경계**다(이슈 #200).
+ *
+ * 스펙 F2-3 이 적은 70 을 뺐다. 70 은 어떤 레이블의 경계도 아니라서 「70점 이상」으로 거르면
+ * 「적합」(60~79)이 반으로 잘려 나오고, 그렇게 걸러진 목록을 화면이 설명할 말이 없다. 선택지의 값과
+ * 카드에 뜨는 레이블이 같은 경계를 쓰게 맞춘 것이다 —
+ * 근거는 [FeedQuery.ALLOWED_MIN_SCORES][com.cambridge.feature.feed.domain.model.FeedQuery.ALLOWED_MIN_SCORES]
+ * 와 `docs/spec/suitability-score-boundary.md`.
+ */
 public enum class FeedMinScoreFilter {
     All,
+
+    /** 60점 이상 — 「적합」 이상. */
     AtLeast60,
-    AtLeast70,
+
+    /** 80점 이상 — 「매우 적합」. */
     AtLeast80,
 }
 

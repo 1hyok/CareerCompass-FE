@@ -248,7 +248,7 @@ class FeedFilterSheetContentTest {
         composeRule.onNode(hasText("장학금") and hasStateDescription("선택 안 됨")).performClick()
         composeRule.onNodeWithText("학교 게시판").performClick()
         composeRule.onNode(hasText("7일 이내") and hasStateDescription("선택 안 됨")).performScrollTo().performClick()
-        composeRule.onNode(hasText("70점 이상") and hasStateDescription("선택 안 됨")).performScrollTo().performClick()
+        composeRule.onNode(hasText("80점 이상 (매우 적합)") and hasStateDescription("선택 안 됨")).performScrollTo().performClick()
         composeRule.onNodeWithContentDescription("읽지 않은 공고만 보기").performScrollTo().performClick()
         composeRule.onNode(hasText("초기화") and hasClickAction()).performClick()
         composeRule.onNode(hasText("12개 공고 보기") and hasClickAction()).performClick()
@@ -260,7 +260,7 @@ class FeedFilterSheetContentTest {
                     FeedFilterEvent.CategorySelected(FeedListingCategory.Scholarship),
                     FeedFilterEvent.BoardToggled("school"),
                     FeedFilterEvent.DeadlineSelected(FeedDeadlineFilter.WithinWeek),
-                    FeedFilterEvent.MinScoreSelected(FeedMinScoreFilter.AtLeast70),
+                    FeedFilterEvent.MinScoreSelected(FeedMinScoreFilter.AtLeast80),
                     FeedFilterEvent.UnreadOnlyToggled,
                     FeedFilterEvent.ResetClicked,
                     FeedFilterEvent.ApplyClicked,

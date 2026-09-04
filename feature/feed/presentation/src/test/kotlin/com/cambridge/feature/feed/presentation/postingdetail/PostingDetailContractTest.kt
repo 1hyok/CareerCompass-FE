@@ -5,8 +5,7 @@ import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
-import com.cambridge.feature.feed.presentation.shared.component.HIGH_SCORE_THRESHOLD
-import com.cambridge.feature.feed.presentation.shared.component.MID_SCORE_THRESHOLD
+import com.cambridge.feature.feed.presentation.shared.component.suitabilityLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -153,13 +152,20 @@ class PostingDetailContractTest {
     /**
      * 「충족」 경계가 F3-2 의 「적합」 경계와 갈라지면 한 화면이 서로 다른 말을 한다 —
      * 총점 65점을 「적합」 이라 부르면서 65점짜리 축은 「미충족」 이라고 적는 식이다.
-     * 경계는 도메인의 [SuitabilityLabel] 하나뿐이고, 프레젠테이션의 상수들은 그 사본이다.
+     * 경계는 도메인의 [SuitabilityLabel] 하나뿐이다(이슈 #200 이 사본 상수들을 걷었다).
      */
     @Test
-    fun scoreThresholds_stayPinnedToTheDomainLabelBoundaries() {
+    fun axisFulfilledThreshold_isTheSuitableLabelBoundary() {
         assertEquals(SuitabilityLabel.Suitable.minScore, SUITABILITY_AXIS_FULFILLED_THRESHOLD)
-        assertEquals(SuitabilityLabel.Suitable.minScore, MID_SCORE_THRESHOLD)
-        assertEquals(SuitabilityLabel.VerySuitable.minScore, HIGH_SCORE_THRESHOLD)
+    }
+
+    /** 카드 점수 칩의 강조도 레이블 경계에서만 갈린다 — 79/80·59/60 이 아닌 곳에서는 바뀌지 않는다. */
+    @Test
+    fun cardScoreChipEmphasis_changesOnlyAtLabelBoundaries() {
+        assertEquals(CareerCompassScoreLevel.High, SuitabilityLabel.VerySuitable.minScore.suitabilityLevel())
+        assertEquals(CareerCompassScoreLevel.Mid, (SuitabilityLabel.VerySuitable.minScore - 1).suitabilityLevel())
+        assertEquals(CareerCompassScoreLevel.Mid, SuitabilityLabel.Suitable.minScore.suitabilityLevel())
+        assertEquals(CareerCompassScoreLevel.Low, (SuitabilityLabel.Suitable.minScore - 1).suitabilityLevel())
     }
 
     @Test
@@ -178,7 +184,7 @@ private fun sampleSuitability(): SuitabilityUiModel =
     SuitabilityUiModel(
         score = 88,
         levelLabel = "매우 적합",
-        level = CareerCompassScoreLevel.High,
+        level = SuitabilityLabel.VerySuitable,
         breakdown = listOf(sampleAxis()),
         strengthComment = "강점",
         weaknessComment = "약점",

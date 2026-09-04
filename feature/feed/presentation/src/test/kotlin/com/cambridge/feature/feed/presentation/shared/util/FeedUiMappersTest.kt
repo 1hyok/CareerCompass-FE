@@ -12,7 +12,6 @@ import com.cambridge.core.model.posting.Suitability
 import com.cambridge.core.model.posting.SuitabilityAxis
 import com.cambridge.core.model.posting.SuitabilityAxisKind
 import com.cambridge.core.model.posting.SuitabilityLabel
-import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
@@ -196,7 +195,7 @@ class FeedUiMappersTest {
         assertTrue(model.canCreateDraft)
         val suitability = (model.suitability as PostingSuitabilityState.Ready).suitability
         assertEquals("매우 적합", suitability.levelLabel)
-        assertEquals(CareerCompassScoreLevel.High, suitability.level)
+        assertEquals(SuitabilityLabel.VerySuitable, suitability.level)
         assertEquals("분야 유사도", suitability.breakdown.single().label)
         assertEquals("40%", suitability.breakdown.single().weightLabel)
     }
@@ -284,11 +283,13 @@ class FeedUiMappersTest {
     @Test
     fun `점수 하한과 주기는 선택지로 되돌린다`() {
         assertEquals(
-            70,
-            com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter.AtLeast70
+            80,
+            com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter.AtLeast80
                 .toMinScore(),
         )
         assertEquals(com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter.All, (null as Int?).toMinScoreFilter())
+        // 없어진 선택지 70 은 예외가 아니라 「전체」로 접힌다 — 매핑 하나가 화면을 죽이지 않게(이슈 #200).
+        assertEquals(com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter.All, 70.toMinScoreFilter())
         assertEquals(com.cambridge.feature.feed.presentation.board.BoardCollectCycle.Weekly, 168.toCollectCycle())
         assertEquals(com.cambridge.feature.feed.presentation.board.BoardCollectCycle.Daily, 7.toCollectCycle())
     }

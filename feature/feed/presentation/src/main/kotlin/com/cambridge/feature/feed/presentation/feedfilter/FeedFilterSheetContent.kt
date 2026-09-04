@@ -264,6 +264,5 @@ private fun FeedMinScoreFilter.labelRes(): Int =
     when (this) {
         FeedMinScoreFilter.All -> R.string.feed_filter_min_score_all
         FeedMinScoreFilter.AtLeast60 -> R.string.feed_filter_min_score_60
-        FeedMinScoreFilter.AtLeast70 -> R.string.feed_filter_min_score_70
         FeedMinScoreFilter.AtLeast80 -> R.string.feed_filter_min_score_80
     }
