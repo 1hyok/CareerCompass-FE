@@ -35,7 +35,7 @@
 | 적합도 필터 옵션(60·70·80)과 레이블 경계(60·80) | F2-3 ↔ F3-2 | 필터에서 고른 값과 카드 레이블이 같은 경계를 쓰게 맞춘다 — 판정과 근거는 이슈와 그 PR 에 | [#200](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/200) |
 | 지원서 버전 보관·재생성 규칙이 API 에 없음 | F4-3 ↔ API_SPEC §6 | 다섯 가지를 정했다 — 아래 「지원서 규칙」 | [#201](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/201) |
 | 알림 유형 개수 — 명세서는 셋(신규 공고·마감 임박·수집 오류), API_SPEC 설정은 넷(`weeklyReport` 추가) | F2-4 ↔ API_SPEC §8 | **넷이다.** 설정 스키마에 키가 있으면 서버가 그 알림을 보낸다는 뜻이고, 명세서 표는 「발송 조건」만 적어 조건이 정해지지 않은 주간 리포트가 빠진 것으로 본다. 주간 리포트의 발송 조건은 미정 | [#202](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/202) |
-| 알림 목록·설정 화면 시안이 Figma 에 없음 | API_SPEC §8 ↔ Figma | 화면 명세를 글로 먼저 확정했다. 시안은 아직 없다 | [#202](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/202) |
+| 알림 목록·설정 화면 시안이 Figma 에 없음 | API_SPEC §8 ↔ Figma | 화면 명세를 글로 먼저 확정했다 — [`notification-screens.md`](notification-screens.md). 시안은 아직 없다 | [#202](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/202) |
 
 ## 지원서 규칙 (F4-3 의 빈 곳, #201 판정)
 
