@@ -166,7 +166,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 공고 상세 | `FeedMaintenanceState` | 같음 | 「새로고침」 → `RetryClicked` · 오프라인 모드 **없음** |
 | 내 게시판 | `FeedMaintenanceState` | 같음 | 「새로고침」 → `retryLoad()` · 오프라인 모드 **없음** |
 | 원문 보기 | `FeedMaintenanceState` (#212 에서 붙임 — 실패 상태가 `FeedFailureReason` 을 든다) | 같음 | 「새로고침」 → `retry()` · 오프라인 모드 **없음**(원문은 스냅샷을 저장하지 않는다) |
-| 게시판 등록 — 감지 | `FeedMaintenanceNotice` — 화면에 남는 인라인 상자(`BoardDetectionState.Maintenance`). 폼이 살아 있어야 해 화면 한 장을 쓸 수 없다 | `feed_maintenance_title` / `feed_maintenance_description` (같은 리소스) | **버튼 없음** — 서버가 돌아와야 답이 달라진다(§3). 위의 「구조 분석하기」는 그대로 눌린다 |
+| 게시판 등록 — 감지 | `FeedMaintenanceNotice` — 화면에 남는 인라인 상자(`BoardDetectionState.Maintenance`). 폼이 살아 있어야 해 화면 한 장을 쓸 수 없다 | 실패 표의 `ServiceUnavailable` 행(#204) — `FeedMaintenanceState` 와 같은 제목·본문 | **버튼 없음** — 서버가 돌아와야 답이 달라진다(§3). 위의 「구조 분석하기」는 그대로 눌린다 |
 | 게시판 등록 — 제출 | 점검 스낵바(`BoardRegisterMessage.Maintenance`) | 실패 표의 `ServiceUnavailable` 행 제목(#204) — `core_ui_failure_service_unavailable_title` = 서비스가 잠시 점검 중이에요(본문은 줄바꿈을 품어 스낵바에는 제목만) | 스낵바라 버튼 없음 — 감지 결과와 폼은 그대로 남는다 |
 | 온보딩 Step 1~4 | 일반 서버 오류로 접힌다(`ServiceUnavailable` 과 `ServerError` 를 한 사유로 묶는다) | `onboarding_failure_server` = 서버에 문제가 있어요. 잠시 후 다시 시도해 주세요 | 「닫기」 |
 

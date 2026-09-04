@@ -44,7 +44,7 @@ public sealed interface BoardRegisterMessage {
      * 서버 점검(503 `LLM_UNAVAILABLE`)으로 **등록 제출**이 실패했다는 안내.
      *
      * [RegisterFailed] 로 접으면 「게시판을 등록하지 못했어요」가 되어, 서버가 잠깐 쉬는 것을 사용자가 자기
-     * 입력이나 게시판 탓으로 읽는다(#212). 문구는 새로 짓지 않고 점검 안내의 정본(`feed_maintenance_title`)을
+     * 입력이나 게시판 탓으로 읽는다(#212). 문구는 새로 짓지 않고 실패 표의 점검 행(`FailureKind.ServiceUnavailable`, #204)을
      * 그대로 쓴다 — 같은 사실을 화면마다 다르게 말하지 않는다.
      *
      * **감지(`BoardDetectionState.Maintenance`)와 자리가 다른 이유** — 감지는 서버가 외부 사이트를 처음부터
