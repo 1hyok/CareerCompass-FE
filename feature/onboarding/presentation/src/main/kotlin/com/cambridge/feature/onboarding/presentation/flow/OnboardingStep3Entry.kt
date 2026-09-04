@@ -5,10 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.model.experience.Experience
-import com.cambridge.core.model.experience.ExperienceDetails
-import com.cambridge.core.model.experience.ExperiencePoint
-import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.feature.onboarding.presentation.OnboardingExperience
 import com.cambridge.feature.onboarding.presentation.OnboardingExperienceType
 import com.cambridge.feature.onboarding.presentation.OnboardingStep3Event
@@ -21,6 +17,10 @@ import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickA
 import com.cambridge.feature.onboarding.presentation.experience.labelResId
 import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
+import com.careercompass.core.model.experience.Experience
+import com.careercompass.core.model.experience.ExperienceDetails
+import com.careercompass.core.model.experience.ExperiencePoint
+import com.careercompass.core.model.experience.ExperienceType
 
 /**
  * Step 3(경험) 화면의 상태 배선. [viewModel] 은 그래프 스코프 [OnboardingViewModel] 이어야 한다.

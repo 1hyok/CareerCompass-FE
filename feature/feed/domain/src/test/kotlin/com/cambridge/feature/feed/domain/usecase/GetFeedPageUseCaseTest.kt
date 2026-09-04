@@ -1,18 +1,18 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakePostingRepository
-import com.cambridge.core.model.paging.CursorPage
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingQuery
-import com.cambridge.core.model.posting.PostingSort
-import com.cambridge.core.model.posting.PostingType
 import com.cambridge.feature.feed.domain.FIXED_CLOCK
 import com.cambridge.feature.feed.domain.TODAY
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter
 import com.cambridge.feature.feed.domain.model.FeedPage
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.domain.posting
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakePostingRepository
+import com.careercompass.core.model.paging.CursorPage
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingQuery
+import com.careercompass.core.model.posting.PostingSort
+import com.careercompass.core.model.posting.PostingType
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

@@ -1,8 +1,8 @@
 package com.cambridge.feature.feed.domain.model
 
-import com.cambridge.core.model.posting.PostingQuery
 import com.cambridge.feature.feed.domain.NOON_TODAY
 import com.cambridge.feature.feed.domain.posting
+import com.careercompass.core.model.posting.PostingQuery
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test

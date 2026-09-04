@@ -3,10 +3,6 @@ package com.cambridge.feature.feed.presentation.board
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardUpdate
 import com.cambridge.feature.feed.domain.usecase.DeleteBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.RetryBoardUseCase
@@ -19,6 +15,10 @@ import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.util.toCollectCycle
 import com.cambridge.feature.feed.presentation.shared.util.toDomainBoardType
 import com.cambridge.feature.feed.presentation.shared.util.toUiBoardType
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardUpdate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import javax.inject.Inject
-import com.cambridge.core.model.board.BoardStatus as DomainBoardStatus
+import com.careercompass.core.model.board.BoardStatus as DomainBoardStatus
 
 public sealed interface BoardListLoadState {
     public data object Loading : BoardListLoadState

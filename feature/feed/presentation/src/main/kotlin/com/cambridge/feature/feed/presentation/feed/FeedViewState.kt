@@ -1,8 +1,5 @@
 package com.cambridge.feature.feed.presentation.feed
 
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.presentation.FeedListingCategory
@@ -18,6 +15,9 @@ import com.cambridge.feature.feed.presentation.shared.util.toListingCategory
 import com.cambridge.feature.feed.presentation.shared.util.toPostingTypes
 import com.cambridge.feature.feed.presentation.shared.util.toUiDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toUiDeadlineRange
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.user.UserProfile
 import java.time.Instant
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter as DomainDeadlineFilter
 

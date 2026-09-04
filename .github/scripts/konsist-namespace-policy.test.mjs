@@ -12,12 +12,32 @@ const konsistDirectory = new URL(
     import.meta.url,
 );
 
-/** 모듈 namespace 의 정본은 build 파일이다. 여기서 뽑아 konsist 리터럴과 맞춘다. */
-async function namespaceRoot() {
-    const build = await readFile(new URL("../../app/build.gradle.kts", import.meta.url), "utf8");
-    const match = build.match(/namespace\s*=\s*"([a-z0-9_]+\.[a-z0-9_]+)\./);
-    assert.ok(match, "app/build.gradle.kts 에서 namespace 를 읽지 못했다");
-    return match[1];
+/**
+ * 모듈 namespace 의 정본은 build 파일이다. 여기서 뽑아 konsist 리터럴과 맞춘다.
+ *
+ * 모든 모듈의 접두사를 모은다 — 패키지 접두사를 옮기는 동안(#220)에는 두 접두사가 실제로 공존하고,
+ * 그때 konsist 가 한쪽만 보면 옮긴 모듈이 검사에서 빠진다. 전환이 끝나면 집합은 다시 하나가 된다.
+ */
+async function namespaceRoots() {
+    const roots = new Set();
+    for (const module of await moduleDirectories()) {
+        let build;
+        try {
+            build = await readFile(new URL(`../../${module}/build.gradle.kts`, import.meta.url), "utf8");
+        } catch {
+            continue;
+        }
+        const match = build.match(/namespace\s*=\s*"([a-z0-9_]+\.[a-z0-9_]+)\./);
+        if (match) roots.add(match[1]);
+    }
+    assert.ok(roots.size > 0, "어느 모듈에서도 namespace 를 읽지 못했다");
+    return [...roots].sort();
+}
+
+async function moduleDirectories() {
+    const settings = await readFile(new URL("../../settings.gradle.kts", import.meta.url), "utf8");
+    return [...settings.matchAll(/include\("(:[a-z0-9:_-]+)"\)/g)]
+        .map((m) => m[1].slice(1).replaceAll(":", "/"));
 }
 
 async function konsistSources() {
@@ -29,9 +49,10 @@ async function konsistSources() {
 }
 
 test("konsist 의 패키지 접두사가 실제 namespace 와 일치한다", async () => {
-    const root = await namespaceRoot();
+    const roots = await namespaceRoots();
+    const known = roots.map((root) => root.split(".")[1]).join("|");
     // 정규식 안에서는 점이 이스케이프된다. 두 형태를 모두 본다.
-    const foreign = new RegExp(String.raw`\bcom\\?\.(?!${root.split(".")[1]}\b)[a-z0-9_]+`, "g");
+    const foreign = new RegExp(String.raw`\bcom\\?\.(?!(?:${known})\b)[a-z0-9_]+`, "g");
 
     for (const [name, source] of await konsistSources()) {
         // import 줄은 konsist 라이브러리(com.lemonappdev) 등 남의 패키지를 정당하게 쓴다.
@@ -44,7 +65,7 @@ test("konsist 의 패키지 접두사가 실제 namespace 와 일치한다", asy
         assert.deepEqual(
             hits,
             [],
-            `${name} 이 ${root} 가 아닌 패키지 접두사를 쓴다: ${hits.join(", ")}`,
+            `${name} 이 ${roots.join("·")} 가 아닌 패키지 접두사를 쓴다: ${hits.join(", ")}`,
         );
     }
 });

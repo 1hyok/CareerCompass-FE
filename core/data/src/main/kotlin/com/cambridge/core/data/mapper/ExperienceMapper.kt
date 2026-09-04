@@ -1,15 +1,15 @@
 package com.cambridge.core.data.mapper
 
-import com.cambridge.core.model.experience.Experience
-import com.cambridge.core.model.experience.ExperienceDetails
-import com.cambridge.core.model.experience.ExperienceDraft
-import com.cambridge.core.model.experience.ExperiencePoint
-import com.cambridge.core.model.experience.ExperienceType
-import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
-import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
-import com.cambridge.core.model.experience.isAllowedExperienceLink
 import com.cambridge.core.network.dto.ExperienceDto
 import com.cambridge.core.network.dto.ExperienceRequestDto
+import com.careercompass.core.model.experience.Experience
+import com.careercompass.core.model.experience.ExperienceDetails
+import com.careercompass.core.model.experience.ExperienceDraft
+import com.careercompass.core.model.experience.ExperiencePoint
+import com.careercompass.core.model.experience.ExperienceType
+import com.careercompass.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.careercompass.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
+import com.careercompass.core.model.experience.isAllowedExperienceLink
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive

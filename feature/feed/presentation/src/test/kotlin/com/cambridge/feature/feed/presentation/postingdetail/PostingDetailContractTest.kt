@@ -1,11 +1,11 @@
 package com.cambridge.feature.feed.presentation.postingdetail
 
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.shared.component.suitabilityLevel
+import com.careercompass.core.model.posting.SuitabilityLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test

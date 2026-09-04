@@ -2,9 +2,6 @@ package com.cambridge.feature.feed.presentation.board
 
 import android.os.Parcel
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.testing.FakeBoardRepository
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardUpdate
 import com.cambridge.feature.feed.domain.usecase.DeleteBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.RetryBoardUseCase
@@ -14,6 +11,9 @@ import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.board
+import com.careercompass.core.domain.testing.FakeBoardRepository
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardUpdate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -25,7 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import com.cambridge.core.model.board.BoardType as DomainBoardType
+import com.careercompass.core.model.board.BoardType as DomainBoardType
 
 /**
  * 프로세스 사망 뒤 게시판 **수정** 시트의 입력이 살아 돌아오는지 — 이슈 #156.

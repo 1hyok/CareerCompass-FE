@@ -7,10 +7,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.feature.onboarding.presentation.BuildConfig
 import com.cambridge.feature.onboarding.presentation.login.util.GoogleLoginHelper
 import com.cambridge.feature.onboarding.presentation.login.util.KakaoLoginHelper
+import com.careercompass.core.model.auth.SocialProvider
 
 /** 소셜 SDK 에서 토큰을 받아 오는 일. Activity 를 요구하는 유일한 조각이라 화면 쪽에만 둔다. */
 internal typealias SocialTokenSource = suspend (Activity, SocialProvider) -> Result<String>

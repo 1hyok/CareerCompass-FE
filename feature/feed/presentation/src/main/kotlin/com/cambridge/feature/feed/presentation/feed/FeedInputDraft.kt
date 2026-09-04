@@ -1,14 +1,14 @@
 package com.cambridge.feature.feed.presentation.feed
 
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.model.posting.PostingSort
-import com.cambridge.core.model.posting.PostingType
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
 import com.cambridge.feature.feed.presentation.shared.util.toDomainDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toUiDeadlineFilter
 import com.cambridge.feature.feed.presentation.shared.util.toUiDeadlineRange
+import com.careercompass.core.model.posting.PostingSort
+import com.careercompass.core.model.posting.PostingType
 import java.time.LocalDate
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter as DomainDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter as UiDeadlineFilter

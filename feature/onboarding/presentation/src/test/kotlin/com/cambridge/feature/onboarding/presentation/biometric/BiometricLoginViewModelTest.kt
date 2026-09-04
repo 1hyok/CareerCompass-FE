@@ -1,11 +1,11 @@
 package com.cambridge.feature.onboarding.presentation.biometric
 
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.domain.usecase.auth.ResolveSessionEntryUseCase
+import com.careercompass.core.model.user.UserProfile
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

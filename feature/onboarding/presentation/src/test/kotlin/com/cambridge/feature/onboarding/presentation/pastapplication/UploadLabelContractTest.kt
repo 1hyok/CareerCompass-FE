@@ -1,6 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.pastapplication
 
-import com.cambridge.core.model.application.UploadFile
+import com.careercompass.core.model.application.UploadFile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

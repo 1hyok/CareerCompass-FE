@@ -1,7 +1,7 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.PostingRepository
-import com.cambridge.core.model.posting.PostingDetail
+import com.careercompass.core.domain.repository.PostingRepository
+import com.careercompass.core.model.posting.PostingDetail
 import javax.inject.Inject
 
 /**

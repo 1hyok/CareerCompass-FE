@@ -1,10 +1,10 @@
 package com.cambridge.core.data.mapper
 
-import com.cambridge.core.model.application.PastApplication
-import com.cambridge.core.model.application.PastApplicationCategory
-import com.cambridge.core.model.application.PastApplicationItem
 import com.cambridge.core.network.dto.PastApplicationDto
 import com.cambridge.core.network.dto.PastApplicationItemDto
+import com.careercompass.core.model.application.PastApplication
+import com.careercompass.core.model.application.PastApplicationCategory
+import com.careercompass.core.model.application.PastApplicationItem
 
 internal object PastApplicationMapper {
     fun toApplication(dto: PastApplicationDto): PastApplication =

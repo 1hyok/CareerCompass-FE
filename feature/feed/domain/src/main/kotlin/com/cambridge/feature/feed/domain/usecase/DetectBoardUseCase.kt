@@ -1,8 +1,8 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.BoardRepository
-import com.cambridge.core.model.board.BoardDetection
 import com.cambridge.feature.feed.domain.model.BoardUrl
+import com.careercompass.core.domain.repository.BoardRepository
+import com.careercompass.core.model.board.BoardDetection
 import javax.inject.Inject
 
 /**

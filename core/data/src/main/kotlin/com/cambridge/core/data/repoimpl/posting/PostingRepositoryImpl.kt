@@ -1,17 +1,17 @@
 package com.cambridge.core.data.repoimpl.posting
 
-import com.cambridge.core.common.result.runCatchingCancellable
 import com.cambridge.core.data.failure.mapDataFailure
 import com.cambridge.core.data.mapper.PostingMapper
-import com.cambridge.core.domain.repository.PostingRepository
-import com.cambridge.core.model.paging.CursorPage
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingDetail
-import com.cambridge.core.model.posting.PostingQuery
-import com.cambridge.core.model.posting.PostingType
 import com.cambridge.core.network.model.requireData
 import com.cambridge.core.network.model.requireOk
 import com.cambridge.core.network.service.PostingApiService
+import com.careercompass.core.common.result.runCatchingCancellable
+import com.careercompass.core.domain.repository.PostingRepository
+import com.careercompass.core.model.paging.CursorPage
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.model.posting.PostingQuery
+import com.careercompass.core.model.posting.PostingType
 import javax.inject.Inject
 
 internal class PostingRepositoryImpl

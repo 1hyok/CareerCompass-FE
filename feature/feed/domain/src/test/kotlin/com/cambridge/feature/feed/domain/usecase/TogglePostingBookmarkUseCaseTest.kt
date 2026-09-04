@@ -1,8 +1,8 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakePostingRepository
 import com.cambridge.feature.feed.domain.posting
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakePostingRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

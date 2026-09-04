@@ -1,9 +1,6 @@
 package com.cambridge.feature.feed.presentation.feed
 
 import android.content.res.Resources
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.posting.PostingType
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.FeedContentState
@@ -17,6 +14,9 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsReaso
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsUiModel
 import com.cambridge.feature.feed.presentation.posting
 import com.cambridge.feature.feed.presentation.profile
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.posting.PostingType
+import com.careercompass.core.model.user.UserProfile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

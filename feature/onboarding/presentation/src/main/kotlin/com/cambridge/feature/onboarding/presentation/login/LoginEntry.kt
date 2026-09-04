@@ -8,9 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.feature.onboarding.presentation.R
 import com.cambridge.feature.onboarding.presentation.biometric.BiometricEnrollGate
+import com.careercompass.core.model.auth.SocialProvider
 
 /**
  * 소셜 로그인 화면의 상태 배선.

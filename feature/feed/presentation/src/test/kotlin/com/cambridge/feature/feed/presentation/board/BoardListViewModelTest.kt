@@ -1,9 +1,6 @@
 package com.cambridge.feature.feed.presentation.board
 
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeBoardRepository
-import com.cambridge.core.model.board.BoardUpdate
 import com.cambridge.feature.feed.domain.usecase.DeleteBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.GetBoardsUseCase
 import com.cambridge.feature.feed.domain.usecase.RetryBoardUseCase
@@ -15,6 +12,9 @@ import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.board
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.util.toUiBoardStatus
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeBoardRepository
+import com.careercompass.core.model.board.BoardUpdate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -25,8 +25,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.net.UnknownHostException
-import com.cambridge.core.model.board.BoardStatus as DomainBoardStatus
-import com.cambridge.core.model.board.BoardType as DomainBoardType
+import com.careercompass.core.model.board.BoardStatus as DomainBoardStatus
+import com.careercompass.core.model.board.BoardType as DomainBoardType
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BoardListViewModelTest {

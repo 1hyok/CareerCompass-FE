@@ -1,8 +1,5 @@
 package com.cambridge.core.data.mapper
 
-import com.cambridge.core.model.posting.PostingType
-import com.cambridge.core.model.posting.SuitabilityAxisKind
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.network.dto.PostingBoardDto
 import com.cambridge.core.network.dto.PostingDetailDto
 import com.cambridge.core.network.dto.PostingDto
@@ -11,6 +8,9 @@ import com.cambridge.core.network.dto.PostingParsedDto
 import com.cambridge.core.network.dto.PostingQualificationsDto
 import com.cambridge.core.network.dto.SuitabilityAxisDto
 import com.cambridge.core.network.dto.SuitabilityDto
+import com.careercompass.core.model.posting.PostingType
+import com.careercompass.core.model.posting.SuitabilityAxisKind
+import com.careercompass.core.model.posting.SuitabilityLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows

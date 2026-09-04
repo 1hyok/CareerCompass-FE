@@ -1,7 +1,7 @@
 package com.cambridge.feature.feed.domain.model
 
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingQuery
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingQuery
 import java.time.Instant
 
 /**

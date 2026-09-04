@@ -1,7 +1,7 @@
 package com.cambridge.feature.onboarding.presentation.experience
 
-import com.cambridge.core.model.experience.ExperiencePoint
-import com.cambridge.core.model.experience.ExperienceType
+import com.careercompass.core.model.experience.ExperiencePoint
+import com.careercompass.core.model.experience.ExperienceType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

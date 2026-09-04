@@ -1,8 +1,8 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.repository.PastApplicationRepository
-import com.cambridge.core.model.application.PastApplication
-import com.cambridge.core.model.application.UploadFile
+import com.careercompass.core.domain.repository.PastApplicationRepository
+import com.careercompass.core.model.application.PastApplication
+import com.careercompass.core.model.application.UploadFile
 import javax.inject.Inject
 
 /**

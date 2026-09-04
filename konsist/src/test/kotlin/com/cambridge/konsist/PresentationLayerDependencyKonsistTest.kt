@@ -77,7 +77,7 @@ class PresentationLayerDependencyKonsistTest {
         Konsist
             .scopeFromProduction()
             .files
-            .withPackage("com.cambridge..presentation..")
+            .withPackage("com.cambridge..presentation..", "com.careercompass..presentation..")
 
     private companion object {
         /**
@@ -88,7 +88,7 @@ class PresentationLayerDependencyKonsistTest {
          * 막아야 할 것은 「구현을 이름으로 아는 것」 이다.
          */
         val FORBIDDEN_DATA_IMPORT =
-            Regex("""^com\.cambridge\.core\.datastore\..*$|^com\.cambridge\.core\.data\.repoimpl\..*$""")
+            Regex("""^com\.(cambridge|careercompass)\.core\.datastore\..*$|^com\.(cambridge|careercompass)\.core\.data\.repoimpl\..*$""")
 
         /**
          * 관대 판정할 기존 위반. 이 저장소는 가드를 빈 소스에서 켰으므로 비어 있다.

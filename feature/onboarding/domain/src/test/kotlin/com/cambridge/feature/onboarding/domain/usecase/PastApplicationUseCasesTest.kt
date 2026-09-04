@@ -1,10 +1,10 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.testing.FakePastApplicationRepository
-import com.cambridge.core.model.application.PastApplication
-import com.cambridge.core.model.application.PastApplicationCategory
-import com.cambridge.core.model.application.PastApplicationItem
-import com.cambridge.core.model.application.UploadFile
+import com.careercompass.core.domain.testing.FakePastApplicationRepository
+import com.careercompass.core.model.application.PastApplication
+import com.careercompass.core.model.application.PastApplicationCategory
+import com.careercompass.core.model.application.PastApplicationItem
+import com.careercompass.core.model.application.UploadFile
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame

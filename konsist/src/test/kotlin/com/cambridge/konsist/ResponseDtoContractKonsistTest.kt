@@ -91,7 +91,7 @@ class ResponseDtoContractKonsistTest {
         Konsist
             .scopeFromProject()
             .classes()
-            .withPackage("com.cambridge..dto..")
+            .withPackage("com.cambridge..dto..", "com.careercompass..dto..")
             .filter { it.hasDataModifier }
             .filter { it.annotations.any { annotation -> annotation.name == SERIALIZABLE } }
             .filterNot { REQUEST_DTO in it.name }

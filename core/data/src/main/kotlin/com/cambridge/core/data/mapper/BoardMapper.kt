@@ -1,17 +1,17 @@
 package com.cambridge.core.data.mapper
 
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardDetection
-import com.cambridge.core.model.board.BoardDetectionStatus
-import com.cambridge.core.model.board.BoardPreviewItem
-import com.cambridge.core.model.board.BoardRegistration
-import com.cambridge.core.model.board.BoardStatus
-import com.cambridge.core.model.board.BoardType
-import com.cambridge.core.model.board.BoardUpdate
 import com.cambridge.core.network.dto.BoardDetectionDto
 import com.cambridge.core.network.dto.BoardDto
 import com.cambridge.core.network.dto.BoardRegisterRequestDto
 import com.cambridge.core.network.dto.BoardUpdateRequestDto
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardDetection
+import com.careercompass.core.model.board.BoardDetectionStatus
+import com.careercompass.core.model.board.BoardPreviewItem
+import com.careercompass.core.model.board.BoardRegistration
+import com.careercompass.core.model.board.BoardStatus
+import com.careercompass.core.model.board.BoardType
+import com.careercompass.core.model.board.BoardUpdate
 import kotlinx.serialization.json.JsonNull
 
 internal object BoardMapper {

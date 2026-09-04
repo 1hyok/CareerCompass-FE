@@ -1,17 +1,6 @@
 package com.cambridge.feature.feed.presentation.shared.util
 
 import android.content.res.Resources
-import com.cambridge.core.model.board.BoardDetection
-import com.cambridge.core.model.board.BoardDetectionStatus
-import com.cambridge.core.model.board.BoardPreviewItem
-import com.cambridge.core.model.posting.PostingFormQuestion
-import com.cambridge.core.model.posting.PostingParsed
-import com.cambridge.core.model.posting.PostingQualifications
-import com.cambridge.core.model.posting.PostingType
-import com.cambridge.core.model.posting.Suitability
-import com.cambridge.core.model.posting.SuitabilityAxis
-import com.cambridge.core.model.posting.SuitabilityAxisKind
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
@@ -26,6 +15,17 @@ import com.cambridge.feature.feed.presentation.posting
 import com.cambridge.feature.feed.presentation.postingDetail
 import com.cambridge.feature.feed.presentation.postingdetail.PostingSuitabilityState
 import com.cambridge.feature.feed.presentation.profile
+import com.careercompass.core.model.board.BoardDetection
+import com.careercompass.core.model.board.BoardDetectionStatus
+import com.careercompass.core.model.board.BoardPreviewItem
+import com.careercompass.core.model.posting.PostingFormQuestion
+import com.careercompass.core.model.posting.PostingParsed
+import com.careercompass.core.model.posting.PostingQualifications
+import com.careercompass.core.model.posting.PostingType
+import com.careercompass.core.model.posting.Suitability
+import com.careercompass.core.model.posting.SuitabilityAxis
+import com.careercompass.core.model.posting.SuitabilityAxisKind
+import com.careercompass.core.model.posting.SuitabilityLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -39,8 +39,8 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import com.cambridge.core.model.board.BoardStatus as DomainBoardStatus
-import com.cambridge.core.model.board.BoardType as DomainBoardType
+import com.careercompass.core.model.board.BoardStatus as DomainBoardStatus
+import com.careercompass.core.model.board.BoardType as DomainBoardType
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -117,7 +117,7 @@ class FeedUiMappersTest {
     }
 
     /**
-     * 읽음은 [com.cambridge.core.model.posting.Posting] 하나에서만 온다 — 오프라인 스냅샷으로 복원한
+     * 읽음은 [com.careercompass.core.model.posting.Posting] 하나에서만 온다 — 오프라인 스냅샷으로 복원한
      * 공고도 같은 매퍼를 지나므로 온라인 목록과 같은 카드가 된다(스냅샷 DTO 가 두 값을 그대로 싣는다).
      */
     @Test

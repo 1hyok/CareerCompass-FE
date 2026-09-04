@@ -1,6 +1,5 @@
 package com.cambridge.core.data.repoimpl.auth
 
-import com.cambridge.core.common.result.runCatchingCancellable
 import com.cambridge.core.data.failure.mapAuthFailure
 import com.cambridge.core.data.failure.mapDataFailure
 import com.cambridge.core.data.mapper.AuthMapper
@@ -9,11 +8,6 @@ import com.cambridge.core.datastore.LocalStoreRegistry
 import com.cambridge.core.datastore.ProfileDataSource
 import com.cambridge.core.datastore.StoreScope
 import com.cambridge.core.datastore.TokenDataSource
-import com.cambridge.core.domain.error.SessionEndedException
-import com.cambridge.core.domain.repository.AuthRepository
-import com.cambridge.core.model.auth.Session
-import com.cambridge.core.model.auth.SocialProvider
-import com.cambridge.core.model.auth.TokenBundle
 import com.cambridge.core.network.dto.BiometricRegisterRequestDto
 import com.cambridge.core.network.dto.LogoutRequestDto
 import com.cambridge.core.network.dto.RefreshRequestDto
@@ -23,6 +17,12 @@ import com.cambridge.core.network.model.requireOk
 import com.cambridge.core.network.service.AuthApiService
 import com.cambridge.core.network.service.TokenApiService
 import com.cambridge.core.network.token.AccessTokenExpiryTracker
+import com.careercompass.core.common.result.runCatchingCancellable
+import com.careercompass.core.domain.error.SessionEndedException
+import com.careercompass.core.domain.repository.AuthRepository
+import com.careercompass.core.model.auth.Session
+import com.careercompass.core.model.auth.SocialProvider
+import com.careercompass.core.model.auth.TokenBundle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first

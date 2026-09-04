@@ -1,11 +1,11 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.BoardRepository
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardRegistration
-import com.cambridge.core.model.board.MAX_BOARDS
 import com.cambridge.feature.feed.domain.error.FeedFailure
 import com.cambridge.feature.feed.domain.model.BoardUrl
+import com.careercompass.core.domain.repository.BoardRepository
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardRegistration
+import com.careercompass.core.model.board.MAX_BOARDS
 import javax.inject.Inject
 
 /**

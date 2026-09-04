@@ -1,9 +1,9 @@
 package com.cambridge.core.ui.failure
 
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.model.application.MAX_PAST_APPLICATIONS
-import com.cambridge.core.model.board.MAX_BOARDS
-import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.model.application.MAX_PAST_APPLICATIONS
+import com.careercompass.core.model.board.MAX_BOARDS
+import com.careercompass.core.model.experience.MAX_EXPERIENCE_CARDS
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals

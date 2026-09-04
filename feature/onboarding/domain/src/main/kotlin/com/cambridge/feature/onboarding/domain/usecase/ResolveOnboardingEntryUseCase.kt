@@ -1,10 +1,10 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.repository.UserProfileRepository
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.onboarding.domain.model.OnboardingProgress
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.domain.repository.OnboardingProgressRepository
+import com.careercompass.core.domain.repository.UserProfileRepository
+import com.careercompass.core.model.user.UserProfile
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 

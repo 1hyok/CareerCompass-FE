@@ -1,11 +1,11 @@
 package com.cambridge.core.data.mapper
 
-import com.cambridge.core.model.user.JobInterest
-import com.cambridge.core.model.user.UserProfile
-import com.cambridge.core.model.user.UserProfileUpdate
 import com.cambridge.core.network.dto.JobInterestDto
 import com.cambridge.core.network.dto.UpdateProfileRequestDto
 import com.cambridge.core.network.dto.UserProfileDto
+import com.careercompass.core.model.user.JobInterest
+import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.model.user.UserProfileUpdate
 
 internal object UserMapper {
     fun toProfile(dto: UserProfileDto): UserProfile =

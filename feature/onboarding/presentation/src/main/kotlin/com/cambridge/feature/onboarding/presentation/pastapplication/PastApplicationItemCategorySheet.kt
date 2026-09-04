@@ -22,12 +22,12 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.model.application.PastApplicationCategory
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
+import com.careercompass.core.model.application.PastApplicationCategory
 
 /**
  * Step 4 항목 분류 조정 시트의 본문. 시트 컨테이너는 호스트가 감싼다.

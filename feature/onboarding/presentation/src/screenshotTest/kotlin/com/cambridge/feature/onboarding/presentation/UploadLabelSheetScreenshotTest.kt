@@ -4,11 +4,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.model.application.UploadFile
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelSheet
 import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelState
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
+import com.careercompass.core.model.application.UploadFile
 import java.io.ByteArrayInputStream
 
 @PreviewTest

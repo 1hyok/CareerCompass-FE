@@ -1,13 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.flow
 
 import androidx.compose.runtime.Immutable
-import com.cambridge.core.model.application.MAX_PAST_APPLICATIONS
-import com.cambridge.core.model.application.PastApplicationItem
-import com.cambridge.core.model.application.UploadFile
-import com.cambridge.core.model.experience.Experience
-import com.cambridge.core.model.experience.ExperienceType
-import com.cambridge.core.model.user.MAX_JOB_INTERESTS
-import com.cambridge.core.model.user.MAX_PROFILE_TAGS
 import com.cambridge.feature.onboarding.domain.model.JobOptionCatalog
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.presentation.basicinfo.GraduationPickerState
@@ -18,6 +11,13 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInput
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryState
 import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelState
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
+import com.careercompass.core.model.application.MAX_PAST_APPLICATIONS
+import com.careercompass.core.model.application.PastApplicationItem
+import com.careercompass.core.model.application.UploadFile
+import com.careercompass.core.model.experience.Experience
+import com.careercompass.core.model.experience.ExperienceType
+import com.careercompass.core.model.user.MAX_JOB_INTERESTS
+import com.careercompass.core.model.user.MAX_PROFILE_TAGS
 
 /**
  * 온보딩 흐름의 실패 사유. 문구는 Entry 가 리소스로 만든다.

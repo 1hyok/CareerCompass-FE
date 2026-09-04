@@ -1,8 +1,8 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.BoardRepository
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardUpdate
+import com.careercompass.core.domain.repository.BoardRepository
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardUpdate
 import javax.inject.Inject
 
 /** 게시판 부분 수정 — `PATCH /boards/{id}`. 바꿀 필드가 하나도 없는 수정은 프로그래밍 오류로 본다. */

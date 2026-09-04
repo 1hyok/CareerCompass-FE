@@ -1,8 +1,8 @@
 package com.cambridge.feature.onboarding.presentation.pastapplication
 
 import androidx.compose.runtime.Immutable
-import com.cambridge.core.model.application.UploadFile
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
+import com.careercompass.core.model.application.UploadFile
 
 /**
  * 파일을 고른 뒤 업로드 직전에 라벨을 확인·수정하는 시트 상태 — F1-4 「각 지원서에 사용자가 직접 라벨 부여」.

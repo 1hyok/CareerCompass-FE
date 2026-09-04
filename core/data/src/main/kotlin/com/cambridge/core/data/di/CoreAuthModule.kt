@@ -2,8 +2,8 @@ package com.cambridge.core.data.di
 
 import com.cambridge.core.data.repoimpl.auth.AuthRepositoryImpl
 import com.cambridge.core.data.repoimpl.device.DeviceIdentityProviderImpl
-import com.cambridge.core.domain.device.DeviceIdentityProvider
-import com.cambridge.core.domain.repository.AuthRepository
+import com.careercompass.core.domain.device.DeviceIdentityProvider
+import com.careercompass.core.domain.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

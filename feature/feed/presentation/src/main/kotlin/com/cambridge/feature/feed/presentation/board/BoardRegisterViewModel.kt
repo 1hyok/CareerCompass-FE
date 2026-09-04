@@ -3,10 +3,6 @@ package com.cambridge.feature.feed.presentation.board
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.model.board.BoardRegistration
-import com.cambridge.core.model.board.MAX_BOARDS
 import com.cambridge.feature.feed.domain.error.FeedFailure
 import com.cambridge.feature.feed.domain.usecase.DetectBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.RegisterBoardUseCase
@@ -16,6 +12,10 @@ import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.util.toDetectionState
 import com.cambridge.feature.feed.presentation.shared.util.toDomainBoardType
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.model.board.BoardRegistration
+import com.careercompass.core.model.board.MAX_BOARDS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

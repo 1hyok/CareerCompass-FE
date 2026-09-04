@@ -1,7 +1,7 @@
 package com.cambridge.feature.feed.presentation.reporting
 
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.common.reporting.recordStagedFailure
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.common.reporting.recordStagedFailure
 
 /** 리포팅 속성 키 — 피드 기능 안에서 어느 단계가 실패했는지. */
 public const val FEED_REPORT_KEY_STAGE: String = "feed_stage"

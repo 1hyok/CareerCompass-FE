@@ -1,12 +1,12 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.repository.UserProfileRepository
-import com.cambridge.core.model.user.JobInterest
-import com.cambridge.core.model.user.MAX_JOB_INTERESTS
-import com.cambridge.core.model.user.MAX_PROFILE_TAGS
 import com.cambridge.feature.onboarding.domain.model.JobOptionCatalog
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.domain.repository.OnboardingProgressRepository
+import com.careercompass.core.domain.repository.UserProfileRepository
+import com.careercompass.core.model.user.JobInterest
+import com.careercompass.core.model.user.MAX_JOB_INTERESTS
+import com.careercompass.core.model.user.MAX_PROFILE_TAGS
 import javax.inject.Inject
 
 /**

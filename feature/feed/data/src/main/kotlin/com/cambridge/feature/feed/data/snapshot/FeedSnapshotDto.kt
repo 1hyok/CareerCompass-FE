@@ -1,10 +1,10 @@
 package com.cambridge.feature.feed.data.snapshot
 
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingBoardRef
-import com.cambridge.core.model.posting.PostingType
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingBoardRef
+import com.careercompass.core.model.posting.PostingType
+import com.careercompass.core.model.posting.SuitabilityLabel
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate

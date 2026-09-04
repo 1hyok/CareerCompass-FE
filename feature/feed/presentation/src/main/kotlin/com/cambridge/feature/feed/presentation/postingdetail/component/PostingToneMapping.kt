@@ -1,10 +1,10 @@
 package com.cambridge.feature.feed.presentation.postingdetail.component
 
 import androidx.compose.ui.graphics.Color
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.core.ui.theme.CareerCompassColors
 import com.cambridge.feature.feed.presentation.FeedListingCategory
+import com.careercompass.core.model.posting.SuitabilityLabel
 
 /** Badge tone per listing category, matching the feed listing card. */
 internal fun FeedListingCategory.badgeTone(): CareerCompassBadgeTone =

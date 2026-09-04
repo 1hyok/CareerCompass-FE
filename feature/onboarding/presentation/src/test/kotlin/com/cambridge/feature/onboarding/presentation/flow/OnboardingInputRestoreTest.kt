@@ -2,12 +2,6 @@ package com.cambridge.feature.onboarding.presentation.flow
 
 import android.os.Parcel
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.testing.FakeExperienceRepository
-import com.cambridge.core.domain.testing.FakePastApplicationRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.model.application.UploadFile
-import com.cambridge.core.model.user.JobInterest
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.onboarding.domain.testing.FakeOnboardingProgressRepository
 import com.cambridge.feature.onboarding.domain.usecase.AddExperienceUseCase
 import com.cambridge.feature.onboarding.domain.usecase.CompleteOnboardingUseCase
@@ -30,6 +24,12 @@ import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputEvent
 import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelEvent
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
+import com.careercompass.core.domain.testing.FakeExperienceRepository
+import com.careercompass.core.domain.testing.FakePastApplicationRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.model.application.UploadFile
+import com.careercompass.core.model.user.JobInterest
+import com.careercompass.core.model.user.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

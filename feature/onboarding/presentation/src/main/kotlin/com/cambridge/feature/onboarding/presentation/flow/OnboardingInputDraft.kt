@@ -1,10 +1,10 @@
 package com.cambridge.feature.onboarding.presentation.flow
 
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.model.user.MAX_JOB_INTERESTS
-import com.cambridge.core.model.user.MAX_PROFILE_TAGS
 import com.cambridge.feature.onboarding.domain.model.JobOptionCatalog
 import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInputState
+import com.careercompass.core.model.user.MAX_JOB_INTERESTS
+import com.careercompass.core.model.user.MAX_PROFILE_TAGS
 
 /**
  * 프로세스 사망을 건너 살아남는 온보딩 입력 초안 — 기능 스펙 F1-1 의 「중단된 단계부터 재개」 중 **입력** 쪽.

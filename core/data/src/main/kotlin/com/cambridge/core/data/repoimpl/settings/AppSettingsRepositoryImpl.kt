@@ -1,8 +1,8 @@
 package com.cambridge.core.data.repoimpl.settings
 
 import com.cambridge.core.datastore.DeviceDataSource
-import com.cambridge.core.domain.settings.AppSettingsRepository
-import com.cambridge.core.model.settings.ThemeMode
+import com.careercompass.core.domain.settings.AppSettingsRepository
+import com.careercompass.core.model.settings.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

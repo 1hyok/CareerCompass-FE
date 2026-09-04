@@ -6,10 +6,6 @@ import com.cambridge.core.datastore.DeviceDataSource
 import com.cambridge.core.datastore.ProfileDataSource
 import com.cambridge.core.datastore.StoreScope
 import com.cambridge.core.datastore.TokenDataSource
-import com.cambridge.core.domain.error.CoreAuthFailure
-import com.cambridge.core.domain.error.SessionEndedException
-import com.cambridge.core.model.auth.Session
-import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.core.network.dto.BiometricRegisterRequestDto
 import com.cambridge.core.network.dto.LogoutRequestDto
 import com.cambridge.core.network.dto.RefreshDto
@@ -23,6 +19,10 @@ import com.cambridge.core.network.service.AuthApiService
 import com.cambridge.core.network.service.SocialLoginProvider
 import com.cambridge.core.network.service.TokenApiService
 import com.cambridge.core.network.token.AccessTokenExpiryTracker
+import com.careercompass.core.domain.error.CoreAuthFailure
+import com.careercompass.core.domain.error.SessionEndedException
+import com.careercompass.core.model.auth.Session
+import com.careercompass.core.model.auth.SocialProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first

@@ -1,8 +1,8 @@
 package com.cambridge.feature.onboarding.presentation.login.util
 
 import android.app.Activity
-import com.cambridge.core.common.result.runCatchingCancellable
-import com.cambridge.core.domain.error.CoreAuthFailure
+import com.careercompass.core.common.result.runCatchingCancellable
+import com.careercompass.core.domain.error.CoreAuthFailure
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause

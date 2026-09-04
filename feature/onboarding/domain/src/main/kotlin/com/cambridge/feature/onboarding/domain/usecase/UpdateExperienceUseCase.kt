@@ -1,8 +1,8 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.repository.ExperienceRepository
-import com.cambridge.core.model.experience.Experience
-import com.cambridge.core.model.experience.ExperienceDraft
+import com.careercompass.core.domain.repository.ExperienceRepository
+import com.careercompass.core.model.experience.Experience
+import com.careercompass.core.model.experience.ExperienceDraft
 import javax.inject.Inject
 
 /**

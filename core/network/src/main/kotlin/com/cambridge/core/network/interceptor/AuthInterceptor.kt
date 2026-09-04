@@ -1,8 +1,8 @@
 package com.cambridge.core.network.interceptor
 
-import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.network.token.AccessTokenExpiryTracker
 import com.cambridge.core.network.token.TokenReissuer
+import com.careercompass.core.domain.repository.AuthRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response

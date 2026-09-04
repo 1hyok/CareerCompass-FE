@@ -1,7 +1,7 @@
 package com.cambridge.core.data.repoimpl.device
 
 import com.cambridge.core.datastore.DeviceDataSource
-import com.cambridge.core.domain.device.DeviceIdentityProvider
+import com.careercompass.core.domain.device.DeviceIdentityProvider
 import javax.inject.Inject
 
 internal class DeviceIdentityProviderImpl

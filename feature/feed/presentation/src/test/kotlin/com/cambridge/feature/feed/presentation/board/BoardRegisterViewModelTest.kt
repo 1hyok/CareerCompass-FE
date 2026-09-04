@@ -1,17 +1,17 @@
 package com.cambridge.feature.feed.presentation.board
 
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeBoardRepository
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardDetection
-import com.cambridge.core.model.board.BoardDetectionStatus
-import com.cambridge.core.model.board.MAX_BOARDS
 import com.cambridge.feature.feed.domain.usecase.DetectBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.RegisterBoardUseCase
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.board
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeBoardRepository
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardDetection
+import com.careercompass.core.model.board.BoardDetectionStatus
+import com.careercompass.core.model.board.MAX_BOARDS
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,7 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import com.cambridge.core.model.board.BoardType as DomainBoardType
+import com.careercompass.core.model.board.BoardType as DomainBoardType
 
 class BoardRegisterViewModelTest {
     @get:Rule

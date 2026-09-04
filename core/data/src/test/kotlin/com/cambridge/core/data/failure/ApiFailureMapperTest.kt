@@ -1,8 +1,8 @@
 package com.cambridge.core.data.failure
 
-import com.cambridge.core.domain.error.CoreAuthFailure
-import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.network.model.ApiException
+import com.careercompass.core.domain.error.CoreAuthFailure
+import com.careercompass.core.domain.error.CoreDataFailure
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame

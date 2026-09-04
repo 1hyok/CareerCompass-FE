@@ -1,8 +1,8 @@
 package com.cambridge.feature.feed.presentation.postingdetail
 
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
+import com.careercompass.core.model.posting.SuitabilityLabel
 
 /** Number of analysis axes the suitability breakdown renders (spec F3-2). */
 public const val POSTING_DETAIL_MAX_BREAKDOWN_COUNT: Int = 4
@@ -14,7 +14,7 @@ public const val POSTING_DETAIL_MAX_SIMILAR_POSTING_COUNT: Int = 3
  * 축 하나가 충족인가 미충족인가 — 기능 스펙 F3-3 「4개 분석 축 각각의 세부 점수 및 충족/미충족 표시」.
  *
  * 서버 계약에는 없는 클라이언트 파생값이다 — `API_SPEC §5` 의 breakdown 은 `{axis, score, weight}` 뿐이고
- * [com.cambridge.core.model.posting.SuitabilityAxis] 도 같다.
+ * [com.careercompass.core.model.posting.SuitabilityAxis] 도 같다.
  */
 public enum class SuitabilityAxisFulfillment {
     /** 경계값 이상 — 이 축은 공고가 요구하는 선을 넘었다. */

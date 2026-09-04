@@ -1,10 +1,10 @@
 package com.cambridge.feature.onboarding.presentation.experience
 
 import androidx.compose.runtime.Immutable
-import com.cambridge.core.model.experience.EXPERIENCE_YEAR_RANGE
-import com.cambridge.core.model.experience.ExperiencePoint
-import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
+import com.careercompass.core.model.experience.EXPERIENCE_YEAR_RANGE
+import com.careercompass.core.model.experience.ExperiencePoint
+import com.careercompass.core.model.experience.ExperienceType
 
 /**
  * Step 3 「경험 추가·수정」 시트 상태 — 공통 5개 필드 + 유형별 상세(F1-3) 입력.
@@ -170,7 +170,7 @@ public object ExperienceEditorRules {
     /**
      * 시트 제목 칸의 길이 상한.
      *
-     * 태그·링크 상한과 달리 아직 여기 있다 — 모델이 [com.cambridge.core.model.experience.Experience.title] 에
+     * 태그·링크 상한과 달리 아직 여기 있다 — 모델이 [com.careercompass.core.model.experience.Experience.title] 에
      * 길이를 걸지 않기 때문이다. 모델이 걸게 되면 그때 같이 올린다.
      */
     public const val MAX_TITLE_LENGTH: Int = 50

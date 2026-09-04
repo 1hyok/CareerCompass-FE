@@ -1,12 +1,12 @@
 package com.cambridge.feature.feed.data.di
 
 import com.cambridge.core.datastore.StoreScope
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingBoardRef
-import com.cambridge.core.model.posting.PostingType
 import com.cambridge.feature.feed.data.FeedSnapshotRepositoryImpl
 import com.cambridge.feature.feed.data.support.FakeLocalStoreRegistry
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingBoardRef
+import com.careercompass.core.model.posting.PostingType
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
