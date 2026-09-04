@@ -4,12 +4,14 @@ import com.cambridge.core.data.repoimpl.application.PastApplicationRepositoryImp
 import com.cambridge.core.data.repoimpl.board.BoardRepositoryImpl
 import com.cambridge.core.data.repoimpl.experience.ExperienceRepositoryImpl
 import com.cambridge.core.data.repoimpl.posting.PostingRepositoryImpl
+import com.cambridge.core.data.repoimpl.settings.AppSettingsRepositoryImpl
 import com.cambridge.core.data.repoimpl.user.UserProfileRepositoryImpl
 import com.cambridge.core.domain.repository.BoardRepository
 import com.cambridge.core.domain.repository.ExperienceRepository
 import com.cambridge.core.domain.repository.PastApplicationRepository
 import com.cambridge.core.domain.repository.PostingRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
+import com.cambridge.core.domain.settings.AppSettingsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -39,4 +41,8 @@ public abstract class CoreRepositoryModule {
     @Binds
     @Singleton
     internal abstract fun bindBoardRepository(impl: BoardRepositoryImpl): BoardRepository
+
+    @Binds
+    @Singleton
+    internal abstract fun bindAppSettingsRepository(impl: AppSettingsRepositoryImpl): AppSettingsRepository
 }
