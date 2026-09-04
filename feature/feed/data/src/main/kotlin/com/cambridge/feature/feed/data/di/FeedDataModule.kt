@@ -16,7 +16,7 @@ import javax.inject.Singleton
 /**
  * 피드 data 바인딩.
  *
- * `public` 인 이유는 [com.cambridge.feature.onboarding.data.di.OnboardingDataModule] 과 같다 — `app` androidTest 가
+ * `public` 인 이유는 [com.careercompass.feature.onboarding.data.di.OnboardingDataModule] 과 같다 — `app` androidTest 가
  * `@TestInstallIn(replaces = [FeedDataModule::class])` 로 fake 로 갈아끼울 수 있게 둔다. 바인딩 메서드만 `internal` 로 닫는다.
  */
 @Module

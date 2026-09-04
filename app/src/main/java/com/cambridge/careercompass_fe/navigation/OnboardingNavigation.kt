@@ -5,10 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
-import com.cambridge.feature.onboarding.presentation.navigation.OnboardingGraphRoute
-import com.cambridge.feature.onboarding.presentation.navigation.OnboardingNavActions
-import com.cambridge.feature.onboarding.presentation.navigation.OnboardingRoute
-import com.cambridge.feature.onboarding.presentation.navigation.toRoute
+import com.careercompass.feature.onboarding.presentation.navigation.OnboardingGraphRoute
+import com.careercompass.feature.onboarding.presentation.navigation.OnboardingNavActions
+import com.careercompass.feature.onboarding.presentation.navigation.OnboardingRoute
+import com.careercompass.feature.onboarding.presentation.navigation.toRoute
 
 /**
  * 온보딩 그래프가 앱 셸에 요청하는 이동의 구현.

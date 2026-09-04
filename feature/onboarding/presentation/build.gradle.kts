@@ -11,7 +11,7 @@ plugins {
 val googleWebClientId = socialLoginKey("GOOGLE_WEB_CLIENT_ID")
 
 android {
-    namespace = "com.cambridge.feature.onboarding.presentation"
+    namespace = "com.careercompass.feature.onboarding.presentation"
     resourcePrefix = "onboarding_"
     testOptions.unitTests.isIncludeAndroidResources = true
     experimentalProperties["android.experimental.enableScreenshotTest"] = true

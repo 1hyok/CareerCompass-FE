@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.feature.onboarding.data"
+    namespace = "com.careercompass.feature.onboarding.data"
     testOptions.unitTests.isReturnDefaultValues = true
 }
 
