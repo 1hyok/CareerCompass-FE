@@ -110,7 +110,7 @@ private fun feedFilterPreviewState(): FeedFilterUiState =
         missingBoards = null,
         deadline = FeedDeadlineFilter.WithinWeek,
         deadlineRange = null,
-        minScore = FeedMinScoreFilter.AtLeast70,
+        minScore = FeedMinScoreFilter.AtLeast80,
         unreadOnly = true,
         matchingCount = 12,
     )

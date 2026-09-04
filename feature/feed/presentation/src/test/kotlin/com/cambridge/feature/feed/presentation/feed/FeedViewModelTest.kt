@@ -222,7 +222,7 @@ class FeedViewModelTest {
         viewModel.onEvent(FeedUiEvent.FilterRequested)
         viewModel.onFilterEvent(FeedFilterEvent.BoardToggled("1"))
         viewModel.onFilterEvent(FeedFilterEvent.DeadlineSelected(UiDeadlineFilter.WithinWeek))
-        viewModel.onFilterEvent(FeedFilterEvent.MinScoreSelected(FeedMinScoreFilter.AtLeast70))
+        viewModel.onFilterEvent(FeedFilterEvent.MinScoreSelected(FeedMinScoreFilter.AtLeast80))
         viewModel.onFilterEvent(FeedFilterEvent.UnreadOnlyToggled)
 
         val draft = requireNotNull(viewModel.state.value.filterDraft)
@@ -235,11 +235,11 @@ class FeedViewModelTest {
         assertNull(state.filterDraft)
         assertEquals(setOf(1L), state.query.boardIds)
         assertEquals(FeedDeadlineFilter.WithinWeek, state.query.deadline)
-        assertEquals(70, state.query.minScore)
+        assertEquals(80, state.query.minScore)
         assertTrue(state.query.unreadOnly)
         assertEquals(4, state.activeFilterCount)
         assertEquals(
-            PostingQuery(boardIds = listOf(1L), minScore = 70, unreadOnly = true),
+            PostingQuery(boardIds = listOf(1L), minScore = 80, unreadOnly = true),
             repository.queries.last(),
         )
         assertEquals(listOf(1L), state.postings.map(Posting::id))

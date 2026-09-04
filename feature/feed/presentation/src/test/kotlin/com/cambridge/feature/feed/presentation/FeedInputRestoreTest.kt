@@ -182,7 +182,7 @@ class FeedInputRestoreTest {
         val before = feedViewModel(postingRepository = repository, savedStateHandle = handle)
         before.onEvent(FeedUiEvent.FilterRequested)
         before.onFilterEvent(FeedFilterEvent.BoardToggled("2"))
-        before.onFilterEvent(FeedFilterEvent.MinScoreSelected(FeedMinScoreFilter.AtLeast70))
+        before.onFilterEvent(FeedFilterEvent.MinScoreSelected(FeedMinScoreFilter.AtLeast80))
         before.onFilterEvent(FeedFilterEvent.UnreadOnlyToggled)
         before.onFilterEvent(FeedFilterEvent.DeadlineSelected(UiDeadlineFilter.Range))
         before.onFilterEvent(FeedFilterEvent.DeadlineRangeEndpointClicked(FeedDeadlineRangeEndpoint.Start))
@@ -194,14 +194,14 @@ class FeedInputRestoreTest {
 
         val query = after.state.value.query
         assertEquals(setOf(2L), query.boardIds)
-        assertEquals(70, query.minScore)
+        assertEquals(80, query.minScore)
         assertTrue(query.unreadOnly)
         assertEquals(DomainDeadlineFilter.Range(start = RANGE_START, end = null), query.deadline)
         assertEquals(PostingSort.DueAsc, query.sort)
         // 서버에 실제로 그 조건이 실려 나갔는가 — 복원한 조건은 목록을 다시 조회할 근거일 뿐이다.
         val sent = repository.queries.last()
         assertEquals(listOf(2L), sent.boardIds)
-        assertEquals(70, sent.minScore)
+        assertEquals(80, sent.minScore)
         assertTrue(sent.unreadOnly)
         assertEquals(PostingSort.DueAsc, sent.sort)
         assertNull(sent.cursor)
@@ -309,6 +309,35 @@ class FeedInputRestoreTest {
     }
 
     // ---- 저장소 방어 ----
+
+    /**
+     * **앱 버전이 갈아 끼워지며 선택지가 줄어든 자리**(이슈 #200) — 예전 앱이 저장한 「70점 이상」이
+     * 남아 있는 번들로 되살아나도 죽지 않고, 조건은 「전체」가 된다.
+     *
+     * 이 경로가 이 화면에서 가장 다치기 쉽다. 70 을 그대로 넘기면
+     * [com.cambridge.feature.feed.domain.model.FeedQuery] 의 `require` 가 **살아나는 순간** 터져서,
+     * 사용자에게는 「앱을 켜면 죽는다」로 보인다. 되읽기가 아니라 앱 시작이 깨지는 셈이라 복구할 길도 없다.
+     */
+    @Test
+    fun `사라진 선택지 70 이 저장돼 있어도 죽지 않고 전체로 되살아난다`() {
+        val handle =
+            SavedStateHandle(
+                mapOf(
+                    "feed.draft.query.minScore" to 70,
+                    // 시트를 열어 둔 채 죽은 경우의 초안도 같은 값을 들고 있다.
+                    "feed.draft.filter.category" to FeedListingCategory.All.name,
+                    "feed.draft.filter.minScore" to 70,
+                ),
+            )
+
+        val viewModel = feedViewModel(savedStateHandle = handle.acrossProcessDeath())
+
+        assertNull(viewModel.state.value.query.minScore)
+
+        // 시트를 다시 열면 고르던 값도 「전체」다 — 그릴 수 없는 선택지가 초안에 남지 않는다.
+        viewModel.onEvent(FeedUiEvent.FilterRequested)
+        assertNull(requireNotNull(viewModel.state.value.filterDraft).minScore)
+    }
 
     /** 낡거나 망가진 번들이 [com.cambridge.feature.feed.domain.model.FeedQuery] 의 계약을 깨뜨려 앱을 죽이지 않는다. */
     @Test

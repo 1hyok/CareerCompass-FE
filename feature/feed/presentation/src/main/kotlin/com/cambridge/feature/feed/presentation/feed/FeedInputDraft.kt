@@ -176,7 +176,17 @@ internal class FeedInputDraft(
     /** 상한 밖의 숫자가 들어와도 날짜로 만들지 않는다 — 망가진 번들이 예외로 앱을 죽이지 않게. */
     private fun restoredDate(key: String): LocalDate? = handle.get<Long>(key)?.let { runCatching { LocalDate.ofEpochDay(it) }.getOrNull() }
 
-    /** 스펙 선택지(60·70·80) 밖의 값은 「전체」로 본다 — [FeedQuery] 와 시트 매핑이 둘 다 거절하는 값이다. */
+    /**
+     * 선택지([FeedQuery.ALLOWED_MIN_SCORES]) 밖의 값은 「전체」로 본다.
+     *
+     * **여기가 이 화면에서 가장 깨지기 쉬운 자리다.** 선택지는 줄어들 수 있는데(이슈 #200 이 70 을 뺐다)
+     * 저장된 번들은 그 전에 쓰였을 수 있다. 그대로 넘기면 [FeedQuery] 의 `require` 가 살아나는 프로세스를
+     * 그 자리에서 죽인다 — 사용자에게는 「앱을 켜면 죽는다」로 보인다.
+     *
+     * 사라진 70 을 가까운 60 으로 접지 않는 이유 — 그건 사용자가 고르지 않은 조건을 앱이 대신 고르는 것이다.
+     * 「전체」는 조건이 없어졌다는 사실 그대로이고, 시트를 열면 「전체」가 선택돼 있어 무엇이 걸려 있는지
+     * 화면이 정직하게 말한다.
+     */
     private fun restoredMinScore(key: String): Int? = handle.get<Int>(key)?.takeIf { it in FeedQuery.ALLOWED_MIN_SCORES }
 
     private inline fun <reified T : Enum<T>> restoredEnum(key: String): T? =

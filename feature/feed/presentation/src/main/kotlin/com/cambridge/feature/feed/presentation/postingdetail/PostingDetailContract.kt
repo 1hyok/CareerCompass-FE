@@ -1,7 +1,6 @@
 package com.cambridge.feature.feed.presentation.postingdetail
 
 import com.cambridge.core.model.posting.SuitabilityLabel
-import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 
@@ -28,16 +27,14 @@ public enum class SuitabilityAxisFulfillment {
 /**
  * 축이 「충족」 으로 넘어가는 경계 — **60점**.
  *
- * F3-2 가 총점 60점부터 「적합」 이라고 부르는 그 경계를 그대로 쓴다
- * ([SuitabilityLabel.Suitable] 의 `minScore`). 막대 색을 가르던 예전 기준은 80점
- * (`HIGH_SCORE_THRESHOLD`)이었는데, 그것을 충족 선으로 쓰면 총점 65점을 「적합」 이라고
- * 부르면서 65점짜리 축은 「미충족」 이라고 적는 화면이 된다. 한 화면에서 두 말이 맞붙어야 하므로
- * 낮은 쪽(60)으로 모은다. `HIGH_SCORE_THRESHOLD` 는 점수 칩의 강조 3단계에만 남고
- * 충족 여부에는 관여하지 않는다.
+ * F3-2 가 총점 60점부터 「적합」 이라고 부르는 그 경계를 그대로 쓴다. 막대 색을 가르던 예전 기준은
+ * 80점이었는데, 그것을 충족 선으로 쓰면 총점 65점을 「적합」 이라고 부르면서 65점짜리 축은
+ * 「미충족」 이라고 적는 화면이 된다. 한 화면에서 두 말이 맞붙어야 하므로 낮은 쪽(60)으로 모은다.
  *
- * 값이 도메인 경계와 갈라지지 않는지는 `PostingDetailContractTest` 가 고정한다.
+ * 값을 베껴 적지 않고 [SuitabilityLabel.Suitable] 에서 **읽어 온다**(이슈 #200). 같은 수를 두 곳에
+ * 적어 두면 한쪽만 고쳐지는 날이 오고, 그것이 이 이슈가 고치는 사고의 모양이다.
  */
-public const val SUITABILITY_AXIS_FULFILLED_THRESHOLD: Int = 60
+public val SUITABILITY_AXIS_FULFILLED_THRESHOLD: Int = SuitabilityLabel.Suitable.minScore
 
 /** One analysis axis of the suitability breakdown, e.g. "분야 유사도 · 40% · 95점". */
 public data class SuitabilityAxisUiModel(
@@ -64,11 +61,17 @@ public data class SuitabilityAxisUiModel(
     }
 }
 
-/** Display-ready suitability analysis for one posting. */
+/**
+ * Display-ready suitability analysis for one posting.
+ *
+ * @property level 서버가 준 F3-2 레이블. 화면 강조 단계(`CareerCompassScoreLevel`)가 아니라 도메인 값을
+ *  그대로 든다 — 게이지 색 구간·배지 톤·[levelLabel] 이 **한 값**에서 갈라져 나와야 서로 어긋나지
+ *  않는다(이슈 #200).
+ */
 public data class SuitabilityUiModel(
     val score: Int,
     val levelLabel: String,
-    val level: CareerCompassScoreLevel,
+    val level: SuitabilityLabel,
     val breakdown: List<SuitabilityAxisUiModel>,
     val strengthComment: String?,
     val weaknessComment: String?,

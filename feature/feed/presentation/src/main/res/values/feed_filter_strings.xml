@@ -26,9 +26,9 @@
     <string name="feed_filter_deadline_range_cancel">취소</string>
     <string name="feed_filter_min_score_title">적합도</string>
     <string name="feed_filter_min_score_all">전체</string>
-    <string name="feed_filter_min_score_60">60점 이상</string>
-    <string name="feed_filter_min_score_70">70점 이상</string>
-    <string name="feed_filter_min_score_80">80점 이상</string>
+    <!-- 선택지 문구에 레이블 이름을 함께 적는다 — 고른 값과 카드에 뜨는 이름이 같은 경계라는 것이 보여야 한다(이슈 #200). -->
+    <string name="feed_filter_min_score_60">60점 이상 (적합)</string>
+    <string name="feed_filter_min_score_80">80점 이상 (매우 적합)</string>
     <string name="feed_filter_unread_only">읽지 않은 공고만 보기</string>
     <string name="feed_filter_reset">초기화</string>
     <string name="feed_filter_apply_with_count">%1$d개 공고 보기</string>

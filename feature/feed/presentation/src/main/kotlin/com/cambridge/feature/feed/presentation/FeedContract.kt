@@ -47,10 +47,22 @@ public sealed interface FeedSuitabilityState {
         }
     }
 
-    /** 아직 파싱·분석이 끝나지 않았다. */
+    /**
+     * 아직 파싱·분석이 끝나지 않았다 — **그리고 파싱이 영구 실패한 공고도 여기로 온다.**
+     *
+     * 계약이 둘을 가르지 못해서다(이슈 #200): 목록 응답의 `score` 는 nullable 한 숫자일 뿐, 「왜 없는지」를
+     * 실은 필드가 없다. 사용자가 할 수 있는 일도 같다(둘 다 기다리는 것 말고는 없다)는 점에서 지금의 한
+     * 문구가 거짓말은 아니지만, 영구 실패한 공고에는 영원히 「분석 중」이라고 적힌다. 필요한 계약 변경은
+     * `docs/spec/suitability-score-boundary.md` 에.
+     */
     public data object Analyzing : FeedSuitabilityState
 
-    /** 프로필(희망 직무·관심 태그)이 비어 산출 자체가 불가능하다. */
+    /**
+     * 프로필(희망 직무·관심 태그)이 비어 산출 자체가 불가능하다.
+     *
+     * [Analyzing] 과 갈라 두는 이유는 **사용자가 할 일이 다르기 때문**이다 — 여기서는 프로필을 채우면
+     * 점수가 나오고, 저기서는 기다리는 것 말고 할 수 있는 일이 없다(이슈 #100).
+     */
     public data object ProfileIncomplete : FeedSuitabilityState
 }
 

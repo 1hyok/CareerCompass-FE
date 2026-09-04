@@ -473,7 +473,7 @@ class FeedFilterSheetMappingTest {
                 FeedQuery(boardIds = setOf(1L)),
                 FeedQuery(boardIds = setOf(9L)),
                 FeedQuery(boardIds = setOf(1L, 9L)),
-                FeedQuery(boardIds = setOf(9L), minScore = 70),
+                FeedQuery(boardIds = setOf(9L), minScore = 60),
                 FeedQuery(
                     boardIds = setOf(9L),
                     deadline = DomainDeadlineFilter.WithinWeek,
