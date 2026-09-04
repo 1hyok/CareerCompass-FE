@@ -25,12 +25,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.R
+import com.cambridge.core.ui.failure.FailureKind
+import com.cambridge.core.ui.failure.description
+import com.cambridge.core.ui.failure.display
+import com.cambridge.core.ui.failure.title
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /**
  * Displays the offline error state with a retry action and an optional offline-mode action.
  *
  * When [onOfflineClick] is `null`, the offline-mode action is not displayed.
+ *
+ * 문구는 스스로 짓지 않고 실패 표에서 읽는다([FailureKind.NoConnection]) — 연결 없음은 이 컴포넌트
+ * 말고도 여러 화면이 말하는 사실이라, 문구를 각자 들면 같은 상황을 서로 다르게 안내하게 된다(#204).
  */
 @Composable
 public fun CareerCompassNetworkErrorState(
@@ -38,9 +45,11 @@ public fun CareerCompassNetworkErrorState(
     onOfflineClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val display = FailureKind.NoConnection.display()
+
     CareerCompassStateLayout(
-        title = stringResource(R.string.core_ui_state_network_title),
-        description = stringResource(R.string.core_ui_state_network_description),
+        title = display.title(),
+        description = display.description(),
         modifier = modifier,
         illustration = {
             StateEmoji(R.string.core_ui_state_network_illustration)

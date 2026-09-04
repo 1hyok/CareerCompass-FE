@@ -16,6 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cambridge.core.ui.failure.FailureKind
+import com.cambridge.core.ui.failure.FailureSurface
+import com.cambridge.core.ui.failure.display
+import com.cambridge.core.ui.failure.sentence
 import com.cambridge.feature.feed.presentation.R
 import kotlinx.coroutines.launch
 
@@ -93,12 +97,41 @@ internal fun BoardRegisterViewState.toUiState(resources: Resources): BoardRegist
         isSubmitting = isSubmitting,
     )
 
+/**
+ * 안내 문구 — 서버 코드에서 온 것은 실패 표에서 읽고([FailureKind], #204), 이 화면에서만 나는 것은
+ * 여기 남는다.
+ *
+ * 「구조를 분석하지 못했다」·「등록하지 못했다」·「나가지 못한다」는 §9 의 어느 코드도 아니다. 게시판
+ * 등록의 단계(감지 → 등록)와 이탈 차단(#146)이 만들어 내는 상태라, 표에 넣으면 다른 기능이 쓸 수 없는
+ * 행이 하나 늘 뿐이다.
+ *
+ * 스낵바는 한 줄만 허용하므로 표의 제목과 본문을 이어 붙인다.
+ */
 internal fun BoardRegisterMessage.toLabel(resources: Resources): String =
     when (this) {
-        BoardRegisterMessage.NetworkUnavailable -> resources.getString(R.string.feed_board_network_unavailable)
-        BoardRegisterMessage.DetectFailed -> resources.getString(R.string.feed_board_register_detect_failed)
-        BoardRegisterMessage.RegisterFailed -> resources.getString(R.string.feed_board_register_failed)
-        BoardRegisterMessage.SubmitInProgress -> resources.getString(R.string.feed_board_register_submit_in_progress)
-        BoardRegisterMessage.AlreadyRegistered -> resources.getString(R.string.feed_board_register_duplicate_notice)
-        is BoardRegisterMessage.LimitReached -> resources.getString(R.string.feed_board_register_limit_reached, limit)
+        BoardRegisterMessage.NetworkUnavailable -> {
+            FailureKind.NoConnection.display().sentence(resources)
+        }
+
+        BoardRegisterMessage.DetectFailed -> {
+            resources.getString(R.string.feed_board_register_detect_failed)
+        }
+
+        BoardRegisterMessage.RegisterFailed -> {
+            resources.getString(R.string.feed_board_register_failed)
+        }
+
+        BoardRegisterMessage.SubmitInProgress -> {
+            resources.getString(R.string.feed_board_register_submit_in_progress)
+        }
+
+        BoardRegisterMessage.AlreadyRegistered -> {
+            FailureKind.DuplicateBoard.display(FailureSurface.Board).sentence(resources)
+        }
+
+        // 상한은 도메인이 들고 온 값을 그대로 쓴다 — 표의 기본값(MAX_BOARDS)과 어긋나는 순간이 있다면
+        // 사용자에게는 서버가 말한 쪽이 참이다.
+        is BoardRegisterMessage.LimitReached -> {
+            FailureKind.LimitExceeded.display(FailureSurface.Board, itemLimit = limit).sentence(resources)
+        }
     }

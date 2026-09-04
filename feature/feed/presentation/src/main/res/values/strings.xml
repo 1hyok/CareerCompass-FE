@@ -54,8 +54,6 @@
     <string name="feed_loading_more">공고를 더 불러오는 중이에요</string>
     <string name="feed_load_more_paused">여기까지 찾았어요</string>
     <string name="feed_load_more_action">더 찾아보기</string>
-    <string name="feed_error_title">공고를 불러오지 못했어요</string>
-    <string name="feed_error_description">잠시 후 다시 시도해 주세요</string>
     <string name="feed_error_retry">다시 시도</string>
     <string name="feed_failure_query_reset_notice">걸어 둔 검색어·필터·정렬 때문일 수 있어요</string>
     <string name="feed_failure_query_reset_action">조건 지우고 다시 보기</string>
