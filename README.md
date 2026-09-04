@@ -1,10 +1,10 @@
 # CareerCompass-FE
 
-건국대학교 졸업 프로젝트 **CareerCompass** (팀 CamBridge) 의 Android 클라이언트.
+건국대학교 졸업 프로젝트 **CareerCompass** 의 Android 클라이언트.
 
 개인 맞춤 장학금·공모전·채용공고를 모아 적합도를 분석하고, 경험 카드를 바탕으로 자기소개서 초안을 만들어 주는 앱이다.
 
-기획·디자인 산출물(Figma 13페이지, 기능 스펙, 유스케이스, 발표자료)은 코드 저장소에 두지 않는다. 별도 문서 폴더에서 관리한다.
+기획·디자인 산출물(Figma 13페이지, 기능 스펙, 유스케이스, 발표자료)은 코드 저장소에 두지 않는다. 별도 문서 폴더에서 관리한다. **어느 문서를 믿을 것인가와 문서끼리 어긋난 곳의 판정은 [`docs/spec/canon.md`](docs/spec/canon.md) 에 있다** — 이 프로젝트는 주제가 한 번 갈아엎어져 날짜만으로는 정본을 고를 수 없다.
 
 ## 현재 상태
 
@@ -87,6 +87,7 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 에이전트 하네스(`AGENTS.md`·`CLAUDE.md`·`.claude/`·`.codex/`)는 각자 쓰는 것이 달라 저장소에 올리지 않는다 — `.gitignore` 가 막는다. 저장소가 공유하는 규약은 아래 문서와 `.github/` 의 정책 스크립트다.
 
 - [`docs/convention/`](docs/convention) — presentation 패키지 구조, Composable 콜백 기본값, 리소스 네이밍, [색 대비(WCAG AA)](docs/convention/color-contrast.md)
+- [`docs/spec/edge-states.md`](docs/spec/edge-states.md) — 엣지 상태 화면별 확정표(오프라인·로딩·빈 결과·권한·점검·세션 만료). **새 화면을 만들기 전에 채울 칸이 마지막 절에 있다**
 - [`docs/testing/screenshot.md`](docs/testing/screenshot.md) — Compose Preview 스크린샷 테스트
 - [`docs/release/`](docs/release) — 배포·Firebase WIF
 - [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마
