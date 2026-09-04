@@ -11,7 +11,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 
 ## 0. 부품 — `core:ui` 의 상태 화면 5종 + 실패 1종
 
-전부 [`core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt`](../../core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt) 한 파일에 있고, 공통 뼈대(`CareerCompassStateLayout`)가 `fillMaxSize` 로 **화면 한 장을 통째로 차지한다**. 카드 안이나 목록 끝에 끼워 넣는 용도가 아니다. **예외는 「분석 중」 하나다** — `presentation = Inline` 을 받아 카드 안에 들어간다(#221). 기다리는 상태만 화면의 나머지가 그대로 쓸모 있어서다(실패·빈 결과·권한·점검은 화면이 더 보여 줄 것이 없다).
+전부 [`core/ui/src/main/kotlin/com/careercompass/core/ui/component/CareerCompassStateView.kt`](../../core/ui/src/main/kotlin/com/careercompass/core/ui/component/CareerCompassStateView.kt) 한 파일에 있고, 공통 뼈대(`CareerCompassStateLayout`)가 `fillMaxSize` 로 **화면 한 장을 통째로 차지한다**. 카드 안이나 목록 끝에 끼워 넣는 용도가 아니다. **예외는 「분석 중」 하나다** — `presentation = Inline` 을 받아 카드 안에 들어간다(#221). 기다리는 상태만 화면의 나머지가 그대로 쓸모 있어서다(실패·빈 결과·권한·점검은 화면이 더 보여 줄 것이 없다).
 
 | 컴포넌트 | Figma 09 | 문구를 누가 정하나 | 행동 슬롯 | 삽화 |
 |---|---|---|---|---|
@@ -72,7 +72,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 
 ### 2.1 오프라인 · 네트워크 실패
 
-판정 근거는 `CoreDataFailure.NetworkUnavailable` 하나다 — data 계층이 `IOException` 을 **전부** 이 값으로 접는다([`ApiFailureMapper.kt`](../../core/data/src/main/kotlin/com/cambridge/core/data/failure/ApiFailureMapper.kt)). 사용자에게는 cleartext 차단도 TLS 회귀도 「네트워크 오류」라는 판정이다. 단 하나 더 갈라 보는 것이 **타임아웃**(`NetworkUnavailable.isTimeout`)이고, 그 구분을 쓰는 화면은 게시판 등록뿐이다.
+판정 근거는 `CoreDataFailure.NetworkUnavailable` 하나다 — data 계층이 `IOException` 을 **전부** 이 값으로 접는다([`ApiFailureMapper.kt`](../../core/data/src/main/kotlin/com/careercompass/core/data/failure/ApiFailureMapper.kt)). 사용자에게는 cleartext 차단도 TLS 회귀도 「네트워크 오류」라는 판정이다. 단 하나 더 갈라 보는 것이 **타임아웃**(`NetworkUnavailable.isTimeout`)이고, 그 구분을 쓰는 화면은 게시판 등록뿐이다.
 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|

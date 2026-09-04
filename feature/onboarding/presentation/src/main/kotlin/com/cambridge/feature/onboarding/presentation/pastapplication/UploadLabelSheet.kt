@@ -13,14 +13,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.component.CareerCompassTextField
-import com.cambridge.core.ui.component.CareerCompassTextFieldSize
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
 import com.cambridge.feature.onboarding.presentation.shared.util.toMessage
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassButtonVariant
+import com.careercompass.core.ui.component.CareerCompassTextField
+import com.careercompass.core.ui.component.CareerCompassTextFieldSize
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * 파일 업로드 라벨 확인 시트의 본문. 시트 컨테이너는 호스트가 감싼다.

@@ -18,7 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.isFinite
-import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Full-screen layout shared by the auth and completion screens: an optional top section, a

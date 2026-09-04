@@ -8,7 +8,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.domain.usecase.DetectBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.RegisterBoardUseCase
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
@@ -17,6 +16,7 @@ import com.cambridge.feature.feed.presentation.board
 import com.careercompass.core.domain.error.CoreDataFailure
 import com.careercompass.core.domain.testing.FakeBoardRepository
 import com.careercompass.core.model.board.Board
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

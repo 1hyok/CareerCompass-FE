@@ -1,0 +1,13 @@
+package com.careercompass.core.data.repoimpl.device
+
+import com.careercompass.core.datastore.DeviceDataSource
+import com.careercompass.core.domain.device.DeviceIdentityProvider
+import javax.inject.Inject
+
+internal class DeviceIdentityProviderImpl
+    @Inject
+    constructor(
+        private val deviceDataSource: DeviceDataSource,
+    ) : DeviceIdentityProvider {
+        override suspend fun deviceId(): String = deviceDataSource.getOrCreateDeviceId()
+    }

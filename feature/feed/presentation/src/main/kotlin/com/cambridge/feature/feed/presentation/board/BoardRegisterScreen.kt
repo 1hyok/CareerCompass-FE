@@ -31,17 +31,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.component.CareerCompassTextField
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedCard
 import com.cambridge.feature.feed.presentation.shared.component.FeedChoiceTag
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceNotice
 import com.cambridge.feature.feed.presentation.shared.component.FeedSectionTitle
 import com.cambridge.feature.feed.presentation.shared.component.FeedTopBar
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassButtonVariant
+import com.careercompass.core.ui.component.CareerCompassTextField
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless board registration screen: URL → structure detection → preview → name/type/cycle (spec F2-1). */
 @Composable

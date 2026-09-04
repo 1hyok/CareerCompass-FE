@@ -3,11 +3,11 @@ package com.cambridge.feature.feed.presentation.postingraw
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.cambridge.core.ui.component.CareerCompassFailureState
-import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.careercompass.core.ui.component.CareerCompassFailureState
+import com.careercompass.core.ui.component.CareerCompassNetworkErrorState
 
 /**
  * 원문을 못 받았을 때 사유별로 갈리는 화면 — [PostingRawEntry] 가 상태 없이 그리는 부분만 떼어 냈다

@@ -2,10 +2,10 @@ package com.cambridge.feature.onboarding.data.di
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import com.cambridge.core.datastore.LocalStoreRegistry
-import com.cambridge.core.datastore.StoreScope
 import com.cambridge.feature.onboarding.data.OnboardingProgressRepositoryImpl
 import com.cambridge.feature.onboarding.domain.repository.OnboardingProgressRepository
+import com.careercompass.core.datastore.LocalStoreRegistry
+import com.careercompass.core.datastore.StoreScope
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -16,7 +16,7 @@ import javax.inject.Singleton
 /**
  * 온보딩 data 바인딩.
  *
- * `public` 인 이유는 [com.cambridge.core.data.di.CoreAuthModule] 과 같다 — `app` androidTest 가
+ * `public` 인 이유는 [com.careercompass.core.data.di.CoreAuthModule] 과 같다 — `app` androidTest 가
  * `@TestInstallIn(replaces = [OnboardingDataModule::class])` 로 fake 로 갈아끼운다. 바인딩 메서드만 `internal` 로 닫는다.
  */
 @Module

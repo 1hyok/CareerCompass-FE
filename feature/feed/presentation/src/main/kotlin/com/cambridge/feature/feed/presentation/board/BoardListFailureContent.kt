@@ -2,13 +2,13 @@ package com.cambridge.feature.feed.presentation.board
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.cambridge.core.ui.component.CareerCompassFailureState
-import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
-import com.cambridge.core.ui.failure.FailureSurface
-import com.cambridge.core.ui.failure.display
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.failureKind
+import com.careercompass.core.ui.component.CareerCompassFailureState
+import com.careercompass.core.ui.component.CareerCompassNetworkErrorState
+import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.failure.display
 
 /**
  * 게시판 목록을 못 받았을 때 사유별로 갈리는 화면 — [BoardListEntry] 가 상태 없이 그리는 부분만 떼어 냈다.

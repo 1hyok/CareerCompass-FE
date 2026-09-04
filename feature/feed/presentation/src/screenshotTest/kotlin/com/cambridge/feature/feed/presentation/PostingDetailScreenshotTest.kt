@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.postingdetail.PostingDetailContentState
 import com.cambridge.feature.feed.presentation.postingdetail.PostingDetailScreen
 import com.cambridge.feature.feed.presentation.postingdetail.PostingDetailUiModel
@@ -21,6 +20,7 @@ import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityAxisUiMo
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityUiModel
 import com.cambridge.feature.feed.presentation.postingdetail.component.SimilarPostingCard
 import com.careercompass.core.model.posting.SuitabilityLabel
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
 @Preview(name = "Posting detail employment", widthDp = 360, heightDp = 772)

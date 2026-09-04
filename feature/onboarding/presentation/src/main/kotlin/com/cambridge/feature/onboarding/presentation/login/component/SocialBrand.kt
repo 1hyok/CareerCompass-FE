@@ -16,8 +16,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import com.kakao.sdk.v2.user.R as KakaoSdkR
 
 /**
@@ -102,7 +102,7 @@ internal object GoogleBrand {
  * 경로는 가이드의 표준 컬러 G 를 48×48 뷰포트로 옮긴 것이고, 색 넷은 구글이 배포하는
  * `googleg_standard_color_18.png` 의 픽셀에서 읽은 값이다(`#EA4335` · `#34A853` · `#4285F4` ·
  * `#FBBC05`). 「you can't change the size or color of the Google 'G' logo」 이므로 경로와 색은
- * 손대지 않는다 — [CareerCompassIcons][com.cambridge.core.ui.icon.CareerCompassIcons] 의 24×24 ·
+ * 손대지 않는다 — [CareerCompassIcons][com.careercompass.core.ui.icon.CareerCompassIcons] 의 24×24 ·
  * 2f 스트로크 규약이 여기 적용되지 않는 것도 같은 이유다.
  *
  * 뷰포트 48 안에서 글자가 차지하는 폭은 43.12 라, [GOOGLE_MARK_SIZE] 20dp 로 그리면 눈에 보이는

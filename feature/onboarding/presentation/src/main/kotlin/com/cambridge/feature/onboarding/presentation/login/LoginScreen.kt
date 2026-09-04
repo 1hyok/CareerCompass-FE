@@ -16,13 +16,13 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
 import com.cambridge.feature.onboarding.presentation.login.component.GoogleLoginButton
 import com.cambridge.feature.onboarding.presentation.login.component.KakaoLoginButton
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingBrandMark
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingCenteredLayout
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingErrorCard
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless social login entry screen shown before onboarding. */
 @Composable

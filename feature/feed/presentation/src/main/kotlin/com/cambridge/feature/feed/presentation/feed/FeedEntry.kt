@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedScreen
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterSheetContent
@@ -28,6 +27,7 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuContent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuUiState
 import com.cambridge.feature.feed.presentation.shared.util.toSortOption
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import kotlinx.coroutines.launch
 
 /**

@@ -17,10 +17,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.ui.failure.FailureSurface
-import com.cambridge.core.ui.failure.description
-import com.cambridge.core.ui.failure.display
-import com.cambridge.core.ui.failure.title
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
@@ -29,6 +25,10 @@ import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
 import com.cambridge.feature.feed.presentation.shared.util.toDetailUiModel
 import com.cambridge.feature.feed.presentation.shared.util.toSuitabilityUiModel
 import com.careercompass.core.model.posting.Suitability
+import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.failure.description
+import com.careercompass.core.ui.failure.display
+import com.careercompass.core.ui.failure.title
 import kotlinx.coroutines.launch
 import java.time.Clock
 

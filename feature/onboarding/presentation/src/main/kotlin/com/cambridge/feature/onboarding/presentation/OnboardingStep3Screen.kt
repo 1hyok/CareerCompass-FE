@@ -34,8 +34,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.ui.icon.CareerCompassIcons
-import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.careercompass.core.ui.icon.CareerCompassIcons
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless experience-list step from the onboarding flow. */
 @Composable

@@ -31,7 +31,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows

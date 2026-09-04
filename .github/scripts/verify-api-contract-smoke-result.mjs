@@ -10,7 +10,7 @@ import {
     parseAndroidTestXml,
 } from "./render-android-test-results.mjs";
 
-const TARGET_CLASS = "com.cambridge.core.network.service.ApiWireContractSmokeTest";
+const TARGET_CLASS = "com.careercompass.core.network.service.ApiWireContractSmokeTest";
 
 export function verifyApiContractSmokeDocuments(documents) {
     const testcases = documents.flatMap(({ file, xml }) =>

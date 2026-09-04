@@ -22,7 +22,7 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
-import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows

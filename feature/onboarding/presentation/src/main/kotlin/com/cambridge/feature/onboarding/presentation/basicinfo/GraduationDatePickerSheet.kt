@@ -19,11 +19,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassTag
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassTag
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * 졸업 예정 연월 선택 시트의 본문 — 연도는 가로 목록, 월은 12개 칩으로 고른다.

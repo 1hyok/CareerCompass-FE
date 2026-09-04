@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * White 16dp-radius card with a hairline border, matching the feed listing card.

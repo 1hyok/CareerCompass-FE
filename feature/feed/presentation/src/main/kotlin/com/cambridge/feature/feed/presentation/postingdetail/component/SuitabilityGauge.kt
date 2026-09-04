@@ -19,10 +19,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.ui.component.CareerCompassBadge
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.careercompass.core.model.posting.SuitabilityLabel
+import com.careercompass.core.ui.component.CareerCompassBadge
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Large score readout with a level badge and a determinate progress bar (spec F3-3).

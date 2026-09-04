@@ -22,8 +22,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Dismissible inline error banner shared by the login and biometric login screens.

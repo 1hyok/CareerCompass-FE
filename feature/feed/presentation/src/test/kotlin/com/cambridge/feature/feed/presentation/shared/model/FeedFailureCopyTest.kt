@@ -1,12 +1,12 @@
 package com.cambridge.feature.feed.presentation.shared.model
 
-import com.cambridge.core.ui.failure.FailureKind
 import com.cambridge.feature.feed.presentation.board.BoardDetectionFailure
 import com.cambridge.feature.feed.presentation.board.BoardRegisterMessage
 import com.cambridge.feature.feed.presentation.board.isRetryable
 import com.cambridge.feature.feed.presentation.board.toLabel
 import com.careercompass.core.domain.error.CoreDataFailure
 import com.careercompass.core.model.board.MAX_BOARDS
+import com.careercompass.core.ui.failure.FailureKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

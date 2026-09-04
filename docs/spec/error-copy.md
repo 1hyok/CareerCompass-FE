@@ -3,9 +3,9 @@
 서버가 코드를 주면 앱은 **문구를 여기서 찾는다.** 화면이 스스로 짓지 않는다.
 
 - 화면별로 **어떤 상태를 그리는가**는 [`edge-states.md`](edge-states.md) 다. 이 문서는 그 상태에 **무슨 문장을 넣는가**를 정한다.
-- 계약: `core/ui/src/main/kotlin/com/cambridge/core/ui/failure/FailureDisplay.kt`
+- 계약: `core/ui/src/main/kotlin/com/careercompass/core/ui/failure/FailureDisplay.kt`
 - 문자열: `core/ui/src/main/res/values/core_ui_failure_strings.xml`
-- 회귀 가드: `core/ui/src/test/kotlin/com/cambridge/core/ui/failure/FailureDisplayTest.kt`
+- 회귀 가드: `core/ui/src/test/kotlin/com/careercompass/core/ui/failure/FailureDisplayTest.kt`
 
 ## 왜 표인가
 

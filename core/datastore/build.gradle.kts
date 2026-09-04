@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.core.datastore"
+    namespace = "com.careercompass.core.datastore"
     testOptions.unitTests.isReturnDefaultValues = true
 }
 

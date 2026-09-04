@@ -1,8 +1,8 @@
 package com.cambridge.feature.feed.presentation.board
 
 import androidx.annotation.StringRes
-import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.feature.feed.presentation.R
+import com.careercompass.core.ui.component.CareerCompassBadgeTone
 
 @StringRes
 internal fun BoardType.labelRes(): Int =
@@ -51,7 +51,7 @@ internal fun BoardDetectionFailure.messageRes(): Int =
  * 로그인이 필요한 게시판·JavaScript 로 그려지는 게시판·수집이 막힌 사이트는 사이트 쪽 사정이라 몇 번을
  * 다시 보내도 같은 답이 온다. 버튼을 주면 사용자는 누르고 같은 상자를 다시 만난다 — 실패 표가
  * `BOARD_BLOCKED` 에 재시도를 주지 않는 것과 같은 규칙이다
- * ([FailureDisplay][com.cambridge.core.ui.failure.FailureDisplay]).
+ * ([FailureDisplay][com.careercompass.core.ui.failure.FailureDisplay]).
  *
  * [BoardDetectionFailure.Failed] 만 예외다. 「목록 페이지 주소인지 확인해 주세요」는 사용자가 URL 을
  * 고쳐 다시 누르는 길이고, 그 자리에서 실제로 답이 갈린다.

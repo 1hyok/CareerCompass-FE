@@ -19,10 +19,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.component.CareerCompassTextField
-import com.cambridge.core.ui.component.CareerCompassTextFieldSize
-import com.cambridge.core.ui.icon.CareerCompassIcons
-import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.careercompass.core.ui.component.CareerCompassTextField
+import com.careercompass.core.ui.component.CareerCompassTextFieldSize
+import com.careercompass.core.ui.icon.CareerCompassIcons
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Stateless first-step onboarding form.

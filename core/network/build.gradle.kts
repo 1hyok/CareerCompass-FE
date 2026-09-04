@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.core.network"
+    namespace = "com.careercompass.core.network"
     buildFeatures {
         buildConfig = true
     }

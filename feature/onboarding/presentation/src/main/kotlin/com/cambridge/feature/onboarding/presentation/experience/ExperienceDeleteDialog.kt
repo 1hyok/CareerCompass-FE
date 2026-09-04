@@ -5,11 +5,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassButtonVariant
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Step 3 카드 삭제 확인 다이얼로그 — 삭제는 서버 카드까지 지워 되돌릴 수 없다(F1-3).

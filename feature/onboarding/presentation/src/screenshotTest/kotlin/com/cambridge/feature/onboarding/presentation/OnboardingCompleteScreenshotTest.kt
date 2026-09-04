@@ -4,9 +4,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.complete.OnboardingCompleteScreen
 import com.cambridge.feature.onboarding.presentation.complete.OnboardingCompleteUiState
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
 @Preview(name = "Onboarding complete named", widthDp = 360, heightDp = 800)

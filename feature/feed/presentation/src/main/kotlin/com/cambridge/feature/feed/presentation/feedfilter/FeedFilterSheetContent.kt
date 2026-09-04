@@ -19,15 +19,15 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.icon.CareerCompassIcons
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedChoiceTag
 import com.cambridge.feature.feed.presentation.shared.component.FeedIconButton
 import com.cambridge.feature.feed.presentation.shared.component.FeedSectionTitle
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassButtonVariant
+import com.careercompass.core.ui.icon.CareerCompassIcons
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Body of the feed filter bottom sheet (spec F2-3).

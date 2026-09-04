@@ -32,16 +32,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.ui.component.CareerCompassBadge
-import com.cambridge.core.ui.component.CareerCompassBadgeTone
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedCard
 import com.cambridge.feature.feed.presentation.shared.component.FeedLoadingContent
 import com.cambridge.feature.feed.presentation.shared.component.FeedTopBar
+import com.careercompass.core.ui.component.CareerCompassBadge
+import com.careercompass.core.ui.component.CareerCompassBadgeTone
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassButtonVariant
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless list of registered boards with per-board activation, retry, and delete actions (spec F2-1/F2-2). */
 @Composable

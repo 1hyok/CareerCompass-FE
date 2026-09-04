@@ -14,7 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.careercompass_fe.navigation.AppDeepLinkParser
 import com.cambridge.careercompass_fe.navigation.AppNavigation
 import com.cambridge.careercompass_fe.session.MainViewModel
-import com.cambridge.core.ui.theme.CareerCompassTheme
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 /**

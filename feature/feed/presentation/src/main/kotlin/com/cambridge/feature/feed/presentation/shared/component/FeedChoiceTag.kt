@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import com.cambridge.core.ui.component.CareerCompassTag
 import com.cambridge.feature.feed.presentation.R
+import com.careercompass.core.ui.component.CareerCompassTag
 
 /** [CareerCompassTag] with the feed's localized selected/unselected state descriptions. */
 @Composable

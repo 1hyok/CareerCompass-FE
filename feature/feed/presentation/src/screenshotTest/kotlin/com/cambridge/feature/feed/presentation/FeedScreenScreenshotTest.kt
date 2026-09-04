@@ -6,9 +6,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.feed.FeedFailureContent
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
 @Preview(name = "Main feed", widthDp = 360, heightDp = 772)

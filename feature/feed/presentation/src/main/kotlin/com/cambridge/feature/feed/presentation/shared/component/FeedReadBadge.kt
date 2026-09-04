@@ -17,9 +17,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.ui.icon.CareerCompassIcons
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
+import com.careercompass.core.ui.icon.CareerCompassIcons
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * 「✓ 읽음」 배지 — 이미 열어 본 공고임을 카드 위에서 말한다(#140 이 목록 카드에 세운 규칙).
