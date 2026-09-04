@@ -25,11 +25,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedLoadingContent
 import com.cambridge.feature.feed.presentation.shared.component.FeedTopBar
 import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.format.DateTimeFormatter

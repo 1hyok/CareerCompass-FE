@@ -8,10 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.flow.OnboardingFailureReason
 import com.cambridge.feature.onboarding.presentation.flow.toMessage
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingErrorCard
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * 단계 화면 위에 흐름 실패 배너를 띄운다.

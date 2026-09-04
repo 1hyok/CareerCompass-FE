@@ -25,8 +25,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset

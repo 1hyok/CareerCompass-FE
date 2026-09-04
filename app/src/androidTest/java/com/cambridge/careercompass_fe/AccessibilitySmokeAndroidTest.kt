@@ -11,7 +11,6 @@ import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import com.cambridge.careercompass_fe.test.FailureArtifactRule
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedContentState
 import com.cambridge.feature.feed.presentation.FeedFilterUiModel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
@@ -36,6 +35,7 @@ import com.cambridge.feature.onboarding.presentation.OnboardingStep4Screen
 import com.cambridge.feature.onboarding.presentation.OnboardingStep4UiState
 import com.cambridge.feature.onboarding.presentation.login.LoginScreen
 import com.cambridge.feature.onboarding.presentation.login.LoginUiState
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

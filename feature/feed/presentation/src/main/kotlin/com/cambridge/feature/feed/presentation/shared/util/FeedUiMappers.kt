@@ -2,7 +2,6 @@ package com.cambridge.feature.feed.presentation.shared.util
 
 import android.content.res.Resources
 import androidx.annotation.StringRes
-import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedFilterUiModel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
@@ -42,6 +41,7 @@ import com.careercompass.core.model.posting.Suitability
 import com.careercompass.core.model.posting.SuitabilityAxisKind
 import com.careercompass.core.model.posting.SuitabilityLabel
 import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.ui.component.CareerCompassScoreLevel
 import java.text.NumberFormat
 import java.time.Clock
 import java.time.LocalDate

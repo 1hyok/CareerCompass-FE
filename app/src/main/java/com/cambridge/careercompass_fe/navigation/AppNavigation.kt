@@ -24,15 +24,15 @@ import androidx.navigation.toRoute
 import com.cambridge.careercompass_fe.R
 import com.cambridge.careercompass_fe.session.AppStartDestination
 import com.cambridge.careercompass_fe.session.SessionEndCause
-import com.cambridge.core.ui.component.CareerCompassBottomBar
-import com.cambridge.core.ui.component.CareerCompassBottomTab
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.navigation.FeedGraphRoute
 import com.cambridge.feature.feed.presentation.navigation.FeedRoute
 import com.cambridge.feature.feed.presentation.navigation.feedNavGraph
 import com.cambridge.feature.onboarding.presentation.navigation.OnboardingGraphRoute
 import com.cambridge.feature.onboarding.presentation.navigation.OnboardingRoute
 import com.cambridge.feature.onboarding.presentation.navigation.onboardingNavGraph
+import com.careercompass.core.ui.component.CareerCompassBottomBar
+import com.careercompass.core.ui.component.CareerCompassBottomTab
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** 계측 smoke(`ApiBoundarySmokeAndroidTest`)가 앱 시작 화면을 찾는 시맨틱 태그. */
 internal const val APP_START_SEMANTICS_TAG = "careercompass_app_start"

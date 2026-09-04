@@ -15,15 +15,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.component.CareerCompassBadge
-import com.cambridge.core.ui.component.CareerCompassBadgeTone
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedCard
 import com.cambridge.feature.feed.presentation.shared.component.FeedReadBadge
 import com.cambridge.feature.feed.presentation.shared.component.FeedSuitabilityChip
 import com.cambridge.feature.feed.presentation.shared.component.feedMetaTextStyle
+import com.careercompass.core.ui.component.CareerCompassBadge
+import com.careercompass.core.ui.component.CareerCompassBadgeTone
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Compact, single-action listing card for the "similar postings" section.

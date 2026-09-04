@@ -4,11 +4,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.board.BoardCollectCycle
 import com.cambridge.feature.feed.presentation.board.BoardEditSheetContent
 import com.cambridge.feature.feed.presentation.board.BoardEditUiState
 import com.cambridge.feature.feed.presentation.board.BoardType
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
 @Preview(name = "Board edit sheet", widthDp = 360, heightDp = 772)

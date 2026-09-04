@@ -4,7 +4,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.feedfilter.FeedBoardFilterUiModel
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedDeadlineRange
@@ -13,6 +12,7 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedFilterUiState
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsReason
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsUiModel
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import java.time.LocalDate
 
 @PreviewTest

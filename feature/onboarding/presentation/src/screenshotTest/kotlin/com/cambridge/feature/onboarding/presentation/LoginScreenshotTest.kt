@@ -5,9 +5,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.login.LoginScreen
 import com.cambridge.feature.onboarding.presentation.login.LoginUiState
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
 @Preview(name = "Login default", widthDp = 360, heightDp = 800)

@@ -14,7 +14,7 @@ const build = await readFile(
 );
 const smoke = await readFile(
   new URL(
-    '../../core/network/src/test/kotlin/com/cambridge/core/network/service/ApiWireContractSmokeTest.kt',
+    '../../core/network/src/test/kotlin/com/careercompass/core/network/service/ApiWireContractSmokeTest.kt',
     import.meta.url,
   ),
   'utf8',
@@ -440,7 +440,7 @@ test('workflow policy rejects conditional verifier and skip-producing mutations'
   );
   const forgedSmokeResult = workflow.replace(
     '          --stacktrace\n',
-    "          --stacktrace; mkdir -p core/network/build/test-results/testDebugUnitTest; printf '<testsuite tests=\\\"1\\\" failures=\\\"0\\\" errors=\\\"0\\\" skipped=\\\"0\\\"><testcase classname=\\\"com.cambridge.core.network.service.ApiWireContractSmokeTest\\\" name=\\\"fake\\\"/></testsuite>' > core/network/build/test-results/testDebugUnitTest/TEST-fake.xml\n",
+    "          --stacktrace; mkdir -p core/network/build/test-results/testDebugUnitTest; printf '<testsuite tests=\\\"1\\\" failures=\\\"0\\\" errors=\\\"0\\\" skipped=\\\"0\\\"><testcase classname=\\\"com.careercompass.core.network.service.ApiWireContractSmokeTest\\\" name=\\\"fake\\\"/></testsuite>' > core/network/build/test-results/testDebugUnitTest/TEST-fake.xml\n",
   );
   const extendedJobEnvironment = workflow.replace(
     "      RUN_API_CONTRACT_SMOKE: 'true'\n",
@@ -576,13 +576,13 @@ test('wire smoke uses Testcontainers with a pinned MockServer REST API image', (
 });
 
 test('result verifier requires at least one executed smoke test and rejects skips', () => {
-  assert.match(verifier, /TARGET_CLASS = "com\.cambridge\.core\.network\.service\.ApiWireContractSmokeTest"/);
+  assert.match(verifier, /TARGET_CLASS = "com\.careercompass\.core\.network\.service\.ApiWireContractSmokeTest"/);
   assert.match(verifier, /parseAndroidTestXml\(xml, \{ file, validateSuiteCounters: true \}\)/);
   assert.doesNotMatch(verifier, /matchAll\(\/<testcase/);
 
   const result = ({ body = '', failures = 0, skipped = 0 } = {}) => ({
     file: 'TEST-ApiWireContractSmokeTest.xml',
-    xml: `<testsuite tests="1" failures="${failures}" errors="0" skipped="${skipped}"><testcase classname="com.cambridge.core.network.service.ApiWireContractSmokeTest" name="contract">${body}</testcase></testsuite>`,
+    xml: `<testsuite tests="1" failures="${failures}" errors="0" skipped="${skipped}"><testcase classname="com.careercompass.core.network.service.ApiWireContractSmokeTest" name="contract">${body}</testcase></testsuite>`,
   });
 
   assert.deepEqual(verifyApiContractSmokeDocuments([result()]), {
@@ -604,7 +604,7 @@ test('result verifier requires at least one executed smoke test and rejects skip
 });
 
 test('result verifier rejects XML structure tricks and inconsistent suite counters', () => {
-  const targetClass = 'com.cambridge.core.network.service.ApiWireContractSmokeTest';
+  const targetClass = 'com.careercompass.core.network.service.ApiWireContractSmokeTest';
   const document = (xml) => ({ file: 'TEST-ApiWireContractSmokeTest.xml', xml });
 
   assert.throws(

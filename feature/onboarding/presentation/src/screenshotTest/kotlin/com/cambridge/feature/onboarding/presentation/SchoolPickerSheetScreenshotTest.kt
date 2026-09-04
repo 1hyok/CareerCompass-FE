@@ -4,11 +4,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.domain.model.SchoolCatalog
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolDirectInputState
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerSheet
 import com.cambridge.feature.onboarding.presentation.basicinfo.SchoolPickerState
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
 @Preview(name = "School picker default", widthDp = 360, heightDp = 800)

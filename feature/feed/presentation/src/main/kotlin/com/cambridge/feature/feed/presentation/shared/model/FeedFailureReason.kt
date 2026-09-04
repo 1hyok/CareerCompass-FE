@@ -1,7 +1,7 @@
 package com.cambridge.feature.feed.presentation.shared.model
 
-import com.cambridge.core.ui.failure.FailureKind
 import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.ui.failure.FailureKind
 
 /**
  * 실패 화면이 갈라 그려야 하는 사유. 사용자가 할 일이 다른 것만 가른다.

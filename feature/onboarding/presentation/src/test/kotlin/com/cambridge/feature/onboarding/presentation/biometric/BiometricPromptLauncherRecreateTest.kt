@@ -13,12 +13,12 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.fragment.app.FragmentActivity
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
 import com.careercompass.core.domain.testing.FakeAuthRepository
 import com.careercompass.core.domain.testing.FakeUserProfileRepository
 import com.careercompass.core.domain.usecase.auth.ResolveSessionEntryUseCase
 import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

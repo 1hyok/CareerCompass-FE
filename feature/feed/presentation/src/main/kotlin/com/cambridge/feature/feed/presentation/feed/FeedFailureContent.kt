@@ -12,17 +12,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassFailureState
-import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
-import com.cambridge.core.ui.failure.FailureSurface
-import com.cambridge.core.ui.failure.display
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.failureKind
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassFailureState
+import com.careercompass.core.ui.component.CareerCompassNetworkErrorState
+import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.failure.display
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * 목록을 못 받았을 때 사유별로 갈리는 화면 — [FeedEntry] 가 상태 없이 그리는 부분만 떼어 냈다.

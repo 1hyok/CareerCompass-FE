@@ -11,13 +11,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.ui.component.CareerCompassScoreChip
-import com.cambridge.core.ui.component.CareerCompassScoreLevel
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.util.toScoreLevel
 import com.careercompass.core.model.posting.SuitabilityLabel
+import com.careercompass.core.ui.component.CareerCompassScoreChip
+import com.careercompass.core.ui.component.CareerCompassScoreLevel
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * Suitability readout of a listing card: the score chip when a score exists, otherwise a pill of the

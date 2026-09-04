@@ -1,7 +1,7 @@
 package com.cambridge.careercompass_fe.di
 
-import com.cambridge.core.data.di.CoreAuthModule
-import com.cambridge.core.data.di.CoreRepositoryModule
+import com.careercompass.core.data.di.CoreAuthModule
+import com.careercompass.core.data.di.CoreRepositoryModule
 import com.careercompass.core.domain.device.DeviceIdentityProvider
 import com.careercompass.core.domain.repository.AuthRepository
 import com.careercompass.core.domain.repository.BoardRepository

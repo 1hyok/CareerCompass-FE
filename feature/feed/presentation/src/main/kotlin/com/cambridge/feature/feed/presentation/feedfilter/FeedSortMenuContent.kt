@@ -23,11 +23,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.cambridge.core.ui.icon.CareerCompassIcons
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FEED_ICON_SIZE
 import com.cambridge.feature.feed.presentation.shared.component.FeedIconButton
+import com.careercompass.core.ui.icon.CareerCompassIcons
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Radio list of the feed sort orders (spec F2-3). The host decides how it is anchored. */
 @Composable

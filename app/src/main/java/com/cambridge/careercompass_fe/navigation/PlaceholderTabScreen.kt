@@ -6,9 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.cambridge.careercompass_fe.R
-import com.cambridge.core.ui.component.CareerCompassBottomTab
-import com.cambridge.core.ui.component.CareerCompassEmptyState
-import com.cambridge.core.ui.component.CareerCompassTopAppBar
+import com.careercompass.core.ui.component.CareerCompassBottomTab
+import com.careercompass.core.ui.component.CareerCompassEmptyState
+import com.careercompass.core.ui.component.CareerCompassTopAppBar
 
 /**
  * 다른 담당 모듈(foryou·editor)이 진입점을 제공하기 전까지 탭이 비어 보이지 않게 하는 자리표시자.

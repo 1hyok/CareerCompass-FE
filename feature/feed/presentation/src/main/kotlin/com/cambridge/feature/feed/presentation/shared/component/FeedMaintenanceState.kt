@@ -12,13 +12,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import com.cambridge.core.ui.component.CareerCompassMaintenanceState
-import com.cambridge.core.ui.failure.FailureKind
-import com.cambridge.core.ui.failure.description
-import com.cambridge.core.ui.failure.display
-import com.cambridge.core.ui.failure.title
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
+import com.careercompass.core.ui.component.CareerCompassMaintenanceState
+import com.careercompass.core.ui.failure.FailureKind
+import com.careercompass.core.ui.failure.description
+import com.careercompass.core.ui.failure.display
+import com.careercompass.core.ui.failure.title
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /*
  * 서버 점검(503 `LLM_UNAVAILABLE`)을 말하는 자리는 이 파일이 전부다.

@@ -1,9 +1,9 @@
 package com.cambridge.feature.feed.data.di
 
-import com.cambridge.core.datastore.StoreScope
 import com.cambridge.feature.feed.data.FeedSnapshotRepositoryImpl
 import com.cambridge.feature.feed.data.support.FakeLocalStoreRegistry
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
+import com.careercompass.core.datastore.StoreScope
 import com.careercompass.core.model.posting.Posting
 import com.careercompass.core.model.posting.PostingBoardRef
 import com.careercompass.core.model.posting.PostingType

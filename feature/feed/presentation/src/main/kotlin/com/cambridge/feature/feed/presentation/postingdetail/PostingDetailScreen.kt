@@ -36,17 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.ui.component.CareerCompassAnalyzingState
-import com.cambridge.core.ui.component.CareerCompassBadge
-import com.cambridge.core.ui.component.CareerCompassBadgeTone
-import com.cambridge.core.ui.component.CareerCompassButton
-import com.cambridge.core.ui.component.CareerCompassButtonSize
-import com.cambridge.core.ui.component.CareerCompassButtonVariant
-import com.cambridge.core.ui.component.CareerCompassFailureState
-import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
-import com.cambridge.core.ui.component.CareerCompassStatePresentation
-import com.cambridge.core.ui.icon.CareerCompassIcons
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.postingdetail.component.SimilarPostingCard
@@ -61,6 +50,17 @@ import com.cambridge.feature.feed.presentation.shared.component.FeedLoadingConte
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
 import com.cambridge.feature.feed.presentation.shared.component.FeedSectionTitle
 import com.cambridge.feature.feed.presentation.shared.component.FeedTopBar
+import com.careercompass.core.ui.component.CareerCompassAnalyzingState
+import com.careercompass.core.ui.component.CareerCompassBadge
+import com.careercompass.core.ui.component.CareerCompassBadgeTone
+import com.careercompass.core.ui.component.CareerCompassButton
+import com.careercompass.core.ui.component.CareerCompassButtonSize
+import com.careercompass.core.ui.component.CareerCompassButtonVariant
+import com.careercompass.core.ui.component.CareerCompassFailureState
+import com.careercompass.core.ui.component.CareerCompassNetworkErrorState
+import com.careercompass.core.ui.component.CareerCompassStatePresentation
+import com.careercompass.core.ui.icon.CareerCompassIcons
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless posting detail screen matching the CareerCompass "공고 상세" design (spec F3-3). */
 @Composable

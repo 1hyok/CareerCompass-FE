@@ -4,11 +4,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceEditorState
 import com.cambridge.feature.onboarding.presentation.experience.ExperienceQuickAddSheet
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 import com.careercompass.core.model.experience.ExperienceType
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 @PreviewTest
 @Preview(name = "Experience quick add project", widthDp = 360, heightDp = 800)

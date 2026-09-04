@@ -2,10 +2,10 @@ package com.cambridge.feature.feed.data.di
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import com.cambridge.core.datastore.LocalStoreRegistry
-import com.cambridge.core.datastore.StoreScope
 import com.cambridge.feature.feed.data.FeedSnapshotRepositoryImpl
 import com.cambridge.feature.feed.domain.repository.FeedSnapshotRepository
+import com.careercompass.core.datastore.LocalStoreRegistry
+import com.careercompass.core.datastore.StoreScope
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

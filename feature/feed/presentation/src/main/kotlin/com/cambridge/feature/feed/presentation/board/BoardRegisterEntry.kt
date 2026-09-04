@@ -16,12 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.ui.failure.FailureKind
-import com.cambridge.core.ui.failure.FailureSurface
-import com.cambridge.core.ui.failure.display
-import com.cambridge.core.ui.failure.sentence
-import com.cambridge.core.ui.failure.title
 import com.cambridge.feature.feed.presentation.R
+import com.careercompass.core.ui.failure.FailureKind
+import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.failure.display
+import com.careercompass.core.ui.failure.sentence
+import com.careercompass.core.ui.failure.title
 import kotlinx.coroutines.launch
 
 /** 게시판 등록 진입점. 등록이 끝나면 [onBackClick] 으로 목록에 돌아간다(목록은 재진입 시 다시 읽는다). */

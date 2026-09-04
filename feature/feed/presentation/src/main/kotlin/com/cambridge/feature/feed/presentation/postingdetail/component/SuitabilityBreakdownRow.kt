@@ -28,10 +28,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityAxisFulfillment
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityAxisUiModel
+import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /**
  * One analysis axis: label, weight caption, score, a thin score bar, and a fulfilled/unfulfilled

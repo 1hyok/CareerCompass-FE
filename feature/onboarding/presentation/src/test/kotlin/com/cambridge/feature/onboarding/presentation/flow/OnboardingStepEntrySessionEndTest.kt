@@ -4,7 +4,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.domain.testing.FakeOnboardingProgressRepository
 import com.cambridge.feature.onboarding.domain.usecase.AddExperienceUseCase
 import com.cambridge.feature.onboarding.domain.usecase.CompleteOnboardingUseCase
@@ -27,6 +26,7 @@ import com.careercompass.core.domain.testing.FakePastApplicationRepository
 import com.careercompass.core.domain.testing.FakeUserProfileRepository
 import com.careercompass.core.model.user.JobInterest
 import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.ui.theme.CareerCompassTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
