@@ -17,6 +17,8 @@ import com.cambridge.feature.onboarding.presentation.navigation.toRoute
  * @param navigateToMain 인증·온보딩을 끝낸 뒤 메인(피드)로 — 백스택을 전부 비운다.
  * @param navigateToBoardRegister 완료 화면 「게시판 먼저 등록하기」.
  * @param onAuthSessionExpired 지문 뒤 세션 검증이 만료를 알렸다 — 셸이 로그인 화면에 남길 사유를 받는다.
+ * @param onSessionEnded Step 1~4 가 401 을 물었다 — 셸이 시작 목적지를 다시 계산해 로그인 화면으로 보낸다(#211).
+ *   지문 경로([onAuthSessionExpired])와 갈리는 자리다: 그쪽은 그래프가 스스로 옮기므로 재계산이 없다.
  */
 @Composable
 internal fun rememberOnboardingNavActions(
@@ -25,11 +27,13 @@ internal fun rememberOnboardingNavActions(
     navigateToMain: () -> Unit,
     navigateToBoardRegister: () -> Unit,
     onAuthSessionExpired: () -> Unit,
+    onSessionEnded: () -> Unit,
 ): OnboardingNavActions {
     val onExitRequestState by rememberUpdatedState(onExitRequest)
     val navigateToMainState by rememberUpdatedState(navigateToMain)
     val navigateToBoardRegisterState by rememberUpdatedState(navigateToBoardRegister)
     val onAuthSessionExpiredState by rememberUpdatedState(onAuthSessionExpired)
+    val onSessionEndedState by rememberUpdatedState(onSessionEnded)
     return remember(navController) {
         val replaceBiometricWithLogin: () -> Unit = {
             navController.navigate(OnboardingRoute.Login) {
@@ -59,6 +63,7 @@ internal fun rememberOnboardingNavActions(
                 onAuthSessionExpiredState()
                 replaceBiometricWithLogin()
             },
+            onSessionEnded = { onSessionEndedState() },
             proceedToStep = { step ->
                 navController.navigate(step.toRoute()) { launchSingleTop = true }
             },

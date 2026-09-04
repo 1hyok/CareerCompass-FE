@@ -12,6 +12,9 @@ import com.cambridge.feature.onboarding.presentation.flow.OnboardingDestination
  * @property navigateToLoginFromBiometric 지문 화면의 「다른 방법으로 로그인」 — 사용자가 고른 것이라 설명이 없다.
  * @property navigateToLoginAfterSessionExpiry 지문 확인 뒤 세션 검증이 만료를 알렸다 — 같은 로그인 화면으로 가되
  *   셸이 사유를 알아야 「왜 로그아웃됐는지」를 그 화면에서 말할 수 있다(#128).
+ * @property onSessionEnded Step 1~4 에서 401 을 물었다 — 세션이 끝났다는 **사실만** 올린다(#211). 지문 경로와
+ *   달리 그래프가 스스로 옮기지 않는다: 어디로 갈지는 시작 목적지를 다시 계산해야 알 수 있고, 그 계산은 셸의
+ *   일이다. 피드·게시판의 `FeedNavActions.onSessionEnded` 와 같은 길이다.
  * @property proceedToStep 단계 저장 성공 또는 재개 지점으로 전진.
  * @property proceedToComplete Step 4 완료·건너뛰기 뒤 완료 화면으로.
  * @property popBack 단계 화면의 뒤로 가기. Step 1 에서 부르면 그래프가 비므로 셸이 종료를 결정한다.
@@ -24,6 +27,7 @@ public class OnboardingNavActions(
     public val replaceAuthWithOnboarding: () -> Unit,
     public val navigateToLoginFromBiometric: () -> Unit,
     public val navigateToLoginAfterSessionExpiry: () -> Unit,
+    public val onSessionEnded: () -> Unit,
     public val proceedToStep: (OnboardingStep) -> Unit,
     public val proceedToComplete: () -> Unit,
     public val popBack: () -> Unit,

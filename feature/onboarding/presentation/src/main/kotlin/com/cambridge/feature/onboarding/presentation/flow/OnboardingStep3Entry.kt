@@ -22,12 +22,17 @@ import com.cambridge.feature.onboarding.presentation.experience.labelResId
 import com.cambridge.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
 
-/** Step 3(경험) 화면의 상태 배선. [viewModel] 은 그래프 스코프 [OnboardingViewModel] 이어야 한다. */
+/**
+ * Step 3(경험) 화면의 상태 배선. [viewModel] 은 그래프 스코프 [OnboardingViewModel] 이어야 한다.
+ *
+ * @param onSessionEnded 401 로 세션이 끝났다 — 앱 셸이 사유를 만료로 갈라 로그인 화면으로 보낸다(#211).
+ */
 @Composable
 public fun OnboardingStep3Entry(
     viewModel: OnboardingViewModel,
     onNavigate: (OnboardingDestination) -> Unit,
     onBack: () -> Unit,
+    onSessionEnded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -35,6 +40,11 @@ public fun OnboardingStep3Entry(
         destination = state.pendingNavigation,
         onNavigate = onNavigate,
         onConsumed = viewModel::onNavigationConsumed,
+    )
+    ConsumeSessionEnd(
+        sessionEnded = state.sessionEnded,
+        onSessionEnded = onSessionEnded,
+        onConsumed = viewModel::onSessionEndedConsumed,
     )
 
     OnboardingFlowFailureHost(

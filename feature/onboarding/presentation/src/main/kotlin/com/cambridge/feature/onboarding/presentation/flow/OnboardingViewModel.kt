@@ -83,6 +83,10 @@ import javax.inject.Inject
  * - 재개: `init` 에서 [ResolveOnboardingEntryUseCase] 로 시작 단계를 정하고 프로필 값을 프리필한다(F1-1).
  * - 단계 저장은 각 use case 가 서버 저장과 진행 기록을 함께 처리하고, 성공하면 [OnboardingDestination.Step] 을 낸다.
  * - 실패 사유는 [OnboardingFailureReason] 으로 두고 계측은 [ErrorReporter] 로 남긴다. 문구·플랫폼 의존은 Entry 몫이다.
+ * - **401 만 사유가 아니다.** 세션이 끝나면 온보딩이 할 수 있는 일이 없으므로 배너 대신
+ *   [OnboardingFlowState.sessionEnded] 를 올려 앱 셸이 로그인 화면으로 보내게 한다 — 피드·게시판이 쓰는 것과
+ *   같은 길이다(#211). 온보딩에서 만료 문구를 한 번 더 그리지 않는 이유는 로그인 화면이 같은 문구를 스스로
+ *   켜기 때문이다(#128): 사용자는 그 화면에서 안내와 「다시 로그인」을 함께 본다.
  * - 입력 초안은 [OnboardingInputDraft] 가 [SavedStateHandle] 에 남긴다 — 프로세스가 죽어도 친 글자가 남는다(#133).
  *   무엇을 남기고 무엇을 버리는지, 서버 값과의 우선순위가 어떻게 되는지는 그 클래스의 KDoc 에 있다.
  */
@@ -519,9 +523,9 @@ public class OnboardingViewModel
             viewModelScope.launch {
                 deleteExperience(removed.id)
                     .onFailure { throwable ->
-                        report(OnboardingFailureStage.DeleteExperience, throwable)
+                        val reason = failed(OnboardingFailureStage.DeleteExperience, throwable)
                         updateStep3 { restore(removed, index) }
-                        _uiState.update { it.copy(failure = throwable.toOnboardingFailureReason()) }
+                        _uiState.update { it.copy(failure = reason) }
                     }
             }
         }
@@ -631,11 +635,11 @@ public class OnboardingViewModel
                             )
                         }
                     }.onFailure { throwable ->
-                        report(stage, throwable)
+                        val reason = failed(stage, throwable)
                         _uiState.update { state ->
                             state.copy(
                                 experienceEditor = state.experienceEditor?.copy(isSubmitting = false),
-                                failure = throwable.toOnboardingFailureReason(),
+                                failure = reason,
                             )
                         }
                     }
@@ -790,8 +794,10 @@ public class OnboardingViewModel
                             copy(remoteId = application.id, status = OnboardingUploadStatus.Completed(application.items))
                         }
                     }.onFailure { throwable ->
-                        report(OnboardingFailureStage.UploadPastApplication, throwable)
-                        replaceDocument(document.id) { copy(status = OnboardingUploadStatus.Failed(throwable.toOnboardingFailureReason())) }
+                        // 만료면 카드를 실패로 칠하지 않는다 — 화면을 떠나므로 읽힐 자리가 없고, 「로그인 만료 ·
+                        // 재시도」는 여기서 눌러도 같은 401 을 다시 무는 막다른 행동이다(#211).
+                        val reason = failed(OnboardingFailureStage.UploadPastApplication, throwable) ?: return@onFailure
+                        replaceDocument(document.id) { copy(status = OnboardingUploadStatus.Failed(reason)) }
                     }
             }
         }
@@ -818,8 +824,8 @@ public class OnboardingViewModel
                 deletePastApplication(remoteId)
                     .onSuccess { updateStep4 { removeDocument(documentId) } }
                     .onFailure { throwable ->
-                        report(OnboardingFailureStage.DeletePastApplication, throwable)
-                        _uiState.update { it.copy(failure = throwable.toOnboardingFailureReason()) }
+                        val reason = failed(OnboardingFailureStage.DeletePastApplication, throwable)
+                        _uiState.update { it.copy(failure = reason) }
                     }
             }
         }
@@ -880,9 +886,9 @@ public class OnboardingViewModel
                 updatePastApplicationItemCategory(applicationId = remoteId, itemId = picker.itemId, category = category)
                     .onSuccess { updated -> replaceItem(picker.documentId, updated) }
                     .onFailure { throwable ->
-                        report(OnboardingFailureStage.UpdatePastApplicationItemCategory, throwable)
+                        val reason = failed(OnboardingFailureStage.UpdatePastApplicationItemCategory, throwable)
                         replaceItem(picker.documentId, previous)
-                        _uiState.update { it.copy(failure = throwable.toOnboardingFailureReason()) }
+                        _uiState.update { it.copy(failure = reason) }
                     }
             }
         }
@@ -984,6 +990,16 @@ public class OnboardingViewModel
             _uiState.update { it.copy(failure = null) }
         }
 
+        /**
+         * Entry 가 세션 종료를 앱 셸에 넘겼다.
+         *
+         * 넘기기 **전에** 비운다 — 그래프 스코프 상태를 Step 1~4 가 함께 보므로, 전환 중 두 화면이 같은 신호를
+         * 읽고 각자 셸을 부를 수 있다. 셸은 그 겹침을 견디지만(재계산 합류), 신호는 한 번만 살아 있는 편이 옳다.
+         */
+        public fun onSessionEndedConsumed() {
+            _uiState.update { it.copy(sessionEnded = false) }
+        }
+
         // ---- 내부 도우미 ----
 
         private fun navigateTo(destination: OnboardingDestination) {
@@ -994,10 +1010,35 @@ public class OnboardingViewModel
             stage: OnboardingFailureStage,
             throwable: Throwable,
         ) {
-            report(stage, throwable)
-            _uiState.update { it.copy(isSubmitting = false, failure = throwable.toOnboardingFailureReason()) }
+            val reason = failed(stage, throwable)
+            _uiState.update { it.copy(isSubmitting = false, failure = reason) }
         }
 
+        /**
+         * 사용자가 시킨 일이 실패했다 — 기록하고, 화면에 그릴 사유를 돌려준다.
+         *
+         * 세션 만료면 사유가 없다(null). 배너를 띄우지 않고 [OnboardingFlowState.sessionEnded] 를 올려 앱 셸이
+         * 로그인 화면으로 보내게 한다 — 그러니 돌려받은 null 을 그대로 `failure` 에 넣으면 배너가 뜨지 않는 것이
+         * 맞다. 자동 조회 실패는 여기로 오지 않는다([report] 를 쓴다) — 이유는 그쪽 KDoc 에 있다.
+         */
+        private fun failed(
+            stage: OnboardingFailureStage,
+            throwable: Throwable,
+        ): OnboardingFailureReason? {
+            report(stage, throwable)
+            val reason = throwable.toOnboardingFailureReason()
+            if (reason == null) _uiState.update { it.copy(sessionEnded = true) }
+            return reason
+        }
+
+        /**
+         * 사용자가 시키지 않은 조회의 실패 — 기록만 한다.
+         *
+         * 여기서는 401 을 세션 종료로 올리지 **않는다**. 화면 진입만으로 자동으로 도는 조회라, 세션 정리가 실패해
+         * 토큰이 남은 기기에서는 「만료 → 셸 재계산 → 다시 온보딩 → 같은 조회 → 만료」가 사용자의 손 없이 도는
+         * 고리가 된다(#128 이 지문 경로에서 같은 이유로 재계산을 뺐다). 사용자가 「다음」·업로드·삭제를 누르면
+         * [failed] 가 같은 401 을 만나 한 번의 조작으로 로그인 화면까지 데려가므로, 막다른 길이 되지도 않는다.
+         */
         private fun report(
             stage: OnboardingFailureStage,
             throwable: Throwable,

@@ -1233,14 +1233,14 @@ class OnboardingViewModelTest {
     @Test
     fun `서버 문서 삭제 실패는 목록을 유지하고 사유를 알린다`() {
         pastApplicationRepository.applications += samplePastApplication(id = 9L, itemCount = 1)
-        pastApplicationRepository.onDelete = { Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", IOException("401"))) }
+        pastApplicationRepository.onDelete = { Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", IOException("500"))) }
         progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.PastApplication)
         val viewModel = createViewModel()
 
         viewModel.onStep4Event(OnboardingStep4Event.DocumentMenuClicked("remote-9"))
 
         assertEquals(1, viewModel.uiState.value.step4.documents.size)
-        assertEquals(OnboardingFailureReason.SessionExpired, viewModel.uiState.value.failure)
+        assertEquals(OnboardingFailureReason.Server, viewModel.uiState.value.failure)
         assertEquals(listOf("delete_past_application"), reporter.stages())
     }
 
@@ -1533,6 +1533,92 @@ class OnboardingViewModelTest {
 
         viewModel.onCompleteEvent(OnboardingCompleteEvent.RegisterBoardClicked)
         assertEquals(OnboardingDestination.BoardRegister, viewModel.uiState.value.pendingNavigation)
+    }
+
+    // ---- 세션 만료 (#211) ----
+
+    @Test
+    fun `단계 저장이 401 을 물면 배너 대신 세션 종료를 올린다`() {
+        userProfileRepository.onUpdateProfile = { Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", IOException("401"))) }
+        val viewModel = createViewModel()
+
+        viewModel.onStep1Event(OnboardingStep1Event.NextClicked)
+
+        val state = viewModel.uiState.value
+        assertTrue(state.sessionEnded)
+        // 배너를 띄우지 않는다 — 로그인 화면이 같은 문구를 스스로 켜고 「다시 로그인」까지 준다(#128).
+        assertNull(state.failure)
+        assertFalse(state.isSubmitting)
+        assertNull(state.pendingNavigation)
+        assertEquals(listOf("save_basic_info"), reporter.stages())
+    }
+
+    @Test
+    fun `세션 종료 신호는 소비하면 꺼진다`() {
+        userProfileRepository.onUpdateProfile = { Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", IOException("401"))) }
+        val viewModel = createViewModel()
+        viewModel.onStep1Event(OnboardingStep1Event.NextClicked)
+        assertTrue(viewModel.uiState.value.sessionEnded)
+
+        viewModel.onSessionEndedConsumed()
+
+        assertFalse(viewModel.uiState.value.sessionEnded)
+    }
+
+    @Test
+    fun `경험 삭제가 401 을 물면 목록을 되돌리고 세션 종료를 올린다`() {
+        experienceRepository.experiences += sampleExperience(id = 7L)
+        experienceRepository.onDeleteExperience = { Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", IOException("401"))) }
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
+        val viewModel = createViewModel()
+        viewModel.onStep3Event(OnboardingStep3Event.ExperienceDeleteClicked("7"))
+        viewModel.onExperienceDeleteEvent(ExperienceDeleteEvent.Confirmed)
+
+        val state = viewModel.uiState.value
+        assertTrue(state.sessionEnded)
+        assertNull(state.failure)
+        assertEquals(listOf(7L), state.step3.experiences.map(Experience::id))
+    }
+
+    @Test
+    fun `업로드가 401 을 물면 카드를 실패로 칠하지 않고 세션 종료를 올린다`() {
+        pastApplicationRepository.onUpload = { _, _ -> Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", IOException("401"))) }
+        val viewModel = createViewModel()
+
+        viewModel.confirmUpload(uploadFile("resume.pdf"))
+
+        val state = viewModel.uiState.value
+        assertTrue(state.sessionEnded)
+        assertNull(state.failure)
+        // 「로그인 만료 · 재시도」는 눌러 봐야 같은 401 을 다시 무는 행동이라 그리지 않는다.
+        assertEquals(
+            OnboardingUploadStatus.Processing,
+            state.step4.documents
+                .single()
+                .status,
+        )
+        assertEquals(listOf("upload_past_application"), reporter.stages())
+    }
+
+    /**
+     * 화면에 들어오기만 해도 도는 조회는 세션 종료를 올리지 않는다.
+     *
+     * 세션 정리가 실패해 토큰이 남은 기기에서 「만료 → 셸 재계산 → 다시 온보딩 → 같은 조회 → 만료」가 사용자의
+     * 손 없이 도는 고리를 만들지 않기 위해서다. 사용자가 조작하면 그때 한 번에 로그인 화면까지 간다.
+     */
+    @Test
+    fun `자동 조회의 401 은 기록만 남기고 세션 종료를 올리지 않는다`() {
+        experienceRepository.onGetExperiences = { _, _, _ ->
+            Result.failure(CoreDataFailure.Unauthorized("AUTH_REQUIRED", IOException("401")))
+        }
+        progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
+
+        val viewModel = createViewModel()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.sessionEnded)
+        assertNull(state.failure)
+        assertEquals(listOf("load_experiences"), reporter.stages())
     }
 
     private fun sampleProfile(onboardingDone: Boolean = false) =
