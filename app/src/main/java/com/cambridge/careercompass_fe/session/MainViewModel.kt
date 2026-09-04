@@ -8,15 +8,19 @@ import com.cambridge.core.common.reporting.ErrorReporter
 import com.cambridge.core.common.reporting.recordStagedFailure
 import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
+import com.cambridge.core.domain.settings.AppSettingsRepository
 import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
 import com.cambridge.core.domain.usecase.auth.SessionEntry
 import com.cambridge.core.domain.usecase.auth.SessionEntryDestination
+import com.cambridge.core.model.settings.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -51,6 +55,7 @@ public class MainViewModel
         private val authRepository: AuthRepository,
         private val userProfileRepository: UserProfileRepository,
         private val resolveSessionEntry: ResolveSessionEntryUseCase,
+        appSettingsRepository: AppSettingsRepository,
         private val errorReporter: ErrorReporter,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -58,6 +63,17 @@ public class MainViewModel
 
         /** 초기 진입 시 null(로딩)이며, 세션·프로필 확인 뒤 확정된다. */
         public val launch: StateFlow<AppShellLaunch?> = _launch.asStateFlow()
+
+        /**
+         * 이 기기에서 고른 화면 테마(#210). 첫 값은 [ThemeMode.System] 이고 저장소를 읽는 즉시 갈린다.
+         *
+         * `Eagerly` 인 이유 — 구독은 첫 컴포지션에서 시작하는데, 그때 이미 값이 있어야 반대 테마가 한 프레임
+         * 스쳤다 바뀌지 않는다. 시스템 스플래시가 [launch] 확정까지 화면을 붙들고 있고 그쪽은 세션·프로필을
+         * 보므로, 같은 저장소 계열의 값 하나를 읽는 이 흐름이 늦을 일은 사실상 없다.
+         */
+        public val themeMode: StateFlow<ThemeMode> =
+            appSettingsRepository.themeMode
+                .stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.System)
 
         private val _pendingDeepLink = MutableStateFlow<AppDeepLink?>(null)
 

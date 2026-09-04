@@ -1,11 +1,10 @@
 package com.cambridge.feature.onboarding.presentation.experience
 
 import androidx.compose.runtime.Immutable
+import com.cambridge.core.model.experience.EXPERIENCE_YEAR_RANGE
+import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
-import java.net.URI
-import java.time.LocalDate
-import java.time.YearMonth
 
 /**
  * Step 3 「경험 추가·수정」 시트 상태 — 공통 5개 필드 + 유형별 상세(F1-3) 입력.
@@ -24,10 +23,10 @@ import java.time.YearMonth
  * @property techs 확정된 기술 태그. 입력칸([techInput])의 글자는 아직 태그가 아니다.
  * @property isDetailExpanded 상세 입력 영역을 펼쳤는가. 접혀 있어도 값은 상태에 그대로 살아 저장에 실린다 —
  * 접기는 보이기만 줄이는 것이지 값을 버리는 것이 아니다.
- * @property startDateOrigin 이 카드가 원래 갖고 있던 시작 일자 — 신규 등록이면 null 이다. 시점 칸([startDate])은
- * `YYYY.MM` 이라 일(day)을 담지 못하므로, **사용자가 손대지 않은 일을 되돌리는 데에만** 쓴다. 화면에는 그리지
- * 않는다. 근거는 [ExperienceEditorRules.resolveDate].
- * @property endDateOrigin 종료 일자의 같은 것. 기간이 없는 유형([ExperienceEditorRules.hasPeriod])은 둘 다 null 이다.
+ * @property startDateOrigin 이 카드가 원래 갖고 있던 시작 시점 — 신규 등록이면 null 이다. 시점 칸([startDate])은
+ * `YYYY.MM` 이라 일(day)을 담지 못하므로, **사용자가 손대지 않은 정밀도를 되돌리는 데에만** 쓴다. 화면에는
+ * 그리지 않는다. 근거는 [ExperienceEditorRules.resolvePoint].
+ * @property endDateOrigin 종료 시점의 같은 것. 기간이 없는 유형([ExperienceEditorRules.hasPeriod])은 둘 다 null 이다.
  */
 @Immutable
 public data class ExperienceEditorState(
@@ -36,8 +35,8 @@ public data class ExperienceEditorState(
     public val title: String = "",
     public val startDate: String = "",
     public val endDate: String = "",
-    public val startDateOrigin: LocalDate? = null,
-    public val endDateOrigin: LocalDate? = null,
+    public val startDateOrigin: ExperiencePoint? = null,
+    public val endDateOrigin: ExperiencePoint? = null,
     public val primary: String = "",
     public val secondary: String = "",
     public val techs: List<String> = emptyList(),
@@ -139,21 +138,28 @@ public sealed interface ExperienceQuickAddEvent {
  * 이 표가 `ExperienceDetails` 의 전 필드를 덮는다 — 시트가 모르는 필드는 이제 없다. 그래서 수정 저장은
  * 「원본에서 물려받기」 대신 **시트 왕복이 무손실**이라는 계약으로 지킨다(`Experience.toEditorState()` 참고).
  *
+ * ### 태그·링크 상한은 여기 없다 (#208)
+ * 태그 개수·길이와 링크 형식(스킴)은 「이 카드가 성립하는 조건」이라 모델이 든다 —
+ * `MAX_EXPERIENCE_TECH_TAGS` · `MAX_EXPERIENCE_TECH_TAG_LENGTH` · `MAX_EXPERIENCE_LINK_LENGTH` ·
+ * `isAllowedExperienceLink`. 시트는 그것을 **참조만** 해서 오류 문구를 만든다. 값이 두 벌이면 입력 경로가
+ * 늘 때마다 어긋나고, 어긋난 규칙은 어느 쪽이 사실인지 알 수 없다.
+ *
  * ### 유형을 바꾸면 이전 유형에만 있던 값은
  * **지우지 않고 시트에 그대로 두되, 저장할 때 새 유형이 쓰지 않는 값은 버린다.** 이미 [primary]·[secondary]
  * 가 그렇게 동작하고 있어 규칙을 두 벌로 만들지 않는다. 칩을 잘못 눌렀다가 되돌아온 사용자가 친 글을 잃지
  * 않는 쪽이기도 하다. 「저장 때 버린다」는 `ExperienceEditorState.toDraft()` 가 이 표만 보고 값을 읽어
  * 구조적으로 보장된다.
  *
- * ### 시점 칸 하나가 유형마다 다른 필드로 간다 (#166)
- * 수상은 `year`(연 단위), 자격증은 `acquiredYearMonth`(월 단위), 나머지는 `startDate`(일 단위)로 간다.
- * **정밀도가 다른 같은 사실**이라 방향이 중요하다 — 자세한 근거는 [hasPeriod] 와 `toDraft()` KDoc.
+ * ### 시점 칸 하나가 유형마다 다른 정밀도로 간다 (#166 · #207)
+ * 수상은 연, 자격증은 연월, 나머지는 날짜까지 담는다. **정밀도가 다른 같은 사실**이라 방향이 중요하다 —
+ * 이제 그 정밀도를 모델(`ExperiencePoint`)이 값으로 들고, 시트는 칸이 담는 만큼만 읽는다. 자세한 근거는
+ * [hasPeriod] 와 `toDraft()` KDoc.
  *
  * ### 칸이 담지 못하는 정밀도는 지킨다 (#171)
  * 시점 칸이 `YYYY.MM` 이라, 서버나 다른 클라이언트가 만든 `2025-06-15` 짜리 카드를 열었다 제목만 고쳐 저장하면
  * 시작일이 `2025-06-01` 로 **깎였다.** 사용자가 손대지 않은 값이 조용히 달라지는 것이다. 그래서 시트는 원본
- * 일자를 함께 들고 다니다가([ExperienceEditorState.startDateOrigin]) 사용자가 그 칸의 달을 바꾸지 않았으면
- * 원본의 일을 그대로 돌려준다 — [resolveDate].
+ * 시점을 함께 들고 다니다가([ExperienceEditorState.startDateOrigin]) 사용자가 그 칸의 달을 바꾸지 않았으면
+ * 원본을 그대로 돌려준다 — [resolvePoint].
  *
  * **칸의 정밀도를 일 단위로 올리는 길은 고르지 않았다.** 그러면 이 문제는 사라지지만, F1-3 의 시점은 대부분
  * 「언제쯤」이라 대다수 사용자가 모르는 일자를 지어내 채우게 된다 — [hasPeriod] 가 금지한 넓히기를 이번에는
@@ -161,46 +167,36 @@ public sealed interface ExperienceQuickAddEvent {
  * 고치는 자리도 입력 칸이 아니라 저장 경로다.
  */
 public object ExperienceEditorRules {
+    /**
+     * 시트 제목 칸의 길이 상한.
+     *
+     * 태그·링크 상한과 달리 아직 여기 있다 — 모델이 [com.cambridge.core.model.experience.Experience.title] 에
+     * 길이를 걸지 않기 때문이다. 모델이 걸게 되면 그때 같이 올린다.
+     */
     public const val MAX_TITLE_LENGTH: Int = 50
+
+    /** 자유 서술 칸(역할·요약)의 길이 상한. 위와 같은 이유로 화면 규칙이다. */
     public const val MAX_TEXT_LENGTH: Int = 100
 
-    /**
-     * 기술 태그 개수 상한.
-     *
-     * 관심 분야 태그(`MAX_PROFILE_TAGS` = 5)보다 넉넉하다 — 그쪽은 프로필 전체의 관심사라 5개면 충분하지만,
-     * 프로젝트 하나의 스택은 언어·프레임워크·DI·네트워크·테스트로 쉽게 대여섯을 넘는다. 반면 Step 3 카드 목록이
-     * 태그를 한 줄 흐름으로 그리므로(`OnboardingStep3Screen`) 카드가 태그 벽이 되지 않을 선이 필요하다.
-     */
-    public const val MAX_TECH_TAGS: Int = 10
-
-    /** 기술 태그 한 개의 길이 상한. 가장 긴 축인 "Kotlin Multiplatform"(20자)이 들어가는 선. */
-    public const val MAX_TECH_TAG_LENGTH: Int = 20
-
-    /**
-     * 성과·결과물 링크 길이 상한.
-     *
-     * GitHub·Notion·배포 주소는 100자 안쪽이다. 상한은 그보다 여유를 두되, 추적 파라미터가 잔뜩 붙은 주소가
-     * 서버 `data` JSON 과 카드 목록에 통째로 실려 오는 것은 막는다.
-     */
-    public const val MAX_LINK_LENGTH: Int = 200
-
-    public fun isStartDateRequired(type: ExperienceType): Boolean = type == ExperienceType.Project || type == ExperienceType.Intern
+    /** 시작 시점이 필수인 유형인가 — 판정의 정본은 모델(`ExperienceType.requiresStartPoint`)이다. */
+    public fun isStartDateRequired(type: ExperienceType): Boolean = type.requiresStartPoint
 
     /**
      * 기간(시작~종료)을 갖는 유형인가 — 수상·자격증은 기간이 아니라 **시점 하나**를 갖는다(F1-3).
      *
-     * ### `year`·`acquiredYearMonth` 와 `startDate` 는 같은 사실의 다른 정밀도다 (#166)
+     * ### 같은 사실의 다른 정밀도 (#166 · #207)
      * 와이어(API_SPEC v0.1 §3)에서 `startDate` 는 카드 공통 컬럼이고 `year`(수상)·`acquiredYearMonth`
-     * (자격증)는 유형별 `data` 안에 있지만, 셋 다 「그 경험이 언제인가」 하나를 가리킨다. 다른 것은 **정밀도**뿐이다
-     * — `Int` 연도, `YYYY-MM` 연월, `LocalDate` 일자.
+     * (자격증)는 유형별 `data` 안에 있지만, 셋 다 「그 경험이 언제인가」 하나를 가리킨다. 다른 것은 **정밀도**뿐이다.
      *
      * 그래서 두 방향의 값이 다르다. **좁히기(일자 → 연도·연월)는 도출**이라 새 정보를 만들지 않지만,
      * **넓히기(연도 → 일자)는 날조**다. 「2025」에서 「2025-01-01」을 만들면 사용자가 준 적 없는 월과 일이
-     * 사실로 굳어 정렬·표시가 그걸 근거로 삼는다. 이 값이 false 인 유형이 시점을 `startDate` 에 **적지 않는**
-     * 이유가 그것이다 — 같은 사실을 두 칸에 나눠 적으면 어긋나고, 어긋난 뒤에는 어느 쪽이 사실인지 알 수 없다.
-     * 카드 목록(`OnboardingStep3Entry.periodText`)도 이미 이 두 유형은 상세 필드를 먼저 읽는다.
+     * 사실로 굳어 정렬·표시가 그걸 근거로 삼는다.
+     *
+     * 그 규칙은 이제 모델이 든다 — `ExperiencePoint` 는 넓히는 길이 없고, 유형별로 담을 수 있는 정밀도의
+     * 상·하한(`ExperienceType.maxPointPrecision`)이 불변식이다. 이 함수는 그 판정을 시트 어휘로 부르는
+     * 별칭이고, 정본은 `ExperienceType.hasPeriod` 다.
      */
-    public fun hasPeriod(type: ExperienceType): Boolean = type != ExperienceType.Award && type != ExperienceType.Certificate
+    public fun hasPeriod(type: ExperienceType): Boolean = type.hasPeriod
 
     public fun isPrimaryRequired(type: ExperienceType): Boolean =
         type == ExperienceType.Award || type == ExperienceType.Intern || type == ExperienceType.Activity
@@ -225,23 +221,7 @@ public object ExperienceEditorRules {
     public fun normalizeTechTag(raw: String): String = raw.trim().trimStart('#').trim()
 
     /**
-     * 링크가 http/https 절대 주소인가.
-     *
-     * 서버가 받아 다시 사용자에게 보여 주는 값이라 스킴을 http·https 로 좁힌다 —
-     * `javascript:`·`file:` 같은 스킴이 카드에 실려 돌아다니지 않게.
-     */
-    public fun isValidLink(value: String): Boolean {
-        val trimmed = value.trim()
-        if (trimmed.isEmpty() || trimmed.length > MAX_LINK_LENGTH) return false
-        val uri = runCatching { URI(trimmed) }.getOrNull() ?: return false
-        val scheme = uri.scheme?.lowercase() ?: return false
-        if (scheme != "http" && scheme != "https") return false
-        // 한글 도메인은 host 가 null 이고 authority 에만 남는다 — 둘 중 하나라도 있으면 주소로 본다.
-        return !(uri.host ?: uri.authority).isNullOrBlank()
-    }
-
-    /**
-     * 시점 칸의 글을 날짜로 읽되, **원본과 같은 달이면 원본의 일(day)을 그대로 돌려준다** (#171).
+     * 시점 칸의 글을 시점으로 읽되, **원본과 같은 달이면 원본을 그대로 돌려준다** (#171).
      *
      * ### 왜 「이 칸을 고쳤는가」를 표시하지 않고 값으로 판정하는가
      * 이 칸은 `YYYY.MM` 이라 **일을 표현할 수단이 아예 없다.** 그래서 사용자가 친 글이 원본과 같은 달이면 그
@@ -250,44 +230,47 @@ public object ExperienceEditorRules {
      * 경로가 빠짐없이 세워 줘야 유지되고 한 군데만 빠뜨리면 조용히 되돌아간다. 값으로 판정하면 들고 다닐 상태가
      * 없다 — 「2025.07 로 고쳤다가 2025.06 으로 되돌린」 사용자가 일을 잃지 않는 것도 덤이다.
      *
-     * 달이 다르면 원본은 더 이상 같은 시점이 아니므로 그 달 1일로 읽는다. 없는 값을 지어내는 것이 아니라
-     * 사용자가 방금 준 정밀도 그대로다.
+     * 달이 다르면 원본은 더 이상 같은 시점이 아니므로 **연월 정밀도 그대로** 돌려준다. 없는 값을 지어내는 것이
+     * 아니라 사용자가 방금 준 정밀도 그대로다 — 그 「그대로」를 모델이 값으로 들 수 있게 된 것이 #207 이다.
      */
-    public fun resolveDate(
+    public fun resolvePoint(
         value: String,
-        origin: LocalDate?,
-    ): LocalDate? {
-        val parsed = parseYearMonth(value) ?: return null
-        return origin?.takeIf { it.year == parsed.year && it.monthValue == parsed.monthValue } ?: parsed
+        origin: ExperiencePoint?,
+    ): ExperiencePoint? {
+        val parsed = parseYearMonthPoint(value) ?: return null
+        return origin?.takeIf { it is ExperiencePoint.WithMonth && it.year == parsed.year && it.month == parsed.month } ?: parsed
     }
 
-    /** `YYYY.MM` 을 그 달 1일로 읽는다. 형식이 다르면 null. */
-    public fun parseYearMonth(value: String): LocalDate? {
+    /** `YYYY.MM` 을 연월 시점으로 읽는다. 형식이 다르면 null. */
+    public fun parseYearMonthPoint(value: String): ExperiencePoint.YearMonth? {
         val match = YEAR_MONTH.matchEntire(value.trim()) ?: return null
         val (year, month) = match.destructured
-        return YearMonth.of(year.toInt(), month.toInt()).atDay(1)
+        return year.toIntOrNull()?.takeIf { it in EXPERIENCE_YEAR_RANGE }?.let { ExperiencePoint.YearMonth(it, month.toInt()) }
     }
 
     /**
      * 수상 연도 칸을 읽는다 — `YYYY`.
      *
      * 다른 클라이언트가 만든 카드나 이 시트의 예전 버전이 남긴 `YYYY.MM` 도 받아 **연도만** 남긴다.
-     * 좁히기는 도출이라 안전하다([hasPeriod]) — 반대로 연도에서 월을 채우지는 않는다.
+     * 좁히기는 도출이라 안전하다([hasPeriod]) — 반대로 연도에서 월을 채우는 함수는 아예 없다.
      */
-    public fun parseYear(value: String): Int? {
+    public fun parseYearPoint(value: String): ExperiencePoint.Year? {
         val trimmed = value.trim()
-        return YEAR
-            .matchEntire(trimmed)
-            ?.groupValues
-            ?.get(1)
-            ?.toInt() ?: parseYearMonth(trimmed)?.year
+        val year =
+            YEAR
+                .matchEntire(trimmed)
+                ?.groupValues
+                ?.get(1)
+                ?.toIntOrNull()
+                ?.takeIf { it in EXPERIENCE_YEAR_RANGE }
+        return year?.let(ExperiencePoint::Year) ?: parseYearMonthPoint(trimmed)?.toYear()
     }
 
     /** 시점 칸에 친 글이 그 유형이 받는 형식인가. 수상만 연도(`YYYY`)를 함께 받는다. */
     public fun isValidDateInput(
         type: ExperienceType,
         value: String,
-    ): Boolean = if (type == ExperienceType.Award) parseYear(value) != null else parseYearMonth(value) != null
+    ): Boolean = if (type == ExperienceType.Award) parseYearPoint(value) != null else parseYearMonthPoint(value) != null
 
     private val YEAR_MONTH = Regex("""^(\d{4})\.(0[1-9]|1[0-2])$""")
 

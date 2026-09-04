@@ -12,8 +12,13 @@ import com.cambridge.core.model.application.PastApplicationItem
 import com.cambridge.core.model.application.UploadFile
 import com.cambridge.core.model.experience.Experience
 import com.cambridge.core.model.experience.ExperienceDetails
+import com.cambridge.core.model.experience.ExperiencePoint
+import com.cambridge.core.model.experience.ExperiencePrecision
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_LINK_LENGTH
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
 import com.cambridge.core.model.user.JobInterest
 import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.model.user.UserProfileUpdate
@@ -521,8 +526,9 @@ class OnboardingViewModelTest {
 
         val draft = experienceRepository.createdDrafts.single()
         assertEquals("카카오 인턴", draft.title)
-        assertEquals(LocalDate.of(2025, 1, 1), draft.startDate)
-        assertEquals(LocalDate.of(2025, 2, 1), draft.endDate)
+        // 칸이 `YYYY.MM` 이라 새 카드의 시점은 연월 정밀도다 — 없는 일을 지어내지 않는다.
+        assertEquals(ExperiencePoint.YearMonth(2025, 1), draft.startPoint)
+        assertEquals(ExperiencePoint.YearMonth(2025, 2), draft.endPoint)
         assertEquals(ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null), draft.details)
         val state = viewModel.uiState.value
         assertNull(state.experienceEditor)
@@ -609,21 +615,18 @@ class OnboardingViewModelTest {
         val cards =
             listOf(
                 ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin", "Compose"), summary = "요약", link = "https://a.io"),
-                ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = "주관사"),
+                ExperienceDetails.Award(contestName = "공모전", rank = "대상", organizer = "주관사"),
                 ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = "주요 업무"),
                 ExperienceDetails.Activity(organization = "동아리", role = "기획팀장", summary = "성과"),
-                ExperienceDetails.Certificate(issuer = "한국산업인력공단", acquiredYearMonth = "2025-06"),
+                ExperienceDetails.Certificate(issuer = "한국산업인력공단"),
             )
 
         cards.forEach { details ->
             val card =
-                Experience(
-                    id = 7L,
-                    title = "공모전",
-                    startDate = LocalDate.of(2025, 6, 1),
-                    endDate = LocalDate.of(2025, 7, 1),
+                sampleCard(
+                    startPoint = startPointFor(details.type),
+                    endPoint = endPointFor(details.type),
                     details = details,
-                    createdAt = null,
                 )
 
             assertEquals(details, card.toEditorState().toDraft().details)
@@ -638,27 +641,30 @@ class OnboardingViewModelTest {
         val cards =
             listOf(
                 sampleCard(
-                    startDate = LocalDate.of(2025, 6, 1),
+                    startPoint = ExperiencePoint.YearMonth(2025, 6),
                     details = ExperienceDetails.Project(role = null, techs = emptyList(), summary = null, link = null),
                 ),
-                sampleCard(details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = null, organizer = null)),
+                sampleCard(details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", organizer = null)),
                 // 이슈 #166 그 자체 — 연도만 있고 날짜가 없는 수상 카드.
-                sampleCard(details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = null)),
                 sampleCard(
-                    startDate = LocalDate.of(2025, 6, 1),
+                    startPoint = ExperiencePoint.Year(2025),
+                    details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", organizer = null),
+                ),
+                sampleCard(
+                    startPoint = ExperiencePoint.YearMonth(2025, 6),
                     details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
                 ),
                 sampleCard(details = ExperienceDetails.Activity(organization = "동아리", role = null, summary = null)),
-                sampleCard(details = ExperienceDetails.Certificate(issuer = null, acquiredYearMonth = null)),
+                sampleCard(details = ExperienceDetails.Certificate(issuer = null)),
                 // 취득 연월만 있는 자격증도 같은 함정이었다 — 연월을 그 달 1일로 넓혀 없던 날짜를 만들었다.
-                sampleCard(details = ExperienceDetails.Certificate(issuer = null, acquiredYearMonth = "2025-06")),
+                sampleCard(startPoint = ExperiencePoint.YearMonth(2025, 6), details = ExperienceDetails.Certificate(issuer = null)),
             )
 
         cards.forEach { card ->
             val draft = card.toEditorState().toDraft()
             assertEquals(card.details, draft.details)
-            assertEquals(card.details.type.toString(), card.startDate, draft.startDate)
-            assertNull(card.details.type.toString(), draft.endDate)
+            assertEquals(card.details.type.toString(), card.startPoint, draft.startPoint)
+            assertNull(card.details.type.toString(), draft.endPoint)
         }
     }
 
@@ -667,25 +673,22 @@ class OnboardingViewModelTest {
         // #139 의 왕복은 「있던 값을 지우지 않는다」를, #166 의 왕복은 「없던 값을 만들지 않는다」를 지킨다.
         // 이 왕복은 셋째 축인 **「있던 값을 바꾸지 않는다」**다 — 시점 칸이 월 정밀도라 서버가 준 15일이 저장 때
         // 1일로 깎였다(#171). 다섯 유형을 전부 돌린다.
-        val start = LocalDate.of(2025, 6, 15)
-        val end = LocalDate.of(2025, 8, 20)
         val cards =
             listOf(
                 ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin"), summary = "요약", link = "https://a.io"),
-                ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = "주관사"),
+                ExperienceDetails.Award(contestName = "공모전", rank = "대상", organizer = "주관사"),
                 ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = "주요 업무"),
                 ExperienceDetails.Activity(organization = "동아리", role = "기획팀장", summary = "성과"),
-                ExperienceDetails.Certificate(issuer = "한국산업인력공단", acquiredYearMonth = "2025-06"),
-            ).map { sampleCard(startDate = start, endDate = end, details = it) }
+                ExperienceDetails.Certificate(issuer = "한국산업인력공단"),
+            ).map { sampleCard(startPoint = startPointFor(it.type), endPoint = endPointFor(it.type), details = it) }
 
         cards.forEach { card ->
             val draft = card.toEditorState().toDraft()
             val label = card.type.toString()
             assertEquals(label, card.details, draft.details)
-            // 수상·자격증의 시점은 상세 필드 한 곳에만 둔다(#166) — 그쪽은 `startDate` 를 비우는 것이 계약이다.
-            val expected = if (ExperienceEditorRules.hasPeriod(card.type)) card.startDate else null
-            assertEquals(label, expected, draft.startDate)
-            assertEquals(label, if (ExperienceEditorRules.hasPeriod(card.type)) card.endDate else null, draft.endDate)
+            // 유형마다 정밀도가 다르지만 규칙은 하나다 — 시트를 왕복해도 그 카드가 아는 만큼 그대로 남는다.
+            assertEquals(label, card.startPoint, draft.startPoint)
+            assertEquals(label, card.endPoint, draft.endPoint)
         }
     }
 
@@ -695,8 +698,8 @@ class OnboardingViewModelTest {
         experienceRepository.experiences +=
             sampleCard(
                 id = 5L,
-                startDate = LocalDate.of(2025, 6, 15),
-                endDate = LocalDate.of(2025, 8, 20),
+                startPoint = ExperiencePoint.Date(LocalDate.of(2025, 6, 15)),
+                endPoint = ExperiencePoint.Date(LocalDate.of(2025, 8, 20)),
                 details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
             )
         progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
@@ -715,8 +718,8 @@ class OnboardingViewModelTest {
         val updated =
             viewModel.uiState.value.step3.experiences
                 .single { it.id == 5L }
-        assertEquals(LocalDate.of(2025, 6, 15), updated.startDate)
-        assertEquals(LocalDate.of(2025, 8, 20), updated.endDate)
+        assertEquals(ExperiencePoint.Date(LocalDate.of(2025, 6, 15)), updated.startPoint)
+        assertEquals(ExperiencePoint.Date(LocalDate.of(2025, 8, 20)), updated.endPoint)
     }
 
     @Test
@@ -725,8 +728,8 @@ class OnboardingViewModelTest {
         experienceRepository.experiences +=
             sampleCard(
                 id = 6L,
-                startDate = LocalDate.of(2025, 6, 15),
-                endDate = LocalDate.of(2025, 8, 20),
+                startPoint = ExperiencePoint.Date(LocalDate.of(2025, 6, 15)),
+                endPoint = ExperiencePoint.Date(LocalDate.of(2025, 8, 20)),
                 details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
             )
         progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
@@ -739,32 +742,38 @@ class OnboardingViewModelTest {
         val updated =
             viewModel.uiState.value.step3.experiences
                 .single { it.id == 6L }
-        assertEquals(LocalDate.of(2025, 7, 1), updated.startDate)
+        // 사용자가 준 정밀도는 연월이다 — 없는 일을 지어내 채우지 않는다.
+        assertEquals(ExperiencePoint.YearMonth(2025, 7), updated.startPoint)
         // 손대지 않은 종료일의 20일은 그대로 남는다.
-        assertEquals(LocalDate.of(2025, 8, 20), updated.endDate)
+        assertEquals(ExperiencePoint.Date(LocalDate.of(2025, 8, 20)), updated.endPoint)
     }
 
     @Test
-    fun `지켜 낸 일이 새로 친 기간과 어긋나면 사용자의 입력이 이긴다`() {
-        // 6월 20일 시작을 그대로 두고 종료만 6월로 당기면, 지켜 낸 일 때문에 종료가 시작보다 빨라진다.
-        // 화면에 보이는 것은 달 하나뿐이라 되물을 수도 없다 — 지키려던 일을 놓아 주고 월 정밀도로 남긴다.
+    fun `지켜 낸 일과 새로 친 달이 같은 달이면 둘 다 남는다`() {
+        // 6월 20일 시작을 그대로 두고 종료만 6월로 당긴 경우다. 예전에는 지켜 낸 20일 때문에 「종료가 시작보다
+        // 빠르다」가 되어 시작의 일을 버렸지만, 이제 모델이 두 시점을 **더 굵은 쪽 정밀도로** 견주므로
+        // (`ExperiencePoint.isBefore`) 어긋나지 않는다 — 종료가 말한 것은 달까지뿐이다. 버릴 값이 없다.
         val editor =
             sampleCard(
-                startDate = LocalDate.of(2025, 6, 20),
-                endDate = LocalDate.of(2025, 8, 10),
+                startPoint = ExperiencePoint.Date(LocalDate.of(2025, 6, 20)),
+                endPoint = ExperiencePoint.Date(LocalDate.of(2025, 8, 10)),
                 details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = null),
             ).toEditorState()
 
         val draft = editor.copy(endDate = "2025.06").toDraft()
 
-        assertEquals(LocalDate.of(2025, 6, 1), draft.startDate)
-        assertEquals(LocalDate.of(2025, 6, 1), draft.endDate)
+        assertEquals(ExperiencePoint.Date(LocalDate.of(2025, 6, 20)), draft.startPoint)
+        assertEquals(ExperiencePoint.YearMonth(2025, 6), draft.endPoint)
     }
 
     @Test
     fun `연도만 있는 수상 카드는 열었다 저장해도 날짜가 생기지 않는다`() {
         experienceRepository.experiences +=
-            sampleCard(id = 4L, details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = null))
+            sampleCard(
+                id = 4L,
+                startPoint = ExperiencePoint.Year(2025),
+                details = ExperienceDetails.Award(contestName = "공모전", rank = "대상", organizer = null),
+            )
         progressRepository.progressState.value = OnboardingProgress.InProgress(OnboardingStep.Experience)
         val viewModel = createViewModel()
 
@@ -783,8 +792,8 @@ class OnboardingViewModelTest {
         val updated =
             viewModel.uiState.value.step3.experiences
                 .single { it.id == 4L }
-        assertNull(updated.startDate)
-        assertEquals(2025, (updated.details as ExperienceDetails.Award).year)
+        // 시점의 정본은 이제 기간 한 곳이다 — 연 정밀도 그대로 남고 월·일은 생기지 않는다.
+        assertEquals(ExperiencePoint.Year(2025), updated.startPoint)
     }
 
     @Test
@@ -809,10 +818,10 @@ class OnboardingViewModelTest {
         viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
 
         val draft = experienceRepository.createdDrafts.single()
-        // 수상에는 기간이 없다 — 시점은 `year` 한 곳에만 둔다.
-        assertNull(draft.startDate)
-        assertNull(draft.endDate)
-        assertEquals(ExperienceDetails.Award(contestName = "공모전", rank = "대상", year = 2025, organizer = null), draft.details)
+        // 수상에는 기간이 없다 — 시점 하나가 연 정밀도로 남는다.
+        assertEquals(ExperiencePoint.Year(2025), draft.startPoint)
+        assertNull(draft.endPoint)
+        assertEquals(ExperienceDetails.Award(contestName = "공모전", rank = "대상", organizer = null), draft.details)
     }
 
     @Test
@@ -822,8 +831,8 @@ class OnboardingViewModelTest {
             Experience(
                 id = 2L,
                 title = "무지개 동아리",
-                startDate = LocalDate.of(2025, 3, 1),
-                endDate = null,
+                startPoint = ExperiencePoint.YearMonth(2025, 3),
+                endPoint = null,
                 details = ExperienceDetails.Activity(organization = "무지개", role = null, summary = null),
                 createdAt = null,
             )
@@ -882,7 +891,7 @@ class OnboardingViewModelTest {
     fun `기술 태그는 개수와 길이 상한을 넘으면 필드 오류로 막힌다`() {
         val viewModel = createViewModel()
         viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
-        repeat(ExperienceEditorRules.MAX_TECH_TAGS) { index ->
+        repeat(MAX_EXPERIENCE_TECH_TAGS) { index ->
             viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("tech$index"))
             viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
         }
@@ -891,7 +900,7 @@ class OnboardingViewModelTest {
 
         val overflowed = viewModel.uiState.value.experienceEditor
         assertNotNull(overflowed)
-        assertEquals(ExperienceEditorRules.MAX_TECH_TAGS, overflowed!!.techs.size)
+        assertEquals(MAX_EXPERIENCE_TECH_TAGS, overflowed!!.techs.size)
         assertEquals(OnboardingFieldError.OutOfRange, overflowed.techInputError)
         // 상한에 걸린 글자는 입력칸에 남는다 — 하나 지우고 다시 완료를 누르면 그대로 들어간다.
         assertEquals("overflow", overflowed.techInput)
@@ -906,11 +915,11 @@ class OnboardingViewModelTest {
         )
 
         viewModel.onExperienceEditorEvent(
-            ExperienceQuickAddEvent.TechInputChanged("a".repeat(ExperienceEditorRules.MAX_TECH_TAG_LENGTH + 1)),
+            ExperienceQuickAddEvent.TechInputChanged("a".repeat(MAX_EXPERIENCE_TECH_TAG_LENGTH + 1)),
         )
         viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
         assertEquals(
-            OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_TECH_TAG_LENGTH),
+            OnboardingFieldError.TooLong(MAX_EXPERIENCE_TECH_TAG_LENGTH),
             viewModel.uiState.value.experienceEditor
                 ?.techInputError,
         )
@@ -934,11 +943,11 @@ class OnboardingViewModelTest {
         assertTrue(experienceRepository.createdDrafts.isEmpty())
 
         viewModel.onExperienceEditorEvent(
-            ExperienceQuickAddEvent.LinkChanged("https://example.com/" + "a".repeat(ExperienceEditorRules.MAX_LINK_LENGTH)),
+            ExperienceQuickAddEvent.LinkChanged("https://example.com/" + "a".repeat(MAX_EXPERIENCE_LINK_LENGTH)),
         )
         viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
         assertEquals(
-            OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_LINK_LENGTH),
+            OnboardingFieldError.TooLong(MAX_EXPERIENCE_LINK_LENGTH),
             viewModel.uiState.value.experienceEditor
                 ?.linkError,
         )
@@ -1544,8 +1553,8 @@ class OnboardingViewModelTest {
         Experience(
             id = id,
             title = "CareerCompass",
-            startDate = LocalDate.of(2025, 9, 1),
-            endDate = null,
+            startPoint = ExperiencePoint.Date(LocalDate.of(2025, 9, 1)),
+            endPoint = null,
             details = ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin"), summary = null, link = null),
             createdAt = null,
         )
@@ -1553,25 +1562,37 @@ class OnboardingViewModelTest {
     /** 시점 계약을 보는 테스트용 카드 — 기본은 「아무 시점도 없는」 카드다. */
     private fun sampleCard(
         id: Long = 7L,
-        startDate: LocalDate? = null,
-        endDate: LocalDate? = null,
+        startPoint: ExperiencePoint? = null,
+        endPoint: ExperiencePoint? = null,
         details: ExperienceDetails,
     ) = Experience(
         id = id,
         // 수상의 `contestName` 은 시트에서 제목 칸 그 자체라 제목을 공모전명으로 둔다.
         title = "공모전",
-        startDate = startDate,
-        endDate = endDate,
+        startPoint = startPoint,
+        endPoint = endPoint,
         details = details,
         createdAt = null,
     )
+
+    /** 그 유형이 담을 수 있는 가장 자세한 시점 — 왕복 테스트가 유형마다 다른 정밀도를 그대로 물게 한다. */
+    private fun startPointFor(type: ExperienceType): ExperiencePoint =
+        when (type.maxPointPrecision) {
+            ExperiencePrecision.Year -> ExperiencePoint.Year(2025)
+            ExperiencePrecision.YearMonth -> ExperiencePoint.YearMonth(2025, 6)
+            ExperiencePrecision.Date -> ExperiencePoint.Date(LocalDate.of(2025, 6, 15))
+        }
+
+    /** 기간이 있는 유형의 종료 시점. 수상·자격증은 종료가 없다. */
+    private fun endPointFor(type: ExperienceType): ExperiencePoint? =
+        if (type.hasPeriod) ExperiencePoint.Date(LocalDate.of(2025, 8, 20)) else null
 
     private fun internExperience(id: Long) =
         Experience(
             id = id,
             title = "카카오 인턴",
-            startDate = LocalDate.of(2025, 1, 1),
-            endDate = LocalDate.of(2025, 2, 1),
+            startPoint = ExperiencePoint.Date(LocalDate.of(2025, 1, 1)),
+            endPoint = ExperiencePoint.Date(LocalDate.of(2025, 2, 1)),
             details = ExperienceDetails.Intern(company = "카카오", role = "안드로이드 개발", summary = "요약"),
             createdAt = null,
         )

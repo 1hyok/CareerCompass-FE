@@ -28,6 +28,10 @@
     <string name="feed_empty_filter_title">필터에 맞는 공고가 없어요</string>
     <string name="feed_empty_filter_description">걸어 둔 조건을 풀면 더 많은 공고를 볼 수 있어요</string>
     <string name="feed_empty_filter_action">필터 초기화</string>
+    <string name="feed_empty_missing_boards_title">고른 게시판 %1$d개가 지워졌어요</string>
+    <string name="feed_empty_missing_boards_description">조건에서 빼면 다른 공고가 보여요</string>
+    <string name="feed_empty_missing_boards_description_partial">이 조건을 뺀 뒤에도 비면 남은 조건을 풀어 보세요</string>
+    <string name="feed_empty_missing_boards_action">사라진 게시판 조건 빼기</string>
     <string name="feed_empty_not_collected_title">아직 모인 공고가 없어요</string>
     <string name="feed_empty_not_collected_description">등록한 게시판에 새 글이 올라오면 여기에 쌓여요</string>
     <string name="feed_empty_not_collected_description_with_notice">등록한 게시판에 새 글이 올라오면 여기에 쌓여요\n%1$s</string>
@@ -50,8 +54,6 @@
     <string name="feed_loading_more">공고를 더 불러오는 중이에요</string>
     <string name="feed_load_more_paused">여기까지 찾았어요</string>
     <string name="feed_load_more_action">더 찾아보기</string>
-    <string name="feed_error_title">공고를 불러오지 못했어요</string>
-    <string name="feed_error_description">잠시 후 다시 시도해 주세요</string>
     <string name="feed_error_retry">다시 시도</string>
     <string name="feed_failure_query_reset_notice">걸어 둔 검색어·필터·정렬 때문일 수 있어요</string>
     <string name="feed_failure_query_reset_action">조건 지우고 다시 보기</string>

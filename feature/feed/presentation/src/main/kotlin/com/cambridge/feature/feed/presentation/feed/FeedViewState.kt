@@ -202,6 +202,44 @@ public data class FeedViewState(
         get() = activeFilterCount > 0 || selectedCategory != FeedListingCategory.All
 
     /**
+     * 조건에 걸렸는데 등록된 게시판 목록에는 없는 id — 「사라진 게시판」 판정의 **단 하나의 규칙**이다.
+     *
+     * 시트의 태그(이슈 #155)·빈 목록의 사유(이슈 #206)·그 둘이 함께 쓰는 「조건에서 빼기」가 모두 이 값을
+     * 본다. 규칙이 두 벌로 갈리면 태그는 켜져 있는데 빼기는 아무것도 지우지 않는 상태가 생긴다.
+     *
+     * **[boardsLoaded] 를 여기서 보지 않는다** — 「지금 아는 목록에 없다」는 사실은 목록을 못 받았을 때도
+     * 같고, 그 상태에서 이 값까지 비우면 시트의 「확인 못 한 게시판」 태그가 눌러도 아무 일 없는 태그가
+     * 된다. 못 받은 것을 「지워졌다」로 읽지 않는 판정은 [hasDeletedBoardFilter] 가 따로 한다.
+     */
+    public val missingBoardIds: Set<Long> get() = query.boardIds.missingFrom(boards)
+
+    /**
+     * 「지워졌다」고 **확인된** 게시판이 조건에 남아 있는가 — 빈 목록 사유
+     * ([FeedEmptyReason][com.cambridge.feature.feed.presentation.FeedEmptyReason.MissingBoards])의 전제다.
+     *
+     * [boardsLoaded] 가 거짓이면 언제나 거짓이다. 게시판 조회는 피드와 별개로 실패하고(실패해도 피드는
+     * 막지 않는다), 못 받은 목록을 근거로 「게시판이 지워졌어요」라고 말하면 지하철에서 앱을 켠 사용자에게
+     * 없는 사실을 알리게 된다. 그때는 조건 쪽 사유로 내려가는 것이 맞다.
+     */
+    public val hasDeletedBoardFilter: Boolean get() = boardsLoaded && missingBoardIds.isNotEmpty()
+
+    /**
+     * 사라진 게시판을 빼고 나면 조회를 좁히는 것이 **하나도 남지 않는가** — 빈 목록 문구가 「빼면 보여요」
+     * 라고 약속해도 되는지의 근거다(이슈 #206).
+     *
+     * 검색어까지 센다. 우선순위상 검색어가 걸려 있어도 사라진 게시판 사유가 먼저 나오므로, 검색어를 빼놓고
+     * 세면 「빼면 보여요」라고 해 놓고 같은 빈 화면을 다시 주게 된다.
+     *
+     * 조건 목록을 다시 적지 않고 **뺀 뒤의 상태를 만들어** [hasActiveFilter] 에게 묻는다 — 조건이 하나
+     * 늘 때마다 여기까지 고쳐야 하는 두 번째 목록을 만들지 않으려는 것이다.
+     */
+    public val missingBoardsAreOnlyCondition: Boolean
+        get() =
+            copy(query = query.copy(boardIds = query.boardIds - missingBoardIds)).let { cleared ->
+                !cleared.hasActiveFilter && !cleared.query.hasSearchQuery
+            }
+
+    /**
      * 실패 화면에 「조건 지우고 다시 보기」를 열 것인가 — 근거 **둘이 함께** 서야 연다.
      *
      * ① **되돌릴 조건이 실제로 걸려 있다**([FeedQuery.isDefault] 가 아니다). 아무 조건도 없는 기본 조회가
@@ -216,4 +254,17 @@ public data class FeedViewState(
      */
     public val canResetFailedQuery: Boolean
         get() = !query.isDefault && (loadState as? FeedLoadState.Failed)?.reason?.isQueryAttributable == true
+}
+
+/**
+ * [boards] 에 없는 id 만 추린다 — 조건이 가리키는데 등록 목록에 없는 게시판.
+ *
+ * 게시판 조건을 들고 있는 자리가 둘이라(조회 조건 [FeedViewState.query], 시트 초안 [FeedFilterDraft])
+ * 규칙을 값 쪽이 아니라 이 함수 하나에 둔다. 시트의 태그가 세는 것과 「빼기」가 지우는 것과 빈 목록이
+ * 사유로 삼는 것이 갈리면, 켜져 있는데 눌러도 안 꺼지는 조건이 생긴다.
+ */
+internal fun Set<Long>.missingFrom(boards: List<Board>): Set<Long> {
+    if (isEmpty()) return emptySet()
+    val known = boards.mapTo(mutableSetOf(), Board::id)
+    return filterTo(mutableSetOf()) { it !in known }
 }

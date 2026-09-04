@@ -21,7 +21,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
-import com.cambridge.core.ui.component.CareerCompassScoreLevel
+import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedListingCategory
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
@@ -428,7 +428,7 @@ private fun sampleSuitability(): SuitabilityUiModel =
     SuitabilityUiModel(
         score = 88,
         levelLabel = "매우 적합",
-        level = CareerCompassScoreLevel.High,
+        level = SuitabilityLabel.VerySuitable,
         breakdown =
             listOf(
                 SuitabilityAxisUiModel(label = "분야 유사도", score = 95, weightLabel = "40%"),

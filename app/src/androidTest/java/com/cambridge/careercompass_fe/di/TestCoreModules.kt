@@ -9,6 +9,8 @@ import com.cambridge.core.domain.repository.ExperienceRepository
 import com.cambridge.core.domain.repository.PastApplicationRepository
 import com.cambridge.core.domain.repository.PostingRepository
 import com.cambridge.core.domain.repository.UserProfileRepository
+import com.cambridge.core.domain.settings.AppSettingsRepository
+import com.cambridge.core.domain.testing.FakeAppSettingsRepository
 import com.cambridge.core.domain.testing.FakeAuthRepository
 import com.cambridge.core.domain.testing.FakeBoardRepository
 import com.cambridge.core.domain.testing.FakeExperienceRepository
@@ -88,4 +90,12 @@ object TestCoreRepositoryModule {
     @Provides
     @Singleton
     fun provideBoardRepository(fake: FakeBoardRepository): BoardRepository = fake
+
+    @Provides
+    @Singleton
+    fun provideFakeAppSettingsRepository(): FakeAppSettingsRepository = FakeAppSettingsRepository()
+
+    @Provides
+    @Singleton
+    fun provideAppSettingsRepository(fake: FakeAppSettingsRepository): AppSettingsRepository = fake
 }

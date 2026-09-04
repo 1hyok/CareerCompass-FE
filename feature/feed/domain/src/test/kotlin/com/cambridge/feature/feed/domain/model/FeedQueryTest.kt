@@ -11,12 +11,23 @@ import org.junit.Test
 import java.time.LocalDate
 
 class FeedQueryTest {
+    /**
+     * 선택지는 F3-2 레이블 경계 둘뿐이다(이슈 #200). 값을 [FeedQuery.ALLOWED_MIN_SCORES] 에서 읽어 오지 않고
+     * **여기 그대로 적는다** — 두 곳이 같은 상수를 보면 상수가 틀려도 초록이라, 이 테스트가 무는 것이 없다.
+     */
     @Test
-    fun `minScore 는 null 또는 60·70·80 만 허용한다`() {
-        listOf(null, 60, 70, 80).forEach { FeedQuery(minScore = it) }
+    fun `minScore 는 null 또는 60·80 만 허용한다`() {
+        assertEquals(setOf(60, 80), FeedQuery.ALLOWED_MIN_SCORES)
+        listOf(null, 60, 80).forEach { FeedQuery(minScore = it) }
         listOf(0, 59, 65, 81, 100).forEach { score ->
             assertThrows(IllegalArgumentException::class.java) { FeedQuery(minScore = score) }
         }
+    }
+
+    /** 스펙 F2-3 이 적었던 70 은 이제 선택지가 아니다 — 만들려 하면 그 자리에서 거절된다. */
+    @Test
+    fun `없어진 선택지 70 은 조회 조건으로 만들 수 없다`() {
+        assertThrows(IllegalArgumentException::class.java) { FeedQuery(minScore = 70) }
     }
 
     @Test
@@ -51,7 +62,7 @@ class FeedQueryTest {
                 types = setOf(PostingType.Contest, PostingType.Recruit),
                 boardIds = setOf(7L, 3L),
                 deadline = FeedDeadlineFilter.WithinWeek,
-                minScore = 70,
+                minScore = 80,
                 unreadOnly = true,
                 sort = PostingSort.ScoreDesc,
                 searchQuery = "카카오",
@@ -63,7 +74,7 @@ class FeedQueryTest {
             PostingQuery(
                 boardIds = listOf(3L, 7L),
                 types = listOf(PostingType.Recruit, PostingType.Contest),
-                minScore = 70,
+                minScore = 80,
                 unreadOnly = true,
                 sort = PostingSort.ScoreDesc,
                 cursor = "abc",

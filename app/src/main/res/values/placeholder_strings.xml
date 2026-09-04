@@ -13,6 +13,12 @@
     <string name="placeholder_my_affiliation_unknown">학교·학과 정보가 없어요</string>
     <string name="placeholder_my_biometric_label">지문 로그인</string>
     <string name="placeholder_my_biometric_unavailable">이 기기에서는 지문 로그인을 켤 수 없어요</string>
+    <string name="placeholder_my_theme_label">화면 테마</string>
+    <string name="placeholder_my_theme_dialog_title">화면 테마</string>
+    <string name="placeholder_my_theme_system">시스템 설정 따르기</string>
+    <string name="placeholder_my_theme_light">밝게</string>
+    <string name="placeholder_my_theme_dark">어둡게</string>
+    <string name="placeholder_my_theme_dialog_close">닫기</string>
     <string name="placeholder_my_logout">로그아웃</string>
     <string name="placeholder_my_logout_dialog_title">로그아웃할까요?</string>
     <string name="placeholder_my_logout_dialog_message">다시 이용하려면 소셜 로그인을 다시 해야 해요</string>

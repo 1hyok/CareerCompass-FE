@@ -121,20 +121,39 @@ class BoardRegisterScreenTest {
         detectButton().assertIsEnabled()
     }
 
+    /** 주소를 고치면 답이 갈리는 실패 — 여기서는 다시 감지할 길을 그 자리에 준다. */
     @Test
     fun failed_showsReasonAndRetryReEmitsDetect() {
         val events = mutableListOf<BoardRegisterEvent>()
         composeRule.setRegisterContent(
-            state = sampleState(detection = BoardDetectionState.Failed(BoardDetectionFailure.LoginRequired)),
+            state = sampleState(detection = BoardDetectionState.Failed(BoardDetectionFailure.Failed)),
             onEvent = events::add,
         )
 
-        composeRule.onNodeWithText("로그인이 필요한 게시판은 지원하지 않습니다").assertIsDisplayed()
+        composeRule.onNodeWithText("게시글 구조를 찾지 못했어요. 목록 페이지 주소인지 확인해 주세요").assertIsDisplayed()
         composeRule.onNode(hasText("다시 시도") and hasClickAction()).performClick()
 
         composeRule.runOnIdle {
             assertEquals(listOf(BoardRegisterEvent.DetectClicked), events)
         }
+    }
+
+    /**
+     * 사이트 쪽 사정으로 막힌 실패에는 재시도를 주지 않는다(#204).
+     *
+     * 몇 번을 다시 보내도 같은 답이 오므로 버튼은 사용자를 같은 상자로 돌려보낼 뿐이다. 그래도 막다른
+     * 길이 아니다 — URL 입력란과 「구조 분석하기」가 실패 상자 위에 그대로 남아 주소를 고칠 길을 연다.
+     * 나머지 사유의 판정은 `BoardDetectionFailure.isRetryable` 을 도는 테스트가 지킨다.
+     */
+    @Test
+    fun failedWithHopelessReason_hidesRetryButKeepsDetectPath() {
+        composeRule.setRegisterContent(
+            state = sampleState(detection = BoardDetectionState.Failed(BoardDetectionFailure.LoginRequired)),
+        )
+
+        composeRule.onNodeWithText("로그인이 필요한 게시판은 지원하지 않습니다").assertIsDisplayed()
+        composeRule.onAllNodesWithText("다시 시도").assertCountEquals(0)
+        detectButton().assertIsEnabled()
     }
 
     @Test

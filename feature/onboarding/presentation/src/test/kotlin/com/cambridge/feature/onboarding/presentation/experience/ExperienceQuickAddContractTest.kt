@@ -1,5 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.experience
 
+import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -54,29 +55,10 @@ public class ExperienceQuickAddContractTest {
     }
 
     @Test
-    public fun detailLimits_areDeclaredOnce() {
-        assertEquals(10, ExperienceEditorRules.MAX_TECH_TAGS)
-        assertEquals(20, ExperienceEditorRules.MAX_TECH_TAG_LENGTH)
-        assertEquals(200, ExperienceEditorRules.MAX_LINK_LENGTH)
-    }
-
-    @Test
     public fun normalizeTechTag_dropsHashAndSpaces() {
         assertEquals("Kotlin", ExperienceEditorRules.normalizeTechTag("  #Kotlin  "))
         assertEquals("Jetpack Compose", ExperienceEditorRules.normalizeTechTag("# Jetpack Compose"))
         assertEquals("", ExperienceEditorRules.normalizeTechTag("   #  "))
-    }
-
-    @Test
-    public fun isValidLink_acceptsOnlyHttpAndHttps() {
-        assertTrue(ExperienceEditorRules.isValidLink("https://github.com/Team-CamBridge/CareerCompass-FE"))
-        assertTrue(ExperienceEditorRules.isValidLink(" http://example.com "))
-        assertFalse(ExperienceEditorRules.isValidLink("javascript:alert(1)"))
-        assertFalse(ExperienceEditorRules.isValidLink("ftp://example.com"))
-        assertFalse(ExperienceEditorRules.isValidLink("github.com/foo"))
-        assertFalse(ExperienceEditorRules.isValidLink("https://"))
-        assertFalse(ExperienceEditorRules.isValidLink(""))
-        assertFalse(ExperienceEditorRules.isValidLink("https://example.com/" + "a".repeat(ExperienceEditorRules.MAX_LINK_LENGTH)))
     }
 
     @Test
@@ -90,40 +72,40 @@ public class ExperienceQuickAddContractTest {
     }
 
     @Test
-    public fun parseYearMonth_acceptsOnlyYearDotMonth() {
-        assertEquals(LocalDate.of(2025, 9, 1), ExperienceEditorRules.parseYearMonth(" 2025.09 "))
-        assertNull(ExperienceEditorRules.parseYearMonth("2025.13"))
-        assertNull(ExperienceEditorRules.parseYearMonth("2025-09"))
-        assertNull(ExperienceEditorRules.parseYearMonth(""))
+    public fun parseYearMonthPoint_acceptsOnlyYearDotMonth() {
+        assertEquals(ExperiencePoint.YearMonth(2025, 9), ExperienceEditorRules.parseYearMonthPoint(" 2025.09 "))
+        assertNull(ExperienceEditorRules.parseYearMonthPoint("2025.13"))
+        assertNull(ExperienceEditorRules.parseYearMonthPoint("2025-09"))
+        assertNull(ExperienceEditorRules.parseYearMonthPoint(""))
         // 연도만 친 글은 「연월」이 아니다 — 여기서 월을 채워 주면 없던 달이 생긴다(#166).
-        assertNull(ExperienceEditorRules.parseYearMonth("2025"))
+        assertNull(ExperienceEditorRules.parseYearMonthPoint("2025"))
     }
 
     @Test
-    public fun parseYear_readsYearAndNarrowsLegacyYearMonth() {
-        assertEquals(2025, ExperienceEditorRules.parseYear(" 2025 "))
+    public fun parseYearPoint_readsYearAndNarrowsLegacyYearMonth() {
+        assertEquals(ExperiencePoint.Year(2025), ExperienceEditorRules.parseYearPoint(" 2025 "))
         // 예전 카드가 남긴 `YYYY.MM` 은 연도로 좁혀 읽는다 — 좁히기는 새 정보를 만들지 않는다.
-        assertEquals(2025, ExperienceEditorRules.parseYear("2025.09"))
-        assertNull(ExperienceEditorRules.parseYear("25"))
-        assertNull(ExperienceEditorRules.parseYear("2025.13"))
-        assertNull(ExperienceEditorRules.parseYear(""))
+        assertEquals(ExperiencePoint.Year(2025), ExperienceEditorRules.parseYearPoint("2025.09"))
+        assertNull(ExperienceEditorRules.parseYearPoint("25"))
+        assertNull(ExperienceEditorRules.parseYearPoint("2025.13"))
+        assertNull(ExperienceEditorRules.parseYearPoint(""))
     }
 
     @Test
-    public fun resolveDate_keepsOriginDayWhenMonthUnchanged() {
-        val origin = LocalDate.of(2025, 6, 15)
+    public fun resolvePoint_keepsOriginPrecisionWhenMonthUnchanged() {
+        val origin = ExperiencePoint.Date(LocalDate.of(2025, 6, 15))
         // 칸이 `YYYY.MM` 이라 같은 달을 그대로 둔 글은 일(day)에 대해 아무 말도 하지 않는다 —
         // 아는 일은 원본의 것뿐이므로 그것을 돌려준다(#171).
-        assertEquals(origin, ExperienceEditorRules.resolveDate("2025.06", origin))
-        assertEquals(origin, ExperienceEditorRules.resolveDate(" 2025.06 ", origin))
-        // 달을 고쳤으면 원본은 더 이상 같은 시점이 아니다 — 사용자가 준 정밀도인 그 달 1일로 읽는다.
-        assertEquals(LocalDate.of(2025, 7, 1), ExperienceEditorRules.resolveDate("2025.07", origin))
-        assertEquals(LocalDate.of(2024, 6, 1), ExperienceEditorRules.resolveDate("2024.06", origin))
-        // 신규 등록에는 지킬 원본이 없다.
-        assertEquals(LocalDate.of(2025, 6, 1), ExperienceEditorRules.resolveDate("2025.06", null))
-        // 읽을 수 없는 글은 원본이 있어도 날짜가 아니다 — 되살리기가 검증을 우회하지 않는다.
-        assertNull(ExperienceEditorRules.resolveDate("2025", origin))
-        assertNull(ExperienceEditorRules.resolveDate("", origin))
+        assertEquals(origin, ExperienceEditorRules.resolvePoint("2025.06", origin))
+        assertEquals(origin, ExperienceEditorRules.resolvePoint(" 2025.06 ", origin))
+        // 달을 고쳤으면 원본은 더 이상 같은 시점이 아니다 — 사용자가 준 정밀도인 연월 그대로 읽는다.
+        assertEquals(ExperiencePoint.YearMonth(2025, 7), ExperienceEditorRules.resolvePoint("2025.07", origin))
+        assertEquals(ExperiencePoint.YearMonth(2024, 6), ExperienceEditorRules.resolvePoint("2024.06", origin))
+        // 신규 등록에는 지킬 원본이 없다 — 칸이 담는 만큼인 연월이 남는다.
+        assertEquals(ExperiencePoint.YearMonth(2025, 6), ExperienceEditorRules.resolvePoint("2025.06", null))
+        // 읽을 수 없는 글은 원본이 있어도 시점이 아니다 — 되살리기가 검증을 우회하지 않는다.
+        assertNull(ExperienceEditorRules.resolvePoint("2025", origin))
+        assertNull(ExperienceEditorRules.resolvePoint("", origin))
     }
 
     @Test

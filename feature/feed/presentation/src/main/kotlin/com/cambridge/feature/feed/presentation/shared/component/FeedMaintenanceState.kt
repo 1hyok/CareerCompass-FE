@@ -13,6 +13,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.cambridge.core.ui.component.CareerCompassMaintenanceState
+import com.cambridge.core.ui.failure.FailureKind
+import com.cambridge.core.ui.failure.description
+import com.cambridge.core.ui.failure.display
+import com.cambridge.core.ui.failure.title
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 
@@ -20,8 +24,8 @@ import com.cambridge.feature.feed.presentation.R
  * 서버 점검(503 `LLM_UNAVAILABLE`)을 말하는 자리는 이 파일이 전부다.
  *
  * 화면 한 장을 쓸 수 있으면 [FeedMaintenanceState], 폼·입력칸이 살아 있어야 하면 [FeedMaintenanceNotice] 다.
- * 둘 다 `feed_maintenance_*` 리소스만 읽는다 — 문구를 새로 짓는 자리를 남기지 않는다. 에러 코드별 문구 표가
- * 생기면(#204) 바꿀 곳도 이 파일 하나다.
+ * 둘 다 실패 표의 같은 행([FailureKind.ServiceUnavailable], #204)을 읽는다 — 문구를 새로 짓는 자리를
+ * 남기지 않는다. 이 모듈이 들고 있는 것은 진행 배지(`feed_maintenance_status`) 하나뿐이다.
  */
 
 /**
@@ -34,6 +38,10 @@ import com.cambridge.feature.feed.presentation.R
  * 저장해 둔 스냅샷이 있는 화면만 [onOfflineClick] 을 넘겨 「오프라인 모드로 보기」를 연다. 문의처는
  * 아직 공개된 창구가 없어 넘기지 않는다 — 없는 주소를 적으면 사용자를 막다른 길로 보낸다.
  *
+ * 제목·본문은 실패 표에서 읽는다([FailureKind.ServiceUnavailable], #204) — 503 은 피드만의 사건이
+ * 아니라서, 이 모듈이 문구를 들고 있으면 다른 기능이 같은 상태를 다르게 안내하게 된다. 진행 배지만
+ * 여기 남는다: 「점검 진행 중」은 이 화면의 구성 요소지 실패의 설명이 아니다.
+ *
  * 행동 버튼은 부품이 고정한 「새로고침」 하나다(`core_ui_state_refresh`). 네트워크 실패의 「다시 시도」와
  * 문구가 다른 것은 우연이 아니다 — 점검은 사용자가 연결을 살려 놓고 누르는 실패가 아니라 서버가 돌아오기를
  * 기다리는 실패라, 같은 말로 재시도를 권하지 않는다.
@@ -44,9 +52,11 @@ internal fun FeedMaintenanceState(
     onOfflineClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val display = FailureKind.ServiceUnavailable.display()
+
     CareerCompassMaintenanceState(
-        title = stringResource(R.string.feed_maintenance_title),
-        description = stringResource(R.string.feed_maintenance_description),
+        title = display.title(),
+        description = display.description(),
         statusLabel = stringResource(R.string.feed_maintenance_status),
         onRefreshClick = onRetryClick,
         onOfflineClick = onOfflineClick,
@@ -60,7 +70,7 @@ internal fun FeedMaintenanceState(
  *
  * [FeedMaintenanceState] 의 뼈대(`CareerCompassStateLayout`)는 `fillMaxSize` 라, 게시판 등록처럼 URL 입력칸과
  * 「구조 분석하기」가 그대로 살아 있어야 하는 화면에는 들어갈 수 없다. 그렇다고 문구를 새로 지으면 같은 503 을
- * 화면마다 다르게 말하게 되므로, 자리만 바꾸고 문구는 같은 리소스를 읽는다.
+ * 화면마다 다르게 말하게 되므로, 자리만 바꾸고 문구는 같은 표의 행을 읽는다.
  *
  * **행동 버튼을 그리지 않는다.** 점검은 사용자가 되돌릴 수 있는 조건이 아니라서 「다시 시도」를 붙이면 눌러도
  * 아무 일 없는 버튼이 된다(엣지 상태 §3 — 「할 수 있는 일이 있는 상태에만 행동 버튼」). 감지 타임아웃은 사이트가
@@ -74,6 +84,7 @@ internal fun FeedMaintenanceState(
 internal fun FeedMaintenanceNotice(modifier: Modifier = Modifier) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
+    val display = FailureKind.ServiceUnavailable.display()
 
     Column(
         modifier =
@@ -85,12 +96,12 @@ internal fun FeedMaintenanceNotice(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(spacing.xxSmall),
     ) {
         Text(
-            text = stringResource(R.string.feed_maintenance_title),
+            text = display.title(),
             color = colors.onInfoContainer,
             style = CareerCompassTheme.typography.headline4,
         )
         Text(
-            text = stringResource(R.string.feed_maintenance_description),
+            text = display.description(),
             color = colors.onInfoContainer,
             style = CareerCompassTheme.typography.bodyMedium,
         )

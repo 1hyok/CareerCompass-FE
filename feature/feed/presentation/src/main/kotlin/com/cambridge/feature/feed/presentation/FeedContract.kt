@@ -47,10 +47,22 @@ public sealed interface FeedSuitabilityState {
         }
     }
 
-    /** 아직 파싱·분석이 끝나지 않았다. */
+    /**
+     * 아직 파싱·분석이 끝나지 않았다 — **그리고 파싱이 영구 실패한 공고도 여기로 온다.**
+     *
+     * 계약이 둘을 가르지 못해서다(이슈 #200): 목록 응답의 `score` 는 nullable 한 숫자일 뿐, 「왜 없는지」를
+     * 실은 필드가 없다. 사용자가 할 수 있는 일도 같다(둘 다 기다리는 것 말고는 없다)는 점에서 지금의 한
+     * 문구가 거짓말은 아니지만, 영구 실패한 공고에는 영원히 「분석 중」이라고 적힌다. 필요한 계약 변경은
+     * `docs/spec/suitability-score-boundary.md` 에.
+     */
     public data object Analyzing : FeedSuitabilityState
 
-    /** 프로필(희망 직무·관심 태그)이 비어 산출 자체가 불가능하다. */
+    /**
+     * 프로필(희망 직무·관심 태그)이 비어 산출 자체가 불가능하다.
+     *
+     * [Analyzing] 과 갈라 두는 이유는 **사용자가 할 일이 다르기 때문**이다 — 여기서는 프로필을 채우면
+     * 점수가 나오고, 저기서는 기다리는 것 말고 할 수 있는 일이 없다(이슈 #100).
+     */
     public data object ProfileIncomplete : FeedSuitabilityState
 }
 
@@ -96,8 +108,9 @@ public data class FeedListingUiModel(
  *
  * ### 여러 사유가 겹칠 때의 우선순위
  *
- * [OfflineSnapshot] > [NoBoards] > [MoreAvailable] > [Search] > [Filter] > [NotCollected] 중 하나만
- * 고른다(사유 판정은 `FeedViewState.toEmptyReason`). 기준은 「그 조건을 되돌리면 결과가 달라지는가」다.
+ * [OfflineSnapshot] > [NoBoards] > [MoreAvailable] > [MissingBoards] > [Search] > [Filter] >
+ * [NotCollected] 중 하나만 고른다(사유 판정은 `FeedViewState.toEmptyReason`). 기준은 「그 조건을
+ * 되돌리면 결과가 달라지는가」다.
  *
  * - **오프라인이 가장 앞이다.** 보고 있는 것이 저장해 둔 사본이라 「아직 수집 전」·「게시판 0개」처럼
  *   서버 상태를 단정할 근거가 없다. 게다가 조건을 되돌리는 행동은 곧 재조회라, 오프라인에서 권하면
@@ -105,6 +118,14 @@ public data class FeedListingUiModel(
  * - **게시판 0개가 그다음이다.** 모으는 곳이 없으면 검색어·필터를 어떻게 바꿔도 나올 공고가 없다.
  * - **아직 더 읽을 게 남았으면([MoreAvailable]) 조건 탓을 하지 않는다.** 「없다」고 말할 근거가 아직
  *   없기 때문이다 — 검색어·필터 사유는 서버에 있는 것을 다 훑어봤다는 전제 위에서만 참이다.
+ * - **사라진 게시판은 검색어보다도 앞이다([MissingBoards]).** 나머지 조건은 사용자가 화면에서 볼 수
+ *   있다 — 검색어는 입력칸에 그대로 있고, 카테고리는 칩이 켜져 있고, 시트 조건은 배지가 개수를 센다.
+ *   그런데 지워진 게시판을 가리키는 조건만은 **어디에도 보이지 않는다**. 게시판 목록에서 사라졌으니
+ *   시트를 열어 하나씩 훑어도 없고(#155 가 시트 안에 태그를 붙이기 전까지는 끌 수조차 없었다), 배지의
+ *   숫자 하나에만 섞여 있다. 화면이 한 번에 말할 수 있는 사유가 하나뿐이라면, **혼자서는 알아낼 수 없는
+ *   것**에 써야 한다. 나머지는 사용자가 언제든 스스로 벗겨 볼 수 있는 겹이다.
+ * - 게다가 이 조건은 사용자가 **건 적이 없다** — 걸어 둔 뒤에 게시판이 지워져 그렇게 된 것이다. 그 상태를
+ *   [Filter] 로 뭉뚱그려 「걸어 둔 조건을 풀어 보세요」라고 하면, 멀쩡한 조건을 지우게 만든다.
  * - **검색어가 필터보다 앞이다.** 셋 다 근거다 — ① 검색칸은 화면 위에 그대로 보여 사용자가 무엇이
  *   걸렸는지 이미 알지만 필터는 시트 안에 접혀 있다, ② 검색어는 문구에 그대로 실어(「'백엔드' 검색
  *   결과가 없어요」) 구체적으로 말할 수 있다, ③ 검색어는 한 글자로 걸리고 필터는 시트를 열어 「적용」
@@ -131,6 +152,31 @@ public sealed interface FeedEmptyReason {
 
     /** 필터 시트 조건이나 카테고리 칩이 걸려 남은 것이 없다. */
     public data object Filter : FeedEmptyReason
+
+    /**
+     * 조건이 가리키는 게시판이 등록 목록에 없다 — 걸어 둔 뒤에 지워진 게시판이다(이슈 #206).
+     *
+     * **목록을 받아 본 뒤에만 이 사유가 된다**(`FeedViewState.hasDeletedBoardFilter`). 게시판 조회는 피드와
+     * 별개로 실패하는데, 못 받은 목록을 근거로 「지워졌어요」라고 하면 잠깐 연결이 끊긴 사용자에게 없는
+     * 사실을 알리게 된다. 못 받았으면 아래 조건 사유로 내려간다.
+     *
+     * 행동은 **그 조건을 바로 빼고 다시 조회하는 것**이다([FeedUiEvent.MissingBoardsCleared]) — 시트를
+     * 열어 주는 것이 아니다. 시트 안에 손잡이를 두는 것까지가 #155 였고, 그래서 열어 보기 전에는 원인을
+     * 알 수 없다는 것이 이 사유가 생긴 이유다.
+     *
+     * @property count 목록에 없는 게시판 id 의 수. 이름은 알 길이 없다 — 조건이 들고 있는 것은 id 뿐이고
+     *  그 게시판은 이미 목록에서 사라졌다.
+     * @property isOnlyCondition 이것을 빼고 나면 조회를 좁히는 것이 하나도 남지 않는가. 거짓이면 검색어나
+     *  다른 필터가 남아 **빼도 여전히 0개일 수 있다** — 문구가 「빼면 보여요」라고 약속하지 않게 가른다.
+     */
+    public data class MissingBoards(
+        val count: Int,
+        val isOnlyCondition: Boolean,
+    ) : FeedEmptyReason {
+        init {
+            require(count > 0) { "count must be positive" }
+        }
+    }
 
     /**
      * 게시판은 있고 조건도 없는데 아직 모인 공고가 없다 — 첫 수집을 기다리는 중이다.
@@ -274,6 +320,20 @@ public sealed interface FeedUiEvent {
 
     /** 빈 목록의 「게시판 등록하기」 — 게시판이 0개라 모을 것이 없는 사용자의 유일한 길이다. */
     public data object BoardRegisterSelected : FeedUiEvent
+
+    /**
+     * 빈 목록의 「사라진 게시판 조건 빼기」 — 지워진 게시판 id 만 조건에서 털고 다시 조회한다
+     * ([FeedEmptyReason.MissingBoards]).
+     *
+     * 시트를 여는 [FilterRequested] 와 갈라 두는 이유 — 시트를 열어 주면 사용자가 태그를 찾아 누르고
+     * 「적용」까지 눌러야 하고, 그때까지 **왜 비었는지는 여전히 시트 안에만 있다**. 여기서 하는 일은
+     * 시트의 `FeedFilterEvent.MissingBoardsCleared` 와 같은 규칙(`Set<Long>.missingFrom`)을 쓰되,
+     * 초안이 아니라 조회 조건을 바로 고친다.
+     *
+     * 「필터 초기화」([FilterResetSelected])로 대신하지 않는 이유 — 그것은 멀쩡한 조건까지 전부 푼다.
+     * 여기서 뺄 근거가 있는 것은 지워진 게시판 하나뿐이다.
+     */
+    public data object MissingBoardsCleared : FeedUiEvent
 
     /**
      * 「더 찾아보기」·「다시 시도」 — 멈춰 선 이어 읽기를 사용자가 손으로 잇는다

@@ -165,7 +165,7 @@ class FeedFilterContractTest {
             sampleState(
                 selectedBoardIds = setOf("school"),
                 deadline = FeedDeadlineFilter.WithinWeek,
-                minScore = FeedMinScoreFilter.AtLeast70,
+                minScore = FeedMinScoreFilter.AtLeast80,
                 unreadOnly = true,
             ).activeConditionCount,
         )
