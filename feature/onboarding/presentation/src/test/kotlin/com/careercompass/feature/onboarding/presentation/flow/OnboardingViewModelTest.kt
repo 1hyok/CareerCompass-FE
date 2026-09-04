@@ -22,6 +22,7 @@ import com.careercompass.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
 import com.careercompass.core.model.user.JobInterest
 import com.careercompass.core.model.user.UserProfile
 import com.careercompass.core.model.user.UserProfileUpdate
+import com.careercompass.core.ui.failure.FailureSurface
 import com.careercompass.feature.onboarding.domain.model.OnboardingProgress
 import com.careercompass.feature.onboarding.domain.model.OnboardingStep
 import com.careercompass.feature.onboarding.domain.model.SchoolCatalog
@@ -71,6 +72,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.time.LocalDate
 import java.time.Year
 
@@ -444,7 +446,7 @@ class OnboardingViewModelTest {
         viewModel.onStep2Event(OnboardingStep2Event.InterestTagSubmitted)
 
         assertEquals(5, viewModel.uiState.value.step2.interestTags.size)
-        assertEquals(OnboardingFailureReason.LimitExceeded, viewModel.uiState.value.failure)
+        assertEquals(OnboardingFailureReason.LimitExceeded(FailureSurface.Unspecified), viewModel.uiState.value.failure)
     }
 
     @Test
@@ -555,7 +557,7 @@ class OnboardingViewModelTest {
         val state = viewModel.uiState.value
         assertNotNull(state.experienceEditor)
         assertFalse(state.experienceEditor!!.isSubmitting)
-        assertEquals(OnboardingFailureReason.LimitExceeded, state.failure)
+        assertEquals(OnboardingFailureReason.LimitExceeded(FailureSurface.ExperienceCard), state.failure)
         assertEquals(listOf("add_experience"), reporter.stages())
     }
 
@@ -1123,7 +1125,7 @@ class OnboardingViewModelTest {
         viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
 
         assertNull(viewModel.uiState.value.experienceEditor)
-        assertEquals(OnboardingFailureReason.LimitExceeded, viewModel.uiState.value.failure)
+        assertEquals(OnboardingFailureReason.LimitExceeded(FailureSurface.ExperienceCard), viewModel.uiState.value.failure)
 
         viewModel.onFailureConsumed()
         viewModel.onStep3Event(OnboardingStep3Event.ExperienceDeleteClicked("1"))
@@ -1345,7 +1347,7 @@ class OnboardingViewModelTest {
         viewModel.onFileSelected(uploadFile("resume.pdf"))
 
         assertNull(viewModel.uiState.value.uploadLabel)
-        assertEquals(OnboardingFailureReason.LimitExceeded, viewModel.uiState.value.failure)
+        assertEquals(OnboardingFailureReason.LimitExceeded(FailureSurface.Application), viewModel.uiState.value.failure)
         assertEquals(MAX_PAST_APPLICATIONS, viewModel.uiState.value.step4.documents.size)
     }
 
@@ -1533,6 +1535,31 @@ class OnboardingViewModelTest {
 
         viewModel.onCompleteEvent(OnboardingCompleteEvent.RegisterBoardClicked)
         assertEquals(OnboardingDestination.BoardRegister, viewModel.uiState.value.pendingNavigation)
+    }
+
+    // ---- 실패 사유의 갈래 (#236) ----
+
+    /** 503 은 서버가 쉬는 것이라 일반 서버 오류로 접지 않는다 — 배너가 점검 문구를 읽어야 한다. */
+    @Test
+    fun `서버 점검은 일반 서버 오류가 아니라 점검 사유로 갈린다`() {
+        userProfileRepository.onUpdateProfile =
+            { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", IOException("503"))) }
+        val viewModel = createViewModel()
+
+        viewModel.onStep1Event(OnboardingStep1Event.NextClicked)
+
+        assertEquals(OnboardingFailureReason.Maintenance, viewModel.uiState.value.failure)
+    }
+
+    /** 타임아웃은 연결 없음과 처방이 다르다 — 표의 두 행으로 가른다. */
+    @Test
+    fun `타임아웃은 연결 없음과 다른 사유로 갈린다`() {
+        userProfileRepository.onUpdateProfile = { Result.failure(CoreDataFailure.NetworkUnavailable(SocketTimeoutException("timeout"))) }
+        val viewModel = createViewModel()
+
+        viewModel.onStep1Event(OnboardingStep1Event.NextClicked)
+
+        assertEquals(OnboardingFailureReason.Timeout, viewModel.uiState.value.failure)
     }
 
     // ---- 세션 만료 (#211) ----

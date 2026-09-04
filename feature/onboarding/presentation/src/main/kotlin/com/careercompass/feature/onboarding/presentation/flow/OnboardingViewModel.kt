@@ -25,6 +25,7 @@ import com.careercompass.core.model.user.MAX_JOB_INTERESTS
 import com.careercompass.core.model.user.MAX_PROFILE_TAGS
 import com.careercompass.core.model.user.MIN_GRADUATION_YEAR
 import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.ui.failure.FailureSurface
 import com.careercompass.feature.onboarding.domain.model.JobOptionCatalog
 import com.careercompass.feature.onboarding.domain.model.OnboardingProgress
 import com.careercompass.feature.onboarding.domain.model.OnboardingStep
@@ -410,7 +411,8 @@ public class OnboardingViewModel
                 return
             }
             if (form.interestTags.size >= MAX_PROFILE_TAGS) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded) }
+                // 표에 태그 문맥이 없어 개수를 말하지 않는다 — 틀린 숫자보다 안 말하는 쪽이 낫다.
+                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.Unspecified)) }
                 return
             }
             updateStep2 { copy(interestInput = "", interestTags = interestTags + tag) }
@@ -474,7 +476,7 @@ public class OnboardingViewModel
             val state = _uiState.value
             if (!state.isInputEnabled) return
             if (state.step3.experiences.size >= MAX_EXPERIENCE_CARDS) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded) }
+                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.ExperienceCard)) }
                 return
             }
             _uiState.update { it.copy(experienceEditor = ExperienceEditorState(type = state.step3.selectedType)) }
@@ -709,7 +711,7 @@ public class OnboardingViewModel
         public fun onFileSelected(file: UploadFile) {
             if (!_uiState.value.isInputEnabled) return
             if (_uiState.value.step4.documents.size >= MAX_PAST_APPLICATIONS) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded) }
+                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.Application)) }
                 return
             }
             val label = draft.restoredUploadLabel(PastApplicationLabelRules.defaultLabelFor(file.fileName))
@@ -761,7 +763,7 @@ public class OnboardingViewModel
         ) {
             val documents = _uiState.value.step4.documents
             if (documents.size >= MAX_PAST_APPLICATIONS) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded) }
+                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.Application)) }
                 return
             }
             val document =
@@ -1026,7 +1028,7 @@ public class OnboardingViewModel
             throwable: Throwable,
         ): OnboardingFailureReason? {
             report(stage, throwable)
-            val reason = throwable.toOnboardingFailureReason()
+            val reason = throwable.toOnboardingFailureReason(stage)
             if (reason == null) _uiState.update { it.copy(sessionEnded = true) }
             return reason
         }
