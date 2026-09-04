@@ -22,7 +22,7 @@ if (localPropertiesFile.exists()) {
 val kakaoKey = socialLoginKey("KAKAO_NATIVE_APP_KEY")
 
 android {
-    namespace = "com.cambridge.careercompass_fe"
+    namespace = "com.careercompass.careercompass_fe"
 
     buildFeatures {
         buildConfig = true
@@ -33,7 +33,7 @@ android {
         versionCode = resolveCareerCompassVersionCode(System.getenv(CAREERCOMPASS_VERSION_CODE_ENV))
         versionName = "1.0"
 
-        testInstrumentationRunner = "com.cambridge.careercompass_fe.test.CareerCompassTestRunner"
+        testInstrumentationRunner = "com.careercompass.careercompass_fe.test.CareerCompassTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
 
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoKey

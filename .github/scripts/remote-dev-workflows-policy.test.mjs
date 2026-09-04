@@ -264,11 +264,11 @@ test("managed device fails fast per lane and preserves only bounded infrastructu
     assert.match(source, /device: api34[\s\S]*?job_timeout_minutes: 15[\s\S]*?gradle_timeout_minutes: 12[\s\S]*?gradle_step_timeout_minutes: 13/);
     assert.match(
         source,
-        /device: api26[\s\S]*?full_selector: com\.cambridge\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?merge_queue_skip: true/,
+        /device: api26[\s\S]*?full_selector: com\.careercompass\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?merge_queue_skip: true/,
     );
     assert.match(
         source,
-        /device: api36[\s\S]*?full_selector: com\.cambridge\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?merge_queue_skip: true/,
+        /device: api36[\s\S]*?full_selector: com\.careercompass\.careercompass_fe\.ApiBoundarySmokeAndroidTest[\s\S]*?merge_queue_skip: true/,
     );
     assert.match(source, /device: api30[\s\S]*?merge_queue_skip: false/);
     assert.match(source, /device: api34[\s\S]*?merge_queue_skip: false/);
@@ -370,8 +370,8 @@ test("managed device stages every local dependency of its trusted Android policy
     "reason": "스테이징한 신뢰 정책을 실제 selected 계획으로 실행합니다.",
     "tests": [
       {
-        "path": "app/src/androidTest/java/com/cambridge/careercompass_fe/AccessibilitySmokeAndroidTest.kt",
-        "selector": "com.cambridge.careercompass_fe.AccessibilitySmokeAndroidTest#welcomeAndLogin_haveNoAutomatedAccessibilityErrors",
+        "path": "app/src/androidTest/java/com/careercompass/careercompass_fe/AccessibilitySmokeAndroidTest.kt",
+        "selector": "com.careercompass.careercompass_fe.AccessibilitySmokeAndroidTest#welcomeAndLogin_haveNoAutomatedAccessibilityErrors",
         "device": "api30"
       }
     ]

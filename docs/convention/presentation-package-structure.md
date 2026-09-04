@@ -14,7 +14,7 @@
 ## 목표 구조
 
 ```
-feature/<name>/presentation/src/main/kotlin/com/cambridge/feature/<name>/presentation/
+feature/<name>/presentation/src/main/kotlin/com/careercompass/feature/<name>/presentation/
   <기능>/                     # 예: postingdetail/ · draftedit/ · experiencecard/
     XxxScreen.kt
     XxxViewModel.kt

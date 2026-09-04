@@ -197,7 +197,7 @@ jobs:
             job_timeout_minutes: 20
             gradle_timeout_minutes: 16
             gradle_step_timeout_minutes: 17
-            full_selector: com.cambridge.careercompass_fe.ApiBoundarySmokeAndroidTest
+            full_selector: com.careercompass.careercompass_fe.ApiBoundarySmokeAndroidTest
             artifact: min-sdk-api26
             merge_queue_skip: true
           - name: Pixel 2 API 30 androidTest
@@ -215,7 +215,7 @@ jobs:
             job_timeout_minutes: 15
             gradle_timeout_minutes: 12
             gradle_step_timeout_minutes: 13
-            full_selector: com.cambridge.careercompass_fe.AccessibilitySmokeAndroidTest
+            full_selector: com.careercompass.careercompass_fe.AccessibilitySmokeAndroidTest
             artifact: accessibility-api34
             merge_queue_skip: false
           - name: Pixel 2 API 36 targetSdk smoke
@@ -224,7 +224,7 @@ jobs:
             job_timeout_minutes: 20
             gradle_timeout_minutes: 16
             gradle_step_timeout_minutes: 17
-            full_selector: com.cambridge.careercompass_fe.ApiBoundarySmokeAndroidTest
+            full_selector: com.careercompass.careercompass_fe.ApiBoundarySmokeAndroidTest
             artifact: target-sdk-api36
             merge_queue_skip: true
     steps:
