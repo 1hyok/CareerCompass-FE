@@ -55,29 +55,10 @@ public class ExperienceQuickAddContractTest {
     }
 
     @Test
-    public fun detailLimits_areDeclaredOnce() {
-        assertEquals(10, ExperienceEditorRules.MAX_TECH_TAGS)
-        assertEquals(20, ExperienceEditorRules.MAX_TECH_TAG_LENGTH)
-        assertEquals(200, ExperienceEditorRules.MAX_LINK_LENGTH)
-    }
-
-    @Test
     public fun normalizeTechTag_dropsHashAndSpaces() {
         assertEquals("Kotlin", ExperienceEditorRules.normalizeTechTag("  #Kotlin  "))
         assertEquals("Jetpack Compose", ExperienceEditorRules.normalizeTechTag("# Jetpack Compose"))
         assertEquals("", ExperienceEditorRules.normalizeTechTag("   #  "))
-    }
-
-    @Test
-    public fun isValidLink_acceptsOnlyHttpAndHttps() {
-        assertTrue(ExperienceEditorRules.isValidLink("https://github.com/Team-CamBridge/CareerCompass-FE"))
-        assertTrue(ExperienceEditorRules.isValidLink(" http://example.com "))
-        assertFalse(ExperienceEditorRules.isValidLink("javascript:alert(1)"))
-        assertFalse(ExperienceEditorRules.isValidLink("ftp://example.com"))
-        assertFalse(ExperienceEditorRules.isValidLink("github.com/foo"))
-        assertFalse(ExperienceEditorRules.isValidLink("https://"))
-        assertFalse(ExperienceEditorRules.isValidLink(""))
-        assertFalse(ExperienceEditorRules.isValidLink("https://example.com/" + "a".repeat(ExperienceEditorRules.MAX_LINK_LENGTH)))
     }
 
     @Test

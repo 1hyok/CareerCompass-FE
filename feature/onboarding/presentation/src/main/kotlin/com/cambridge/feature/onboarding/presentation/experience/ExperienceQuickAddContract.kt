@@ -5,7 +5,6 @@ import com.cambridge.core.model.experience.EXPERIENCE_YEAR_RANGE
 import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
-import java.net.URI
 
 /**
  * Step 3 「경험 추가·수정」 시트 상태 — 공통 5개 필드 + 유형별 상세(F1-3) 입력.
@@ -139,6 +138,12 @@ public sealed interface ExperienceQuickAddEvent {
  * 이 표가 `ExperienceDetails` 의 전 필드를 덮는다 — 시트가 모르는 필드는 이제 없다. 그래서 수정 저장은
  * 「원본에서 물려받기」 대신 **시트 왕복이 무손실**이라는 계약으로 지킨다(`Experience.toEditorState()` 참고).
  *
+ * ### 태그·링크 상한은 여기 없다 (#208)
+ * 태그 개수·길이와 링크 형식(스킴)은 「이 카드가 성립하는 조건」이라 모델이 든다 —
+ * `MAX_EXPERIENCE_TECH_TAGS` · `MAX_EXPERIENCE_TECH_TAG_LENGTH` · `MAX_EXPERIENCE_LINK_LENGTH` ·
+ * `isAllowedExperienceLink`. 시트는 그것을 **참조만** 해서 오류 문구를 만든다. 값이 두 벌이면 입력 경로가
+ * 늘 때마다 어긋나고, 어긋난 규칙은 어느 쪽이 사실인지 알 수 없다.
+ *
  * ### 유형을 바꾸면 이전 유형에만 있던 값은
  * **지우지 않고 시트에 그대로 두되, 저장할 때 새 유형이 쓰지 않는 값은 버린다.** 이미 [primary]·[secondary]
  * 가 그렇게 동작하고 있어 규칙을 두 벌로 만들지 않는다. 칩을 잘못 눌렀다가 되돌아온 사용자가 친 글을 잃지
@@ -162,28 +167,16 @@ public sealed interface ExperienceQuickAddEvent {
  * 고치는 자리도 입력 칸이 아니라 저장 경로다.
  */
 public object ExperienceEditorRules {
+    /**
+     * 시트 제목 칸의 길이 상한.
+     *
+     * 태그·링크 상한과 달리 아직 여기 있다 — 모델이 [com.cambridge.core.model.experience.Experience.title] 에
+     * 길이를 걸지 않기 때문이다. 모델이 걸게 되면 그때 같이 올린다.
+     */
     public const val MAX_TITLE_LENGTH: Int = 50
+
+    /** 자유 서술 칸(역할·요약)의 길이 상한. 위와 같은 이유로 화면 규칙이다. */
     public const val MAX_TEXT_LENGTH: Int = 100
-
-    /**
-     * 기술 태그 개수 상한.
-     *
-     * 관심 분야 태그(`MAX_PROFILE_TAGS` = 5)보다 넉넉하다 — 그쪽은 프로필 전체의 관심사라 5개면 충분하지만,
-     * 프로젝트 하나의 스택은 언어·프레임워크·DI·네트워크·테스트로 쉽게 대여섯을 넘는다. 반면 Step 3 카드 목록이
-     * 태그를 한 줄 흐름으로 그리므로(`OnboardingStep3Screen`) 카드가 태그 벽이 되지 않을 선이 필요하다.
-     */
-    public const val MAX_TECH_TAGS: Int = 10
-
-    /** 기술 태그 한 개의 길이 상한. 가장 긴 축인 "Kotlin Multiplatform"(20자)이 들어가는 선. */
-    public const val MAX_TECH_TAG_LENGTH: Int = 20
-
-    /**
-     * 성과·결과물 링크 길이 상한.
-     *
-     * GitHub·Notion·배포 주소는 100자 안쪽이다. 상한은 그보다 여유를 두되, 추적 파라미터가 잔뜩 붙은 주소가
-     * 서버 `data` JSON 과 카드 목록에 통째로 실려 오는 것은 막는다.
-     */
-    public const val MAX_LINK_LENGTH: Int = 200
 
     /** 시작 시점이 필수인 유형인가 — 판정의 정본은 모델(`ExperienceType.requiresStartPoint`)이다. */
     public fun isStartDateRequired(type: ExperienceType): Boolean = type.requiresStartPoint
@@ -226,22 +219,6 @@ public object ExperienceEditorRules {
 
     /** 관심 분야 태그와 같은 규칙으로 `#` 과 앞뒤 공백을 떼어 낸다. */
     public fun normalizeTechTag(raw: String): String = raw.trim().trimStart('#').trim()
-
-    /**
-     * 링크가 http/https 절대 주소인가.
-     *
-     * 서버가 받아 다시 사용자에게 보여 주는 값이라 스킴을 http·https 로 좁힌다 —
-     * `javascript:`·`file:` 같은 스킴이 카드에 실려 돌아다니지 않게.
-     */
-    public fun isValidLink(value: String): Boolean {
-        val trimmed = value.trim()
-        if (trimmed.isEmpty() || trimmed.length > MAX_LINK_LENGTH) return false
-        val uri = runCatching { URI(trimmed) }.getOrNull() ?: return false
-        val scheme = uri.scheme?.lowercase() ?: return false
-        if (scheme != "http" && scheme != "https") return false
-        // 한글 도메인은 host 가 null 이고 authority 에만 남는다 — 둘 중 하나라도 있으면 주소로 본다.
-        return !(uri.host ?: uri.authority).isNullOrBlank()
-    }
 
     /**
      * 시점 칸의 글을 시점으로 읽되, **원본과 같은 달이면 원본을 그대로 돌려준다** (#171).

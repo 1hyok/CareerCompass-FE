@@ -1,9 +1,47 @@
 package com.cambridge.core.model.experience
 
+import java.net.URI
 import java.time.Instant
 
 /** 경험 카드 등록 상한 — 기능 스펙 F1-3 (최대 30개). */
 public const val MAX_EXPERIENCE_CARDS: Int = 30
+
+/**
+ * 프로젝트 카드 하나가 가질 수 있는 기술 태그 개수 상한.
+ *
+ * 관심 분야 태그(`MAX_PROFILE_TAGS` = 5)보다 넉넉하다 — 그쪽은 프로필 전체의 관심사라 5개면 충분하지만,
+ * 프로젝트 하나의 스택은 언어·프레임워크·DI·네트워크·테스트로 쉽게 대여섯을 넘는다. 반면 Step 3 카드 목록이
+ * 태그를 한 줄 흐름으로 그리므로(`OnboardingStep3Screen`) 카드가 태그 벽이 되지 않을 선이 필요하다.
+ */
+public const val MAX_EXPERIENCE_TECH_TAGS: Int = 10
+
+/** 기술 태그 한 개의 길이 상한. 가장 긴 축인 "Kotlin Multiplatform"(20자)이 들어가는 선. */
+public const val MAX_EXPERIENCE_TECH_TAG_LENGTH: Int = 20
+
+/**
+ * 성과·결과물 링크 길이 상한.
+ *
+ * GitHub·Notion·배포 주소는 100자 안쪽이다. 상한은 그보다 여유를 두되, 추적 파라미터가 잔뜩 붙은 주소가
+ * 서버 `data` JSON 과 카드 목록에 통째로 실려 오는 것은 막는다.
+ */
+public const val MAX_EXPERIENCE_LINK_LENGTH: Int = 200
+
+/**
+ * 성과·결과물 링크가 카드에 실릴 수 있는 값인가 — 길이와 **스킴**을 함께 본다.
+ *
+ * 스킴을 화면이 아니라 모델에서 보는 이유는, 이 값이 서버를 거쳐 **다시 사용자에게 보이고 눌리는** 값이기
+ * 때문이다. `javascript:`·`file:` 같은 스킴이 카드에 실려 돌아다니지 않게 http·https 절대 주소로 좁힌다.
+ * 판정이 화면에만 있으면 입력 경로가 늘 때마다 한 벌씩 늘고, 두 벌은 반드시 어긋난다(#208).
+ */
+public fun isAllowedExperienceLink(value: String): Boolean {
+    val trimmed = value.trim()
+    if (trimmed.isEmpty() || trimmed.length > MAX_EXPERIENCE_LINK_LENGTH) return false
+    val uri = runCatching { URI(trimmed) }.getOrNull() ?: return false
+    val scheme = uri.scheme?.lowercase() ?: return false
+    if (scheme != "http" && scheme != "https") return false
+    // 한글 도메인은 host 가 null 이고 authority 에만 남는다 — 둘 중 하나라도 있으면 주소로 본다.
+    return !(uri.host ?: uri.authority).isNullOrBlank()
+}
 
 /** 경험 유형 — API_SPEC v0.1 §3 `type`. */
 public enum class ExperienceType(
@@ -83,7 +121,17 @@ public enum class ExperienceType(
 public sealed interface ExperienceDetails {
     public val type: ExperienceType
 
-    /** 프로젝트: 사용 기술(태그), 역할, 성과/결과물 링크. */
+    /**
+     * 프로젝트: 사용 기술(태그), 역할, 성과/결과물 링크.
+     *
+     * ### 상한이 왜 화면이 아니라 여기 있는가 (#208)
+     * 태그 개수·길이와 링크 형식은 「사용자가 시트에서 지켜야 하는 규칙」이 아니라 **이 카드가 성립하는
+     * 조건**이다. 화면에만 두면 입력 경로가 늘 때마다 한 벌씩 늘고(마이 탭 편집 #179), 두 벌은 반드시
+     * 어긋난다. `MAX_EXPERIENCE_CARDS`·`MAX_PROFILE_TAGS` 가 이미 모델에 있는 것과 같은 자리다.
+     *
+     * 서버가 상한을 넘는 값을 주면 매퍼가 담기 전에 걸러 낸다(`ExperienceMapper`) — 우리가 못 고치는
+     * 값으로 `require` 를 깨뜨려 목록 전체를 못 열게 만들지 않는다.
+     */
     public data class Project(
         val role: String?,
         val techs: List<String>,
@@ -96,8 +144,14 @@ public sealed interface ExperienceDetails {
             require(role == null || role.isNotBlank()) { "role must be null or non-blank" }
             require(techs.all(String::isNotBlank)) { "techs must not be blank" }
             require(techs.distinct().size == techs.size) { "techs must be unique" }
+            require(techs.size <= MAX_EXPERIENCE_TECH_TAGS) { "techs must be at most $MAX_EXPERIENCE_TECH_TAGS" }
+            require(techs.all { it.length <= MAX_EXPERIENCE_TECH_TAG_LENGTH }) {
+                "each tech must be at most $MAX_EXPERIENCE_TECH_TAG_LENGTH characters"
+            }
             require(summary == null || summary.isNotBlank()) { "summary must be null or non-blank" }
-            require(link == null || link.isNotBlank()) { "link must be null or non-blank" }
+            require(link == null || isAllowedExperienceLink(link)) {
+                "link must be null or an http(s) address within $MAX_EXPERIENCE_LINK_LENGTH characters"
+            }
         }
     }
 

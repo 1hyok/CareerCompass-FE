@@ -16,6 +16,9 @@ import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperiencePrecision
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_LINK_LENGTH
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
 import com.cambridge.core.model.user.JobInterest
 import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.model.user.UserProfileUpdate
@@ -888,7 +891,7 @@ class OnboardingViewModelTest {
     fun `기술 태그는 개수와 길이 상한을 넘으면 필드 오류로 막힌다`() {
         val viewModel = createViewModel()
         viewModel.onStep3Event(OnboardingStep3Event.AddExperienceClicked)
-        repeat(ExperienceEditorRules.MAX_TECH_TAGS) { index ->
+        repeat(MAX_EXPERIENCE_TECH_TAGS) { index ->
             viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechInputChanged("tech$index"))
             viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
         }
@@ -897,7 +900,7 @@ class OnboardingViewModelTest {
 
         val overflowed = viewModel.uiState.value.experienceEditor
         assertNotNull(overflowed)
-        assertEquals(ExperienceEditorRules.MAX_TECH_TAGS, overflowed!!.techs.size)
+        assertEquals(MAX_EXPERIENCE_TECH_TAGS, overflowed!!.techs.size)
         assertEquals(OnboardingFieldError.OutOfRange, overflowed.techInputError)
         // 상한에 걸린 글자는 입력칸에 남는다 — 하나 지우고 다시 완료를 누르면 그대로 들어간다.
         assertEquals("overflow", overflowed.techInput)
@@ -912,11 +915,11 @@ class OnboardingViewModelTest {
         )
 
         viewModel.onExperienceEditorEvent(
-            ExperienceQuickAddEvent.TechInputChanged("a".repeat(ExperienceEditorRules.MAX_TECH_TAG_LENGTH + 1)),
+            ExperienceQuickAddEvent.TechInputChanged("a".repeat(MAX_EXPERIENCE_TECH_TAG_LENGTH + 1)),
         )
         viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.TechTagSubmitted)
         assertEquals(
-            OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_TECH_TAG_LENGTH),
+            OnboardingFieldError.TooLong(MAX_EXPERIENCE_TECH_TAG_LENGTH),
             viewModel.uiState.value.experienceEditor
                 ?.techInputError,
         )
@@ -940,11 +943,11 @@ class OnboardingViewModelTest {
         assertTrue(experienceRepository.createdDrafts.isEmpty())
 
         viewModel.onExperienceEditorEvent(
-            ExperienceQuickAddEvent.LinkChanged("https://example.com/" + "a".repeat(ExperienceEditorRules.MAX_LINK_LENGTH)),
+            ExperienceQuickAddEvent.LinkChanged("https://example.com/" + "a".repeat(MAX_EXPERIENCE_LINK_LENGTH)),
         )
         viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Submitted)
         assertEquals(
-            OnboardingFieldError.TooLong(ExperienceEditorRules.MAX_LINK_LENGTH),
+            OnboardingFieldError.TooLong(MAX_EXPERIENCE_LINK_LENGTH),
             viewModel.uiState.value.experienceEditor
                 ?.linkError,
         )
