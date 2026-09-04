@@ -45,12 +45,15 @@ import com.cambridge.feature.onboarding.presentation.shared.component.Onboarding
  * 문서를 다시 읽어 시트를 세운다. 이 값이 [OnboardingViewModel] 로 가지 않는 이유는 두 가지다 — 플랫폼 타입이라
  * presentation 로직에 들이지 않고, SAF 권한이 이 화면(태스크)에 매인 값이라 화면과 수명이 같다. 라벨 글자 쪽은
  * 반대로 ViewModel 이 소유한 상태라 [OnboardingInputDraft] 가 `SavedStateHandle` 에 남긴다.
+ *
+ * @param onSessionEnded 401 로 세션이 끝났다 — 앱 셸이 사유를 만료로 갈라 로그인 화면으로 보낸다(#211).
  */
 @Composable
 public fun OnboardingStep4Entry(
     viewModel: OnboardingViewModel,
     onNavigate: (OnboardingDestination) -> Unit,
     onBack: () -> Unit,
+    onSessionEnded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -60,6 +63,11 @@ public fun OnboardingStep4Entry(
         destination = state.pendingNavigation,
         onNavigate = onNavigate,
         onConsumed = viewModel::onNavigationConsumed,
+    )
+    ConsumeSessionEnd(
+        sessionEnded = state.sessionEnded,
+        onSessionEnded = onSessionEnded,
+        onConsumed = viewModel::onSessionEndedConsumed,
     )
 
     val documentPicker =

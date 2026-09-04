@@ -21,12 +21,15 @@ import com.cambridge.feature.onboarding.presentation.shared.util.toMessage
 /**
  * Step 1(기본 정보) 화면의 상태 배선. [viewModel] 은 그래프 스코프 [OnboardingViewModel] 이어야 한다 —
  * 단계마다 새로 만들면 진행 상태가 끊긴다.
+ *
+ * @param onSessionEnded 401 로 세션이 끝났다 — 앱 셸이 사유를 만료로 갈라 로그인 화면으로 보낸다(#211).
  */
 @Composable
 public fun OnboardingStep1Entry(
     viewModel: OnboardingViewModel,
     onNavigate: (OnboardingDestination) -> Unit,
     onBack: () -> Unit,
+    onSessionEnded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -34,6 +37,11 @@ public fun OnboardingStep1Entry(
         destination = state.pendingNavigation,
         onNavigate = onNavigate,
         onConsumed = viewModel::onNavigationConsumed,
+    )
+    ConsumeSessionEnd(
+        sessionEnded = state.sessionEnded,
+        onSessionEnded = onSessionEnded,
+        onConsumed = viewModel::onSessionEndedConsumed,
     )
 
     OnboardingFlowFailureHost(

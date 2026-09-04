@@ -31,7 +31,7 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInput
  *   떠 있고, 「다음」을 누르면 어차피 다시 계산한다.
  * - **`isSubmitting`·`isResolvingEntry` 같은 진행 상태**: 살아난 프로세스에는 그 요청이 없다. 되살리면
  *   영원히 도는 버튼이 된다.
- * - **`failure`·`pendingNavigation` 같은 단발 신호**: 이미 지나간 사건이다. 죽기 직전의 실패 안내를 새 프로세스가
+ * - **`failure`·`pendingNavigation`·`sessionEnded` 같은 단발 신호**: 이미 지나간 사건이다. 죽기 직전의 실패 안내를 새 프로세스가
  *   다시 띄우면 방금 아무 일도 안 한 사용자에게 원인 없는 경고가 된다.
  * - **시트·피커가 열려 있었는지**: 프로세스 사망은 사용자가 의도한 이동이 아니다. 돌아왔는데 시트가 떠 있으면
  *   마지막으로 본 화면과 달라 놀란다. 대신 시트를 **다시 열면** 쓰던 글이 그대로 있다 —
@@ -40,6 +40,13 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.DirectInput
  *   서버에서 바뀐 카드 위에 옛 입력을 통째로 덮어쓸 수 있어(#139 이후 시트는 상세 필드까지 전부 실어 나른다)
  *   「서버 값과 충돌하지 않는다」를 지킬 수 없다. 목록 자체는 `loadExperiences()` 가 서버에서 다시 읽는다.
  * - **Step 4 업로드 목록**: 진행 중이던 업로드는 프로세스와 함께 끝났고, 끝난 문서는 서버 목록에서 다시 읽는다.
+ *
+ * ### 세션이 끝나면 초안도 함께 버린다 (#211)
+ * 401 로 앱 셸이 NavHost 를 새로 만들면 그래프 스코프 ViewModel 과 이 [SavedStateHandle] 이 함께 사라져 초안도
+ * 없어진다. 지키지 않는 쪽이 맞다 — 다음에 로그인하는 계정이 같은 계정이라는 보장이 없고(같은 기기의 다른
+ * 카카오·구글 계정), 초안은 계정에 귀속되지 않은 채 저장돼 있어 남기면 앞 계정의 입력이 뒤 계정의 폼에 나타난다
+ * (지문 등록 거절 기록이 같은 이유로 계정별로 갈렸다, #98). 서버에 저장된 단계는 재개 시 `resolveEntry()` 가 다시
+ * 채우므로, 잃는 것은 아직 「다음」을 누르지 않은 입력뿐이다.
  *
  * 저장 값은 [SavedStateHandle] 이 그대로 `Bundle` 로 나가므로 문자열과 [ArrayList] 만 쓴다. 읽을 때는
  * 계약(중복 없음·상한·카탈로그 소속)을 다시 통과시킨다 — 낡거나 망가진 번들이 [OnboardingStep2FormState] 의

@@ -19,10 +19,15 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplica
 import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelState
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 
-/** 온보딩 흐름의 실패 사유. 문구는 Entry 가 리소스로 만든다. */
+/**
+ * 온보딩 흐름의 실패 사유. 문구는 Entry 가 리소스로 만든다.
+ *
+ * **세션 만료(401)는 여기 없다** — 화면에 그릴 사유가 아니라 화면을 떠날 신호이기 때문이다(#211).
+ * 401 은 [OnboardingFlowState.sessionEnded] 로 올라가고 앱 셸이 로그인 화면으로 보낸다. 사유 목록에 없는 것이
+ * 곧 답이다: 이 열거형이 만료를 담을 수 없으니 온보딩 화면에는 만료를 그리는 자리도 없다.
+ */
 public enum class OnboardingFailureReason {
     Network,
-    SessionExpired,
     LimitExceeded,
     InvalidInput,
     Server,
@@ -164,7 +169,12 @@ public data class OnboardingStep4FormState(
 /**
  * 그래프 스코프 [OnboardingViewModel] 의 전체 상태 — Step 1~4 와 완료 화면이 함께 본다.
  *
- * [failure]·[pendingNavigation] 은 단발 신호다. 시트·피커 상태는 null 이면 닫힌 것이다.
+ * [failure]·[pendingNavigation]·[sessionEnded] 는 단발 신호다. 시트·피커 상태는 null 이면 닫힌 것이다.
+ *
+ * @property sessionEnded 401 로 세션이 끝났다 — 피드·게시판의 `sessionEnded` 와 같은 신호다(#211). Entry 가
+ *   소비해 앱 셸의 `onSessionEnded(SessionEndCause.Expired)` 를 부르고, 셸이 시작 목적지를 다시 계산해
+ *   로그인 화면으로 보낸다. 온보딩이 판정하는 것은 「끝났다」까지이고, **왜** 끝났는지와 무엇을 알릴지는
+ *   셸이 갖는다(#128).
  */
 @Immutable
 public data class OnboardingFlowState(
@@ -176,6 +186,7 @@ public data class OnboardingFlowState(
     val userName: String? = null,
     val isSubmitting: Boolean = false,
     val failure: OnboardingFailureReason? = null,
+    val sessionEnded: Boolean = false,
     val pendingNavigation: OnboardingDestination? = null,
     val schoolPicker: SchoolPickerState? = null,
     val graduationPicker: GraduationPickerState? = null,
