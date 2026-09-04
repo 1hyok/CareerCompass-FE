@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.baselineprofile"
+    namespace = "com.careercompass.baselineprofile"
     compileSdk = 37
 
     defaultConfig {

@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.feature.profile.presentation"
+    namespace = "com.careercompass.feature.profile.presentation"
     resourcePrefix = "profile_"
     testOptions.unitTests.isIncludeAndroidResources = true
     experimentalProperties["android.experimental.enableScreenshotTest"] = true

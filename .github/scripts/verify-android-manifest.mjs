@@ -20,8 +20,8 @@ export const ALLOWED_PERMISSIONS = new Set([
 export const ALLOWED_UNPROTECTED_EXPORTED_COMPONENTS = new Set([
   'androidx.activity.ComponentActivity',
   'androidx.compose.ui.tooling.PreviewActivity',
-  'com.cambridge.careercompass_fe.MainActivity',
-  'com.cambridge.careercompass_fe.debug.DebugSettingsActivity',
+  'com.careercompass.careercompass_fe.MainActivity',
+  'com.careercompass.careercompass_fe.debug.DebugSettingsActivity',
   'com.kakao.sdk.auth.AuthCodeHandlerActivity',
 ]);
 

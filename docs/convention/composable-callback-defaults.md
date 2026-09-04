@@ -68,6 +68,6 @@ nullable 핸들러에도 **`= null` 디폴트를 두지 않는다** — 호출�
 
 ## 강제 수단
 
-`konsist/src/test/kotlin/com/cambridge/konsist/NoOpCallbackDefaultKonsistTest.kt` 가 app · feature `src/main` 의 `@Composable` 함수 파라미터와 클래스 주 생성자 파라미터를 스캔해, `on`+대문자 이름에 no-op 람다 기본값(`{}` · `{ }` · `{ _ -> }`)이 있으면 실패시킨다.
+`konsist/src/test/kotlin/com/careercompass/konsist/NoOpCallbackDefaultKonsistTest.kt` 가 app · feature `src/main` 의 `@Composable` 함수 파라미터와 클래스 주 생성자 파라미터를 스캔해, `on`+대문자 이름에 no-op 람다 기본값(`{}` · `{ }` · `{ _ -> }`)이 있으면 실패시킨다.
 
 테스트 안 `LEGACY_NO_OP_DEFAULT_FILES` 는 관대 판정할 파일 목록이다. **이 저장소는 비어 있다** — 가드를 빈 소스에서 켰기 때문이다. 목록에 올린 파일은 위반이 있어도 없어도 통과하므로, 청소 PR 과 목록 갱신 PR 의 머지 순서가 develop 을 red 로 만드는 상황에서만 쓰고 청소가 끝나면 즉시 뺀다. 빼는 걸 잊으면 「해소된 항목은 경고로 알린다」 테스트가 CI 로그에 경고를 남긴다.

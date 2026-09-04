@@ -52,7 +52,7 @@
                 android:exported="false"
                 tools:node="merge">
             <meta-data
-                    android:name="com.cambridge.careercompass_fe.startup.KakaoInitializer"
+                    android:name="com.careercompass.careercompass_fe.startup.KakaoInitializer"
                     android:value="androidx.startup" />
         </provider>
 

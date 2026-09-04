@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.feature.editor.presentation"
+    namespace = "com.careercompass.feature.editor.presentation"
     resourcePrefix = "editor_"
     testOptions.unitTests.isIncludeAndroidResources = true
     experimentalProperties["android.experimental.enableScreenshotTest"] = true

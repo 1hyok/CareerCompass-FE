@@ -517,7 +517,7 @@ test("하네스 변경은 full, Android 런타임 경계는 selected 이상을 �
 
 test("실제 GlobalApplication 변경은 Android 런타임 경계로 분류해 none을 거부한다", async () => {
     const applicationPath =
-        "app/src/main/java/com/cambridge/careercompass_fe/GlobalApplication.kt";
+        "app/src/main/java/com/careercompass/careercompass_fe/GlobalApplication.kt";
 
     await fs.access(applicationPath);
     assert.deepEqual(inspectAndroidTestImpact([applicationPath]).selected, [applicationPath]);

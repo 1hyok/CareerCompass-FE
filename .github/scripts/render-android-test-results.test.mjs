@@ -21,58 +21,58 @@ const SCRIPT = fileURLToPath(new URL("./render-android-test-results.mjs", import
 // Run 33084637682의 AGP Managed Device XML 구조와 실패 본문을 축약 없이 재현한 fixture다.
 const REPORT_16_TESTS_3_FAILURES = `<?xml version='1.0' encoding='UTF-8' ?>
 <testsuites tests="16" failures="3" errors="0" skipped="0">
-  <testsuite name="com.cambridge.careercompass_fe.EditorFlowAndroidTest" tests="3" failures="1" errors="0" skipped="0">
+  <testsuite name="com.careercompass.careercompass_fe.EditorFlowAndroidTest" tests="3" failures="1" errors="0" skipped="0">
     <properties><property name="device" value="pixel2Api30" /></properties>
-    <testcase name="draftSave_usesDraftStatusWithoutSchedule" classname="com.cambridge.careercompass_fe.EditorFlowAndroidTest" />
-    <testcase name="scheduledSave_failureThenRetry_keepsExactPayload" classname="com.cambridge.careercompass_fe.EditorFlowAndroidTest">
+    <testcase name="draftSave_usesDraftStatusWithoutSchedule" classname="com.careercompass.careercompass_fe.EditorFlowAndroidTest" />
+    <testcase name="scheduledSave_failureThenRetry_keepsExactPayload" classname="com.careercompass.careercompass_fe.EditorFlowAndroidTest">
       <failure>org.junit.ComparisonFailure: expected:&lt;2026-09-03T14:35:00[]&gt; but was:&lt;2026-09-03T14:35:00[Z]&gt;
 at org.junit.Assert.assertEquals(Assert.java:117)
-at com.cambridge.careercompass_fe.EditorFlowAndroidTest.scheduledSave_failureThenRetry_keepsExactPayload(EditorFlowAndroidTest.kt:97)
+at com.careercompass.careercompass_fe.EditorFlowAndroidTest.scheduledSave_failureThenRetry_keepsExactPayload(EditorFlowAndroidTest.kt:97)
 </failure>
     </testcase>
-    <testcase name="registerWithoutReceiver_isBlockedAndShownToUser" classname="com.cambridge.careercompass_fe.EditorFlowAndroidTest" />
+    <testcase name="registerWithoutReceiver_isBlockedAndShownToUser" classname="com.careercompass.careercompass_fe.EditorFlowAndroidTest" />
   </testsuite>
-  <testsuite name="com.cambridge.careercompass_fe.EditorLifecycleAndroidTest" tests="5" failures="1" errors="0" skipped="0">
-    <testcase name="drafts_selectionDeleteReentryAndDeleteAll_reloadDurableRepositoryState" classname="com.cambridge.careercompass_fe.EditorLifecycleAndroidTest">
+  <testsuite name="com.careercompass.careercompass_fe.EditorLifecycleAndroidTest" tests="5" failures="1" errors="0" skipped="0">
+    <testcase name="drafts_selectionDeleteReentryAndDeleteAll_reloadDurableRepositoryState" classname="com.careercompass.careercompass_fe.EditorLifecycleAndroidTest">
       <failure>java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (Text + InputText contains '발송 예정일 2026. 10. 01.')
 at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
-at com.cambridge.careercompass_fe.EditorLifecycleAndroidTest.drafts_selectionDeleteReentryAndDeleteAll_reloadDurableRepositoryState(EditorLifecycleAndroidTest.kt:188)
+at com.careercompass.careercompass_fe.EditorLifecycleAndroidTest.drafts_selectionDeleteReentryAndDeleteAll_reloadDurableRepositoryState(EditorLifecycleAndroidTest.kt:188)
 </failure>
     </testcase>
-    <testcase name="senderList_loadingErrorSuccessFilterAndDeleteRetry_keepRepositoryBoundary" classname="com.cambridge.careercompass_fe.EditorLifecycleAndroidTest" />
-    <testcase name="recipientListAndDetail_errorRetry_recoversBothRepositoryBoundaries" classname="com.cambridge.careercompass_fe.EditorLifecycleAndroidTest" />
-    <testcase name="editingExistingLetter_showsLoadedStateAndSendsExactUpdatePayload" classname="com.cambridge.careercompass_fe.EditorLifecycleAndroidTest" />
-    <testcase name="draftReturnResult_refreshesRepositoryExactlyOnce" classname="com.cambridge.careercompass_fe.EditorLifecycleAndroidTest" />
+    <testcase name="senderList_loadingErrorSuccessFilterAndDeleteRetry_keepRepositoryBoundary" classname="com.careercompass.careercompass_fe.EditorLifecycleAndroidTest" />
+    <testcase name="recipientListAndDetail_errorRetry_recoversBothRepositoryBoundaries" classname="com.careercompass.careercompass_fe.EditorLifecycleAndroidTest" />
+    <testcase name="editingExistingLetter_showsLoadedStateAndSendsExactUpdatePayload" classname="com.careercompass.careercompass_fe.EditorLifecycleAndroidTest" />
+    <testcase name="draftReturnResult_refreshesRepositoryExactlyOnce" classname="com.careercompass.careercompass_fe.EditorLifecycleAndroidTest" />
   </testsuite>
-  <testsuite name="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" tests="8" failures="1" errors="0" skipped="0">
-    <testcase name="memorySpace_supportedSuccess_opensAndClosesDetailThenNavigatesBack" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" />
-    <testcase name="mindRecordHome_dailyQuestionLoadingEmptyAndErrorRetrySuccess_areRendered" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" />
-    <testcase name="diaryDraftRow_routesIdAndMonthThenPrefillsAndPublishesWithPatch" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" />
-    <testcase name="timeLetterRecipientSelector_roundTripPreservesTitleTextAndExactReceiverId" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" />
-    <testcase name="timeLetterSenderDetail_routeIdLoadingFailureRetryAndSuccess_areConnected" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" />
-    <testcase name="dailyQuestionWrite_successRefreshesExistingListWithCreatedAnswer" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" />
-    <testcase name="timeLetterWrite_uiValidationAndRapidRegister_preserveInputAndCreateOnce" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest">
+  <testsuite name="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" tests="8" failures="1" errors="0" skipped="0">
+    <testcase name="memorySpace_supportedSuccess_opensAndClosesDetailThenNavigatesBack" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" />
+    <testcase name="mindRecordHome_dailyQuestionLoadingEmptyAndErrorRetrySuccess_areRendered" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" />
+    <testcase name="diaryDraftRow_routesIdAndMonthThenPrefillsAndPublishesWithPatch" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" />
+    <testcase name="timeLetterRecipientSelector_roundTripPreservesTitleTextAndExactReceiverId" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" />
+    <testcase name="timeLetterSenderDetail_routeIdLoadingFailureRetryAndSuccess_areConnected" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" />
+    <testcase name="dailyQuestionWrite_successRefreshesExistingListWithCreatedAnswer" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" />
+    <testcase name="timeLetterWrite_uiValidationAndRapidRegister_preserveInputAndCreateOnce" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest">
       <failure>org.junit.ComparisonFailure: expected:&lt;2026-09-14T09:35:00[]&gt; but was:&lt;2026-09-14T09:35:00[Z]&gt;
 at org.junit.Assert.assertEquals(Assert.java:117)
-at com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest.timeLetterWrite_uiValidationAndRapidRegister_preserveInputAndCreateOnce(EditorSaveHistoryAndroidTest.kt:192)
+at com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest.timeLetterWrite_uiValidationAndRapidRegister_preserveInputAndCreateOnce(EditorSaveHistoryAndroidTest.kt:192)
 </failure>
     </testcase>
-    <testcase name="weeklyReport_errorRetryThenEmptyAndComplete_preservesRequestedWeekContract" classname="com.cambridge.careercompass_fe.EditorSaveHistoryAndroidTest" />
+    <testcase name="weeklyReport_errorRetryThenEmptyAndComplete_preservesRequestedWeekContract" classname="com.careercompass.careercompass_fe.EditorSaveHistoryAndroidTest" />
   </testsuite>
 </testsuites>`;
 
 const SOURCES = [
     {
         fileName: "EditorFlowAndroidTest.kt",
-        relative: "app/src/androidTest/java/com/cambridge/careercompass_fe/EditorFlowAndroidTest.kt",
+        relative: "app/src/androidTest/java/com/careercompass/careercompass_fe/EditorFlowAndroidTest.kt",
     },
     {
         fileName: "EditorLifecycleAndroidTest.kt",
-        relative: "app/src/androidTest/java/com/cambridge/careercompass_fe/EditorLifecycleAndroidTest.kt",
+        relative: "app/src/androidTest/java/com/careercompass/careercompass_fe/EditorLifecycleAndroidTest.kt",
     },
     {
         fileName: "EditorSaveHistoryAndroidTest.kt",
-        relative: "app/src/androidTest/java/com/cambridge/careercompass_fe/EditorSaveHistoryAndroidTest.kt",
+        relative: "app/src/androidTest/java/com/careercompass/careercompass_fe/EditorSaveHistoryAndroidTest.kt",
     },
 ];
 
@@ -110,7 +110,7 @@ test("실제 형태의 16개 결과에서 세 실패의 메시지와 테스트 �
             {
                 selector: "EditorFlowAndroidTest#scheduledSave_failureThenRetry_keepsExactPayload",
                 location: {
-                    file: "app/src/androidTest/java/com/cambridge/careercompass_fe/EditorFlowAndroidTest.kt",
+                    file: "app/src/androidTest/java/com/careercompass/careercompass_fe/EditorFlowAndroidTest.kt",
                     line: 97,
                 },
             },
@@ -118,7 +118,7 @@ test("실제 형태의 16개 결과에서 세 실패의 메시지와 테스트 �
                 selector:
                     "EditorLifecycleAndroidTest#drafts_selectionDeleteReentryAndDeleteAll_reloadDurableRepositoryState",
                 location: {
-                    file: "app/src/androidTest/java/com/cambridge/careercompass_fe/EditorLifecycleAndroidTest.kt",
+                    file: "app/src/androidTest/java/com/careercompass/careercompass_fe/EditorLifecycleAndroidTest.kt",
                     line: 188,
                 },
             },
@@ -126,7 +126,7 @@ test("실제 형태의 16개 결과에서 세 실패의 메시지와 테스트 �
                 selector:
                     "EditorSaveHistoryAndroidTest#timeLetterWrite_uiValidationAndRapidRegister_preserveInputAndCreateOnce",
                 location: {
-                    file: "app/src/androidTest/java/com/cambridge/careercompass_fe/EditorSaveHistoryAndroidTest.kt",
+                    file: "app/src/androidTest/java/com/careercompass/careercompass_fe/EditorSaveHistoryAndroidTest.kt",
                     line: 192,
                 },
             },
@@ -236,20 +236,20 @@ test("Managed Device 결과 루트를 재귀 탐색하고 실제 workspace의 �
             "androidTest",
             "java",
             "com",
-            "cambridge",
+            "careercompass",
             "careercompass_fe",
             "EditorFlowAndroidTest.kt",
         );
         await fs.mkdir(path.dirname(report), { recursive: true });
         await fs.mkdir(path.dirname(source), { recursive: true });
         await fs.writeFile(report, REPORT_16_TESTS_3_FAILURES);
-        await fs.writeFile(source, "package com.cambridge.careercompass_fe\n");
+        await fs.writeFile(source, "package com.careercompass.careercompass_fe\n");
 
         assert.deepEqual(await collectXmlFiles(path.join(root, "reports")), [report]);
         const rendered = await renderAndroidTestResults(path.join(root, "reports"), root);
         assert.equal(rendered.summary.executed, 16);
         assert.deepEqual(rendered.summary.failures[0].location, {
-            file: "app/src/androidTest/java/com/cambridge/careercompass_fe/EditorFlowAndroidTest.kt",
+            file: "app/src/androidTest/java/com/careercompass/careercompass_fe/EditorFlowAndroidTest.kt",
             line: 97,
         });
         assert.equal(rendered.summary.failures[1].location.file, "EditorLifecycleAndroidTest.kt");

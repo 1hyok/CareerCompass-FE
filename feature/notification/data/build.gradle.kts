@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.feature.notification.data"
+    namespace = "com.careercompass.feature.notification.data"
     testOptions.unitTests.isReturnDefaultValues = true
 }
 
