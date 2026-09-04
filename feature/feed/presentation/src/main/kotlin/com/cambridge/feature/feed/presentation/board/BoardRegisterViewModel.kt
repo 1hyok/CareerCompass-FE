@@ -12,6 +12,8 @@ import com.cambridge.feature.feed.domain.usecase.DetectBoardUseCase
 import com.cambridge.feature.feed.domain.usecase.RegisterBoardUseCase
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.util.toDetectionState
 import com.cambridge.feature.feed.presentation.shared.util.toDomainBoardType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +39,21 @@ public sealed interface BoardRegisterMessage {
     public data object DetectFailed : BoardRegisterMessage
 
     public data object RegisterFailed : BoardRegisterMessage
+
+    /**
+     * 서버 점검(503 `LLM_UNAVAILABLE`)으로 **등록 제출**이 실패했다는 안내.
+     *
+     * [RegisterFailed] 로 접으면 「게시판을 등록하지 못했어요」가 되어, 서버가 잠깐 쉬는 것을 사용자가 자기
+     * 입력이나 게시판 탓으로 읽는다(#212). 문구는 새로 짓지 않고 실패 표의 점검 행(`FailureKind.ServiceUnavailable`, #204)을
+     * 그대로 쓴다 — 같은 사실을 화면마다 다르게 말하지 않는다.
+     *
+     * **감지(`BoardDetectionState.Maintenance`)와 자리가 다른 이유** — 감지는 서버가 외부 사이트를 처음부터
+     * 다시 크롤링하는 비싼 호출이라, 사라지는 스낵바로 알리면 사용자가 「구조 분석하기」를 되풀이해 누른다.
+     * 그래서 화면에 남는 상태로 둔다. 제출은 우리 서버가 자기 DB 에 쓰는 한 번의 호출이고, 실패해도 감지
+     * 결과와 폼이 그대로 살아 있어 사용자가 서 있는 자리를 잃지 않는다. 그 자리에서 알리는 것이 스낵바다
+     * (중복·상한·연결 단절도 모두 같은 자리를 쓴다).
+     */
+    public data object Maintenance : BoardRegisterMessage
 
     /**
      * 제출 중에 화면을 벗어나려 했을 때의 안내.
@@ -237,14 +254,29 @@ public class BoardRegisterViewModel
                     }
                 }
 
+                // 남은 것은 「요청 자체가 실패했다」이지 「서버가 감지 결과를 알렸다」가 아니다. 서버가 알린
+                // 감지 결과는 성공 경로로 와 BoardDetectionState.Failed 가 되고(`detect_status` — 위의
+                // BoardBlocked 도 그 자리다), 여기 오는 것은 요청이 결과를 만들지 못하고 끝난 경우뿐이다.
+                // 그중 점검(503)만 사유가 분명하므로 갈라 화면에 남기고, 나머지는 사유를 모르는 실패라
+                // 지금처럼 스낵바 한 줄로 접는다.
                 else -> {
                     errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
                     _state.update {
-                        it.copy(
-                            detection = BoardDetectionState.Idle,
-                            message = BoardRegisterMessage.DetectFailed,
-                            sessionEnded = it.sessionEnded || throwable is CoreDataFailure.Unauthorized,
-                        )
+                        when (throwable.toFeedFailureReason()) {
+                            FeedFailureReason.Maintenance -> {
+                                it.copy(detection = BoardDetectionState.Maintenance)
+                            }
+
+                            FeedFailureReason.NetworkUnavailable,
+                            FeedFailureReason.Generic,
+                            -> {
+                                it.copy(
+                                    detection = BoardDetectionState.Idle,
+                                    message = BoardRegisterMessage.DetectFailed,
+                                    sessionEnded = it.sessionEnded || throwable is CoreDataFailure.Unauthorized,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -307,6 +339,10 @@ public class BoardRegisterViewModel
 
                     is CoreDataFailure.NetworkUnavailable -> {
                         cleared.copy(message = BoardRegisterMessage.NetworkUnavailable)
+                    }
+
+                    is CoreDataFailure.ServiceUnavailable -> {
+                        cleared.copy(message = BoardRegisterMessage.Maintenance)
                     }
 
                     is CoreDataFailure.Unauthorized -> {

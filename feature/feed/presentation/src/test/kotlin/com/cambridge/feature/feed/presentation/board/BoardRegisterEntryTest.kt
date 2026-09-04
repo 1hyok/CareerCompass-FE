@@ -2,10 +2,13 @@ package com.cambridge.feature.feed.presentation.board
 
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
+import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.core.domain.testing.FakeBoardRepository
 import com.cambridge.core.model.board.Board
 import com.cambridge.core.ui.theme.CareerCompassTheme
@@ -91,6 +94,24 @@ class BoardRegisterEntryTest {
         composeRule.waitForIdle()
 
         assertEquals(1, navigatedBackCount)
+    }
+
+    /**
+     * 점검 안내가 **스낵바 문구로도** 갈리는지 본다.
+     *
+     * ViewModel 은 `BoardRegisterMessage.Maintenance` 까지만 말할 수 있다. 그 값이 어떤 문장이 되는지는
+     * Entry 의 `toLabel` 이 정하므로, 「게시판을 등록하지 못했어요」로 되돌아가는 회귀는 여기서만 잡힌다.
+     */
+    @Test
+    fun `등록 중 서버 점검은 점검 문구로 알린다`() {
+        repository.onRegister = { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException())) }
+        val viewModel = viewModel().readyToRegister()
+        setEntryContent(viewModel)
+
+        viewModel.onEvent(BoardRegisterEvent.RegisterClicked)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("서비스가 잠시 점검 중이에요").assertIsDisplayed()
     }
 
     /** 등록 요청이 응답을 기다리는 중인 화면. */

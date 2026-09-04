@@ -70,6 +70,20 @@ public fun BoardRegisterFailedPreview() {
     )
 }
 
+/** 점검(503) — 타임아웃(경고 톤 + 「다시 시도」)과 한눈에 갈리는지 본다. 여기에는 행동 버튼이 없다. */
+@PreviewTest
+@Preview(name = "Board register maintenance", widthDp = 360, heightDp = 772)
+@Composable
+public fun BoardRegisterMaintenancePreview() {
+    BoardRegisterPreviewSurface(
+        state =
+            boardRegisterPreviewState().copy(
+                url = "https://konkuk.ac.kr/notice",
+                detection = BoardDetectionState.Maintenance,
+            ),
+    )
+}
+
 @Composable
 private fun BoardRegisterPreviewSurface(state: BoardRegisterUiState) {
     CareerCompassTheme {
