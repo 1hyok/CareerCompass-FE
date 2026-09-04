@@ -112,6 +112,44 @@ class BoardListViewModelTest {
             assertEquals(listOf("board_toggle"), reporter.stages)
         }
 
+    /** 토글 실패의 되돌리기는 그 사이 수정 시트가 저장한 이름을 지우지 않는다(#235) — 되돌리는 것은 토글이 건드린 두 필드뿐이다. */
+    @Test
+    fun `토글 실패의 되돌리기는 그 사이 저장된 수정을 지우지 않는다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val repository = repository()
+            repository.onUpdate = { id, update ->
+                if (update.isActive != null) {
+                    gate.await()
+                    Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException()))
+                } else {
+                    Result.success(repository.boards.first { it.id == id }.copy(name = checkNotNull(update.name)))
+                }
+            }
+            val viewModel = viewModel(repository)
+
+            viewModel.onEvent(BoardListEvent.BoardToggled("1"))
+            viewModel.onEvent(BoardListEvent.BoardSelected("1"))
+            viewModel.onEditEvent(BoardEditEvent.NameChanged("새 이름"))
+            viewModel.onEditEvent(BoardEditEvent.SaveClicked)
+            assertEquals(
+                "새 이름",
+                viewModel.state.value.boards
+                    .first { it.id == 1L }
+                    .name,
+            )
+
+            gate.complete(Unit)
+
+            val board =
+                viewModel.state.value.boards
+                    .first { it.id == 1L }
+            assertEquals("새 이름", board.name)
+            assertTrue(board.isActive)
+            assertEquals(DomainBoardStatus.Active, board.status)
+            assertEquals(BoardListMessage.ToggleFailed, viewModel.state.value.message)
+        }
+
     @Test
     fun `재시도는 위임하고 성공하면 실패 상태를 지운다`() {
         val repository = repository()

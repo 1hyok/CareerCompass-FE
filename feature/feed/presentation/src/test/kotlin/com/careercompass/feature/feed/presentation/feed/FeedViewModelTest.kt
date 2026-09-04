@@ -673,6 +673,39 @@ class FeedViewModelTest {
             assertNull(viewModel.state.value.message)
         }
 
+    /** 북마크 응답이 오가는 사이 새로고침이 목록을 갈아 끼워도, 응답이 그 값을 옛 스냅샷으로 덮지 않는다(#235). */
+    @Test
+    fun `북마크 응답이 늦어도 그 사이 새로고침으로 바뀐 값을 지우지 않는다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val repository =
+                FakePostingRepository(
+                    initial = listOf(posting(id = 1, isBookmarked = false, isRead = false)),
+                    onSetBookmarked = { _, _ ->
+                        gate.await()
+                        Result.success(Unit)
+                    },
+                )
+            val viewModel = viewModel(postingRepository = repository)
+
+            viewModel.onEvent(FeedUiEvent.BookmarkToggled("1"))
+            repository.postings[0] = posting(id = 1, isBookmarked = false, isRead = true)
+            viewModel.refresh()
+            assertTrue(
+                viewModel.state.value.postings
+                    .single()
+                    .isRead,
+            )
+
+            gate.complete(Unit)
+
+            val refreshed =
+                viewModel.state.value.postings
+                    .single()
+            assertTrue(refreshed.isRead)
+            assertTrue(refreshed.isBookmarked)
+        }
+
     @Test
     fun `북마크 성공은 서버가 돌려준 값으로 확정한다`() {
         val repository = FakePostingRepository(initial = listOf(posting(id = 1, isBookmarked = false)))
