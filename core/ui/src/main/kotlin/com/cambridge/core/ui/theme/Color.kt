@@ -31,6 +31,11 @@ private val SemanticWarning = Color(0xFFF59E0B)
 private val SemanticError = Color(0xFFEF4444)
 private val SemanticInfo = Color(0xFF3B82F6)
 
+// 라이트 전용 오류색. red/500(#EF4444)은 흰 바탕에서 3.76:1 이라 본문 4.5:1 에 못 미친다 —
+// `error` 는 마감 임박·기간 입력 오류 같은 «작은 글자»로 쓰이므로(PostingDetailScreen.kt:294,
+// FeedDeadlineRangeEditor.kt:84) red/600 으로 한 칸 내린다. 다크는 바탕이 어두워 red/500 이 4.76:1 이라 그대로다.
+private val LightSemanticError = Color(0xFFDC2626)
+
 private val WarningContainer = Color(0xFFFEF3C7)
 private val OnWarningContainer = Color(0xFFB45309)
 private val ErrorContainer = Color(0xFFFEE2E2)
@@ -95,13 +100,23 @@ public class CareerCompassColors internal constructor(
     public val onInfoContainer: Color,
 )
 
+/**
+ * Figma `01 Design System · Colors` 라이트 팔레트.
+ *
+ * ### brand/500 을 라이트에서 쓰지 않는 이유 (이슈 #205)
+ * `primary`·`primaryEmphasis` 는 채움만이 아니라 **전경**으로 나간다 — 탭바 선택 라벨(11sp),
+ * 적합도 게이지 숫자, 분석 축 점수, 진행 표시, 브랜드 마크 위의 흰 글리프. brand/500 은 흰 바탕에서
+ * 2.54:1, brand/600 은 3.77:1 이라 본문 4.5:1 을 넘지 못한다. 그래서 라이트에서는 둘 다 brand/700 으로
+ * 내리고 `onPrimary` 를 흰색으로 뒤집는다(brand/700 위의 neutral/950 은 3.61:1 뿐이다).
+ * 다크는 바탕이 검정이라 brand/500·400 이 7:1 이상이므로 그대로 둔다 — 밝기 대비의 방향이 반대다.
+ */
 internal val lightCareerCompassColors =
     CareerCompassColors(
-        primary = Brand500,
-        onPrimary = Neutral950,
+        primary = Brand700,
+        onPrimary = Neutral0,
         primaryContainer = Brand50,
         onPrimaryContainer = Brand900,
-        primaryEmphasis = Brand600,
+        primaryEmphasis = Brand700,
         actionPrimary = Brand700,
         actionDanger = OnErrorContainer,
         onAction = Neutral0,
@@ -127,8 +142,8 @@ internal val lightCareerCompassColors =
         onWarning = Neutral950,
         warningContainer = WarningContainer,
         onWarningContainer = OnWarningContainer,
-        error = SemanticError,
-        onError = Neutral950,
+        error = LightSemanticError,
+        onError = Neutral0,
         errorContainer = ErrorContainer,
         onErrorContainer = OnErrorContainer,
         info = SemanticInfo,

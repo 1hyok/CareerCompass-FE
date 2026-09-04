@@ -143,6 +143,64 @@ class BoardRegisterViewModelTest {
         assertNull(viewModel.state.value.message)
     }
 
+    /**
+     * 503 은 **감지 결과가 아니라 요청 자체의 실패**다. 「구조를 분석하지 못했어요」로 접히면 사용자가 멀쩡한
+     * 자기 게시판 URL 을 의심하며 비싼 크롤링 재시도를 되풀이한다(#212 · #134 와 같은 유형의 오해).
+     */
+    @Test
+    fun `서버 점검은 감지 실패가 아니라 점검 상태로 화면에 남는다`() {
+        val repository =
+            FakeBoardRepository.strict().apply {
+                onDetect = { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException())) }
+            }
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardRegisterEvent.UrlChanged("https://konkuk.ac.kr/board/notice"))
+        viewModel.onEvent(BoardRegisterEvent.DetectClicked)
+
+        val state = viewModel.state.value
+        assertEquals(BoardDetectionState.Maintenance, state.detection)
+        // 감지 실패 스낵바로도, 서버가 알린 감지 결과(Failed)로도 새지 않는다.
+        assertNull(state.message)
+        assertNull(state.urlError)
+        // 막다른 길은 아니다 — 「구조 분석하기」는 그대로 눌린다.
+        assertTrue(state.isDetectEnabled)
+    }
+
+    @Test
+    fun `사유를 모르는 감지 실패만 스낵바 한 줄로 접힌다`() {
+        val repository =
+            FakeBoardRepository.strict().apply {
+                onDetect = { Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", RuntimeException())) }
+            }
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(BoardRegisterEvent.UrlChanged("https://konkuk.ac.kr/board/notice"))
+        viewModel.onEvent(BoardRegisterEvent.DetectClicked)
+
+        assertEquals(BoardDetectionState.Idle, viewModel.state.value.detection)
+        assertEquals(BoardRegisterMessage.DetectFailed, viewModel.state.value.message)
+    }
+
+    /** 제출은 감지와 달리 폼이 그대로 살아 있어 스낵바로 알린다 — 다만 「등록하지 못했어요」와 갈라야 한다. */
+    @Test
+    fun `등록 제출의 서버 점검은 일반 등록 실패와 다른 안내로 갈린다`() {
+        val repository =
+            FakeBoardRepository().apply {
+                onRegister = { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException())) }
+            }
+        val viewModel = viewModel(repository).readyToRegister()
+
+        viewModel.onEvent(BoardRegisterEvent.RegisterClicked)
+
+        val state = viewModel.state.value
+        assertEquals(BoardRegisterMessage.Maintenance, state.message)
+        assertFalse(state.isSubmitting)
+        // 감지 결과와 폼은 그대로다 — 서버가 돌아오면 그 자리에서 다시 누르면 된다.
+        assertTrue(state.detection is BoardDetectionState.Success)
+        assertNull(state.urlError)
+    }
+
     @Test
     fun `등록 성공은 감지에 쓴 URL 과 입력값으로 요청하고 목록으로 돌아간다`() {
         val repository = FakeBoardRepository()

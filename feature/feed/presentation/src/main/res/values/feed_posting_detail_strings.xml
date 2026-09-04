@@ -6,6 +6,7 @@
     <string name="feed_posting_detail_loading">공고를 불러오는 중이에요</string>
     <string name="feed_posting_detail_retry">다시 시도</string>
     <string name="feed_posting_detail_collected_and_deadline">수집 %1$s · 마감 %2$s</string>
+    <string name="feed_posting_detail_collected_and_deadline_urgent">수집 %1$s · 마감 %2$s (마감 임박)</string>
     <string name="feed_posting_detail_suitability_title">AI 적합도 분석</string>
     <string name="feed_posting_detail_score_max" translatable="false">/100</string>
     <string name="feed_posting_detail_suitability_content_description">적합도 %1$d점, %2$s</string>

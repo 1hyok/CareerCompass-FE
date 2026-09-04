@@ -102,6 +102,25 @@ class BoardRegisterScreenTest {
         }
     }
 
+    /**
+     * 점검은 **재시도를 권하지 않는** 실패다 — 서버가 돌아와야 답이 달라진다(#144 의 규칙).
+     *
+     * 「구조를 분석하지 못했어요」로도, 타임아웃 문구로도 새면 안 된다. 앞의 둘은 「네 게시판·네 사이트가
+     * 문제」라는 뜻이라 사용자가 멀쩡한 URL 을 의심하게 된다.
+     */
+    @Test
+    fun maintenance_showsServerNoticeWithoutRetryButton() {
+        composeRule.setRegisterContent(state = sampleState(detection = BoardDetectionState.Maintenance))
+
+        composeRule.onNodeWithText("서비스가 잠시 점검 중이에요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("구조를 분석하지 못했어요. 잠시 후 다시 시도해 주세요").assertCountEquals(0)
+        composeRule.onAllNodesWithText("분석이 오래 걸려 멈췄어요").assertCountEquals(0)
+        // 눌러도 아무 일 없는 버튼을 만들지 않는다.
+        composeRule.onAllNodesWithText("다시 시도").assertCountEquals(0)
+        // 그래도 막다른 길은 아니다 — 위의 「구조 분석하기」가 그대로 살아 있다.
+        detectButton().assertIsEnabled()
+    }
+
     /** 주소를 고치면 답이 갈리는 실패 — 여기서는 다시 감지할 길을 그 자리에 준다. */
     @Test
     fun failed_showsReasonAndRetryReEmitsDetect() {

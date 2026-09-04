@@ -10,6 +10,8 @@ import com.cambridge.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.cambridge.feature.feed.presentation.reporting.FeedFailureStage
 import com.cambridge.feature.feed.presentation.reporting.recordFeedFailure
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,8 +29,15 @@ public sealed interface PostingRawLoadState {
         val detail: PostingDetail,
     ) : PostingRawLoadState
 
+    /**
+     * 실패를 **사유**로 들고 있는다 — 피드 홈·게시판 목록·공고 상세가 이미 쓰는 계약([FeedFailureReason])이다.
+     *
+     * 예전에는 `isNetworkUnavailable` 불리언 한 칸이었고, 그래서 503(서버 점검)이 「네트워크 아님」 쪽으로
+     * 떨어져 일반 실패로 접혔다. 점검 중에 상세에서 「원문 보기」를 누르면 바로 앞 화면은 「서비스가 잠시
+     * 점검 중이에요」라고 해 놓고 이 화면만 「원문을 불러오지 못했어요」라고 말하던 원인이다(#212).
+     */
     public data class Failed(
-        val isNetworkUnavailable: Boolean,
+        val reason: FeedFailureReason,
     ) : PostingRawLoadState
 }
 
@@ -104,7 +113,7 @@ public class PostingRawViewModel
                             errorReporter.recordFeedFailure(FeedFailureStage.PostingRaw, throwable)
                             _state.update {
                                 it.copy(
-                                    loadState = PostingRawLoadState.Failed(throwable is CoreDataFailure.NetworkUnavailable),
+                                    loadState = PostingRawLoadState.Failed(throwable.toFeedFailureReason()),
                                     sessionEnded = it.sessionEnded || throwable is CoreDataFailure.Unauthorized,
                                 )
                             }

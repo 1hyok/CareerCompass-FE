@@ -26,8 +26,6 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.core.model.posting.PostingDetail
-import com.cambridge.core.ui.component.CareerCompassEmptyState
-import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedLoadingContent
@@ -36,7 +34,12 @@ import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.format.DateTimeFormatter
 
-/** 원문 보기 진입점 — 본문이 오기 전·실패 시에는 같은 상단 바 아래에 로딩·오류 상태를 그린다. */
+/**
+ * 원문 보기 진입점 — 본문이 오기 전·실패 시에는 같은 상단 바 아래에 로딩·오류 상태를 그린다.
+ *
+ * 실패는 사유별로 [PostingRawFailureContent] 가 갈라 그린다 — 서버 점검(503)은 바로 앞 화면인 공고 상세와
+ * 같은 안내를 쓴다(#212).
+ */
 @Composable
 public fun PostingRawEntry(
     onBackClick: () -> Unit,
@@ -88,19 +91,10 @@ public fun PostingRawEntry(
 
             is PostingRawLoadState.Failed -> {
                 PostingRawChrome(onBackClick = { viewModel.onEvent(PostingRawEvent.BackClicked) }) {
-                    if (loadState.isNetworkUnavailable) {
-                        CareerCompassNetworkErrorState(
-                            onRetryClick = viewModel::retry,
-                            onOfflineClick = null,
-                        )
-                    } else {
-                        CareerCompassEmptyState(
-                            title = stringResource(R.string.feed_posting_raw_error_title),
-                            description = stringResource(R.string.feed_posting_raw_error_description),
-                            actionText = stringResource(R.string.feed_posting_raw_error_retry),
-                            onActionClick = viewModel::retry,
-                        )
-                    }
+                    PostingRawFailureContent(
+                        reason = loadState.reason,
+                        onRetryClick = viewModel::retry,
+                    )
                 }
             }
 

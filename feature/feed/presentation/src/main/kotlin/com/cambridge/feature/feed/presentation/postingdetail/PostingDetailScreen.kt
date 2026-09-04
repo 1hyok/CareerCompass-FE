@@ -287,9 +287,15 @@ private fun PostingHeaderCard(posting: PostingDetailUiModel) {
             style = CareerCompassTheme.typography.headline2,
         )
         Text(
+            // 마감 임박을 색으로만 말하지 않는다. 피드 카드는 「D-2」라는 숫자가 임박을 지지만 상세는
+            // 절대 날짜라, 색을 못 보면 임박했다는 사실 자체가 사라진다(이슈 #205) — 문구로 한 번 더 적는다.
             text =
                 stringResource(
-                    R.string.feed_posting_detail_collected_and_deadline,
+                    if (posting.isDeadlineUrgent) {
+                        R.string.feed_posting_detail_collected_and_deadline_urgent
+                    } else {
+                        R.string.feed_posting_detail_collected_and_deadline
+                    },
                     posting.collectedAtLabel,
                     posting.deadlineLabel,
                 ),

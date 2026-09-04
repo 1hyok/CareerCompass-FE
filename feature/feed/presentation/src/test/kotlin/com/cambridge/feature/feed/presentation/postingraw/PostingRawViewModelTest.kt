@@ -9,6 +9,7 @@ import com.cambridge.feature.feed.presentation.MainDispatcherRule
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.cambridge.feature.feed.presentation.postingDetail
+import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -58,7 +59,7 @@ class PostingRawViewModelTest {
         repository.onGetPostingDetail = { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
         val viewModel = viewModel(repository)
 
-        assertEquals(PostingRawLoadState.Failed(isNetworkUnavailable = true), viewModel.state.value.loadState)
+        assertEquals(PostingRawLoadState.Failed(FeedFailureReason.NetworkUnavailable), viewModel.state.value.loadState)
         // 화면이 사유를 그대로 안내하는 실패다 — 세션 표본 한 건만 남기고 재시도는 접는다.
         assertEquals(listOf("posting_raw"), reporter.stages)
 
@@ -66,6 +67,31 @@ class PostingRawViewModelTest {
         viewModel.retry()
 
         assertTrue(viewModel.state.value.loadState is PostingRawLoadState.Loaded)
+    }
+
+    /**
+     * 503 이 일반 실패로 접히면, 점검 중에 공고 상세에서 「원문 보기」를 누른 사용자가 바로 앞 화면과 다른
+     * 말을 듣는다(#212). 상세가 쓰는 것과 **같은 사유 값**까지 와야 같은 안내가 그려진다.
+     */
+    @Test
+    fun `서버 점검은 일반 실패로 접히지 않고 점검 사유로 남는다`() {
+        val repository =
+            FakePostingRepository.strict().apply {
+                onGetPostingDetail = { Result.failure(CoreDataFailure.ServiceUnavailable("LLM_UNAVAILABLE", RuntimeException())) }
+            }
+
+        val loadState = viewModel(repository).state.value.loadState
+        assertEquals(PostingRawLoadState.Failed(FeedFailureReason.Maintenance), loadState)
+    }
+
+    @Test
+    fun `사유를 특정할 수 없는 실패만 일반 실패로 남는다`() {
+        val repository =
+            FakePostingRepository.strict().apply {
+                onGetPostingDetail = { Result.failure(CoreDataFailure.ServerError("INTERNAL_ERROR", RuntimeException())) }
+            }
+
+        assertEquals(PostingRawLoadState.Failed(FeedFailureReason.Generic), viewModel(repository).state.value.loadState)
     }
 
     @Test
