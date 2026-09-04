@@ -1,7 +1,7 @@
 package com.cambridge.feature.onboarding.presentation.flow
 
-import com.cambridge.core.domain.error.CoreAuthFailure
-import com.cambridge.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.error.CoreAuthFailure
+import com.careercompass.core.domain.error.CoreDataFailure
 import java.io.IOException
 
 /**

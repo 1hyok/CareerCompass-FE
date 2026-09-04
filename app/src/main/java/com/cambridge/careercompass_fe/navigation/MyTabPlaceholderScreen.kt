@@ -29,7 +29,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cambridge.careercompass_fe.R
-import com.cambridge.core.model.settings.ThemeMode
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
@@ -38,6 +37,7 @@ import com.cambridge.core.ui.component.CareerCompassEmptyState
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.biometric.BiometricEnrollPromptResult
 import com.cambridge.feature.onboarding.presentation.biometric.rememberBiometricEnrollPrompt
+import com.careercompass.core.model.settings.ThemeMode
 
 /** 지문 로그인 스위치를 찾는 시맨틱 태그 — 라벨은 스위치의 토글 상태까지 병합하지 않아 계측 테스트가 이걸 쓴다. */
 internal const val MY_TAB_BIOMETRIC_SWITCH_TAG = "my_tab_biometric_switch"

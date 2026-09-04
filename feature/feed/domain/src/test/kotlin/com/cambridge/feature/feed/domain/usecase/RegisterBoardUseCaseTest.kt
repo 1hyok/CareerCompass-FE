@@ -1,12 +1,12 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeBoardRepository
-import com.cambridge.core.model.board.BoardRegistration
-import com.cambridge.core.model.board.BoardType
-import com.cambridge.core.model.board.MAX_BOARDS
 import com.cambridge.feature.feed.domain.board
 import com.cambridge.feature.feed.domain.error.FeedFailure
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeBoardRepository
+import com.careercompass.core.model.board.BoardRegistration
+import com.careercompass.core.model.board.BoardType
+import com.careercompass.core.model.board.MAX_BOARDS
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

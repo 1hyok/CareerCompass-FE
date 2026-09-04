@@ -3,9 +3,6 @@ package com.cambridge.core.data.repoimpl.user
 import com.cambridge.core.data.support.FakeLocalStoreRegistry
 import com.cambridge.core.datastore.ProfileDataSource
 import com.cambridge.core.datastore.StoreScope
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.model.user.JobInterest
-import com.cambridge.core.model.user.UserProfileUpdate
 import com.cambridge.core.network.dto.JobInterestDto
 import com.cambridge.core.network.dto.JobInterestsRequestDto
 import com.cambridge.core.network.dto.TagsRequestDto
@@ -14,6 +11,9 @@ import com.cambridge.core.network.dto.UserProfileDto
 import com.cambridge.core.network.model.ApiException
 import com.cambridge.core.network.model.BaseResponse
 import com.cambridge.core.network.service.UserApiService
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.model.user.JobInterest
+import com.careercompass.core.model.user.UserProfileUpdate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json

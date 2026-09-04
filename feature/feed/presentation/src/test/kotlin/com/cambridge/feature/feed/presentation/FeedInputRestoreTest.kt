@@ -2,13 +2,6 @@ package com.cambridge.feature.feed.presentation
 
 import android.os.Parcel
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.testing.FakeBoardRepository
-import com.cambridge.core.domain.testing.FakePostingRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingQuery
-import com.cambridge.core.model.posting.PostingSort
-import com.cambridge.core.model.posting.PostingType
 import com.cambridge.feature.feed.domain.testing.FakeFeedSnapshotRepository
 import com.cambridge.feature.feed.domain.usecase.CountTodayNewPostingsUseCase
 import com.cambridge.feature.feed.domain.usecase.DetectBoardUseCase
@@ -30,6 +23,13 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsReaso
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMissingBoardsUiModel
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortMenuEvent
 import com.cambridge.feature.feed.presentation.feedfilter.FeedSortOption
+import com.careercompass.core.domain.testing.FakeBoardRepository
+import com.careercompass.core.domain.testing.FakePostingRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingQuery
+import com.careercompass.core.model.posting.PostingSort
+import com.careercompass.core.model.posting.PostingType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest

@@ -1,13 +1,6 @@
 package com.cambridge.feature.feed.presentation.postingdetail
 
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakePostingRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.model.posting.PostingDetail
-import com.cambridge.core.model.posting.Suitability
-import com.cambridge.core.model.posting.SuitabilityLabel
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.cambridge.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
@@ -18,6 +11,13 @@ import com.cambridge.feature.feed.presentation.postingDetail
 import com.cambridge.feature.feed.presentation.profile
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakePostingRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.model.posting.Suitability
+import com.careercompass.core.model.posting.SuitabilityLabel
+import com.careercompass.core.model.user.UserProfile
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy

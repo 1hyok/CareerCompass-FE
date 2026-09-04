@@ -1,14 +1,14 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.testing.FakeExperienceRepository
-import com.cambridge.core.model.experience.Experience
-import com.cambridge.core.model.experience.ExperienceDetails
-import com.cambridge.core.model.experience.ExperienceDraft
-import com.cambridge.core.model.experience.ExperiencePoint
-import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
-import com.cambridge.core.model.paging.CursorPage
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
 import com.cambridge.feature.onboarding.domain.testing.FakeOnboardingProgressRepository
+import com.careercompass.core.domain.testing.FakeExperienceRepository
+import com.careercompass.core.model.experience.Experience
+import com.careercompass.core.model.experience.ExperienceDetails
+import com.careercompass.core.model.experience.ExperienceDraft
+import com.careercompass.core.model.experience.ExperiencePoint
+import com.careercompass.core.model.experience.MAX_EXPERIENCE_CARDS
+import com.careercompass.core.model.paging.CursorPage
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame

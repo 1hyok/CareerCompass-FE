@@ -1,21 +1,21 @@
 package com.cambridge.core.data.mapper
 
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingBoardRef
-import com.cambridge.core.model.posting.PostingDetail
-import com.cambridge.core.model.posting.PostingFormQuestion
-import com.cambridge.core.model.posting.PostingParsed
-import com.cambridge.core.model.posting.PostingQualifications
-import com.cambridge.core.model.posting.PostingType
-import com.cambridge.core.model.posting.Suitability
-import com.cambridge.core.model.posting.SuitabilityAxis
-import com.cambridge.core.model.posting.SuitabilityAxisKind
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.network.dto.PostingBoardDto
 import com.cambridge.core.network.dto.PostingDetailDto
 import com.cambridge.core.network.dto.PostingDto
 import com.cambridge.core.network.dto.PostingParsedDto
 import com.cambridge.core.network.dto.SuitabilityDto
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingBoardRef
+import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.model.posting.PostingFormQuestion
+import com.careercompass.core.model.posting.PostingParsed
+import com.careercompass.core.model.posting.PostingQualifications
+import com.careercompass.core.model.posting.PostingType
+import com.careercompass.core.model.posting.Suitability
+import com.careercompass.core.model.posting.SuitabilityAxis
+import com.careercompass.core.model.posting.SuitabilityAxisKind
+import com.careercompass.core.model.posting.SuitabilityLabel
 
 /**
  * 공고 wire → 도메인 변환.

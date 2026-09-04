@@ -2,7 +2,6 @@ package com.cambridge.feature.feed.presentation.feed
 
 import android.content.res.Resources
 import androidx.annotation.StringRes
-import com.cambridge.core.model.board.Board
 import com.cambridge.feature.feed.presentation.FeedContentState
 import com.cambridge.feature.feed.presentation.FeedEmptyReason
 import com.cambridge.feature.feed.presentation.FeedLoadMoreState
@@ -21,6 +20,7 @@ import com.cambridge.feature.feed.presentation.shared.util.toListingUiModel
 import com.cambridge.feature.feed.presentation.shared.util.toMinScoreFilter
 import com.cambridge.feature.feed.presentation.shared.util.toSortOption
 import com.cambridge.feature.feed.presentation.shared.util.toSortUiModel
+import com.careercompass.core.model.board.Board
 import java.time.Clock
 import java.time.Instant
 import java.time.format.DateTimeFormatter

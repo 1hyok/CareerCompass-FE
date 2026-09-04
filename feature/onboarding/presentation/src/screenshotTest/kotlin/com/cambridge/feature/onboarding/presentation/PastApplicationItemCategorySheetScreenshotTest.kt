@@ -4,10 +4,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
-import com.cambridge.core.model.application.PastApplicationCategory
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategorySheet
 import com.cambridge.feature.onboarding.presentation.pastapplication.PastApplicationItemCategoryState
+import com.careercompass.core.model.application.PastApplicationCategory
 
 @PreviewTest
 @Preview(name = "Past application item category unsure", widthDp = 360, heightDp = 800)

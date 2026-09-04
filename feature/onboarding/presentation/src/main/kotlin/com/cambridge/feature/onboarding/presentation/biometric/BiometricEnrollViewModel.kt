@@ -2,11 +2,11 @@ package com.cambridge.feature.onboarding.presentation.biometric
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.repository.AuthRepository
-import com.cambridge.core.domain.repository.UserProfileRepository
 import com.cambridge.feature.onboarding.presentation.reporting.OnboardingFailureStage
 import com.cambridge.feature.onboarding.presentation.reporting.recordOnboardingFailure
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.repository.AuthRepository
+import com.careercompass.core.domain.repository.UserProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

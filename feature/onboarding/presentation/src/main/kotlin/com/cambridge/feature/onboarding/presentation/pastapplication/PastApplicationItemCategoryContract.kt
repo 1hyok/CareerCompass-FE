@@ -1,7 +1,7 @@
 package com.cambridge.feature.onboarding.presentation.pastapplication
 
 import androidx.compose.runtime.Immutable
-import com.cambridge.core.model.application.PastApplicationCategory
+import com.careercompass.core.model.application.PastApplicationCategory
 
 /**
  * Step 4 항목의 분류를 고르는 시트 상태 — 기능 스펙 F1-4 「분류가 불확실하면 사용자가 수동 조정」.

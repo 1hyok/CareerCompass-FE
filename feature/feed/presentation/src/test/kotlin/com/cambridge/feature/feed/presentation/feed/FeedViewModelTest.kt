@@ -1,16 +1,6 @@
 package com.cambridge.feature.feed.presentation.feed
 
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeBoardRepository
-import com.cambridge.core.domain.testing.FakePostingRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.model.paging.CursorPage
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingQuery
-import com.cambridge.core.model.posting.PostingSort
-import com.cambridge.core.model.posting.PostingType
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.domain.testing.FakeFeedSnapshotRepository
@@ -36,6 +26,16 @@ import com.cambridge.feature.feed.presentation.feedfilter.FeedSortOption
 import com.cambridge.feature.feed.presentation.posting
 import com.cambridge.feature.feed.presentation.profile
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.careercompass.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeBoardRepository
+import com.careercompass.core.domain.testing.FakePostingRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.model.paging.CursorPage
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingQuery
+import com.careercompass.core.model.posting.PostingSort
+import com.careercompass.core.model.posting.PostingType
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy

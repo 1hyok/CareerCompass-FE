@@ -1,14 +1,14 @@
 package com.cambridge.core.network.di
 
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.repository.AuthRepository
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.model.auth.TokenBundle
 import com.cambridge.core.network.interceptor.AuthInterceptor
 import com.cambridge.core.network.interceptor.TokenAuthenticator
 import com.cambridge.core.network.support.LocalHttpServer
 import com.cambridge.core.network.token.AccessTokenExpiryTracker
 import com.cambridge.core.network.token.TokenReissuer
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.repository.AuthRepository
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.model.auth.TokenBundle
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback

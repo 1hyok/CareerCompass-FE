@@ -3,10 +3,6 @@ package com.cambridge.feature.feed.presentation.feed
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.repository.UserProfileRepository
-import com.cambridge.core.model.posting.Posting
 import com.cambridge.feature.feed.domain.model.FeedPage
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
@@ -26,6 +22,10 @@ import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.util.toMinScore
 import com.cambridge.feature.feed.presentation.shared.util.toPostingSort
 import com.cambridge.feature.feed.presentation.shared.util.toPostingTypes
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.repository.UserProfileRepository
+import com.careercompass.core.model.posting.Posting
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

@@ -1,9 +1,9 @@
 package com.cambridge.feature.onboarding.presentation.flow
 
-import com.cambridge.core.model.user.MAX_GRADE_POINT_AVERAGE
-import com.cambridge.core.model.user.MIN_GRADUATION_YEAR
 import com.cambridge.feature.onboarding.domain.model.SchoolNameRules
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
+import com.careercompass.core.model.user.MAX_GRADE_POINT_AVERAGE
+import com.careercompass.core.model.user.MIN_GRADUATION_YEAR
 
 /** Step 1 검증 규칙 — 기능 스펙 F1-2 Step 1 (이름 20자·학과 30자·학점 0.0~4.5·졸업 연도 2000~). */
 internal object OnboardingStep1Rules {

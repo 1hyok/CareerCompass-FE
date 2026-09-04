@@ -1,10 +1,10 @@
 package com.cambridge.feature.feed.domain.error
 
-import com.cambridge.core.model.board.MAX_BOARDS
+import com.careercompass.core.model.board.MAX_BOARDS
 
 /**
  * 피드 도메인이 **요청 전에** 확정하는 실패. 서버가 돌려준 실패는
- * [CoreDataFailure][com.cambridge.core.domain.error.CoreDataFailure] 로 따로 흐른다.
+ * [CoreDataFailure][com.careercompass.core.domain.error.CoreDataFailure] 로 따로 흐른다.
  */
 public sealed class FeedFailure(
     message: String,

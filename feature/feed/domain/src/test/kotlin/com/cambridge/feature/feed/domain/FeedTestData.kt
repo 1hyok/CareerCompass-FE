@@ -1,13 +1,13 @@
 package com.cambridge.feature.feed.domain
 
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardStatus
-import com.cambridge.core.model.board.BoardType
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingBoardRef
-import com.cambridge.core.model.posting.PostingDetail
-import com.cambridge.core.model.posting.PostingType
-import com.cambridge.core.model.posting.SuitabilityLabel
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardStatus
+import com.careercompass.core.model.board.BoardType
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingBoardRef
+import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.model.posting.PostingType
+import com.careercompass.core.model.posting.SuitabilityLabel
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate

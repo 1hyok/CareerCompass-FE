@@ -2,15 +2,15 @@ package com.cambridge.careercompass_fe.session
 
 import androidx.lifecycle.SavedStateHandle
 import com.cambridge.careercompass_fe.navigation.AppDeepLink
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeAppSettingsRepository
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.domain.usecase.auth.ResolveSessionEntryUseCase
-import com.cambridge.core.model.settings.ThemeMode
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.network.model.ApiException
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeAppSettingsRepository
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.domain.usecase.auth.ResolveSessionEntryUseCase
+import com.careercompass.core.model.settings.ThemeMode
+import com.careercompass.core.model.user.UserProfile
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

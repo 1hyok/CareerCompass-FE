@@ -5,11 +5,11 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.res.stringResource
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.model.application.MAX_PAST_APPLICATIONS
-import com.cambridge.core.model.board.MAX_BOARDS
-import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
 import com.cambridge.core.ui.R
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.model.application.MAX_PAST_APPLICATIONS
+import com.careercompass.core.model.board.MAX_BOARDS
+import com.careercompass.core.model.experience.MAX_EXPERIENCE_CARDS
 
 /**
  * 실패가 사용자에게 어떻게 보일지 정한 표의 한 줄 — **문구의 정본은 여기 하나다.**

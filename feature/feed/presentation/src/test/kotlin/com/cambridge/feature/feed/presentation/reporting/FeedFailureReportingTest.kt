@@ -1,9 +1,9 @@
 package com.cambridge.feature.feed.presentation.reporting
 
-import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
-import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TYPE
-import com.cambridge.core.domain.error.CoreDataFailure
 import com.cambridge.feature.feed.presentation.RecordingErrorReporter
+import com.careercompass.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
+import com.careercompass.core.common.reporting.ERROR_REPORT_KEY_TYPE
+import com.careercompass.core.domain.error.CoreDataFailure
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -11,7 +11,7 @@ import java.net.UnknownHostException
 import java.net.UnknownServiceException
 
 /**
- * 공통 규칙([com.cambridge.core.common.reporting.recordStagedFailure])이 피드 단계 속성과 함께
+ * 공통 규칙([com.careercompass.core.common.reporting.recordStagedFailure])이 피드 단계 속성과 함께
  * 적용되는지만 본다. 원인 분류 자체는 `core:common` 의 테스트가 고정한다.
  */
 class FeedFailureReportingTest {

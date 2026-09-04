@@ -11,13 +11,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.component.CareerCompassScoreChip
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedSuitabilityState
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.util.toScoreLevel
+import com.careercompass.core.model.posting.SuitabilityLabel
 
 /**
  * Suitability readout of a listing card: the score chip when a score exists, otherwise a pill of the
@@ -97,7 +97,7 @@ private fun FeedSuitabilityPlaceholderChip(
  * 감시로 지킬 일이 아니라 애초에 한 벌만 두면 되는 일이다 — 이 이슈가 고치는 사고(같은 경계가 두 곳에서
  * 갈라짐)가 바로 그 모양이었다.
  *
- * 서버가 [com.cambridge.core.model.posting.Posting.scoreLabel] 을 함께 주지만 여기서는 쓰지 않는다.
+ * 서버가 [com.careercompass.core.model.posting.Posting.scoreLabel] 을 함께 주지만 여기서는 쓰지 않는다.
  * 목록 카드는 점수만 싣고 레이블 글자를 그리지 않아, 레이블을 받아도 화면에 드러나는 것이 없다. 서버
  * 점수와 서버 레이블이 어긋나는 경우의 처분은 `docs/spec/suitability-score-boundary.md` 에 적어 뒀다.
  */

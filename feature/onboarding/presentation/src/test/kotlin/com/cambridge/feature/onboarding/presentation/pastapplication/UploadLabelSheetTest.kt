@@ -10,9 +10,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
-import com.cambridge.core.model.application.UploadFile
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
+import com.careercompass.core.model.application.UploadFile
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

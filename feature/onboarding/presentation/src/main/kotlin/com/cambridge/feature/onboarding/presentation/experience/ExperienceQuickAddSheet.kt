@@ -30,9 +30,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cambridge.core.model.experience.ExperienceType
-import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
-import com.cambridge.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
@@ -43,6 +40,9 @@ import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.presentation.R
 import com.cambridge.feature.onboarding.presentation.shared.model.OnboardingFieldError
 import com.cambridge.feature.onboarding.presentation.shared.util.toMessage
+import com.careercompass.core.model.experience.ExperienceType
+import com.careercompass.core.model.experience.MAX_EXPERIENCE_TECH_TAGS
+import com.careercompass.core.model.experience.MAX_EXPERIENCE_TECH_TAG_LENGTH
 
 /**
  * Step 3 「경험 추가·수정」 시트의 본문. 시트 컨테이너는 호스트가 감싼다.

@@ -1,12 +1,12 @@
 package com.cambridge.core.network.token
 
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.SessionEndedException
-import com.cambridge.core.domain.repository.AuthRepository
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.model.auth.TokenBundle
 import com.cambridge.core.network.model.ApiException
 import com.cambridge.core.network.token.TokenReissuer.Trigger
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.SessionEndedException
+import com.careercompass.core.domain.repository.AuthRepository
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.model.auth.TokenBundle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

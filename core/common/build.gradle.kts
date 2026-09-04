@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.core.common"
+    namespace = "com.careercompass.core.common"
     resourcePrefix = "core_common_"
 }
 

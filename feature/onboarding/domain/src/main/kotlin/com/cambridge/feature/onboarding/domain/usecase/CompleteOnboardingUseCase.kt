@@ -1,7 +1,7 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.repository.UserProfileRepository
 import com.cambridge.feature.onboarding.domain.repository.OnboardingProgressRepository
+import com.careercompass.core.domain.repository.UserProfileRepository
 import javax.inject.Inject
 
 /**

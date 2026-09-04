@@ -2,14 +2,14 @@ package com.cambridge.feature.onboarding.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.common.result.runCatchingCancellable
-import com.cambridge.core.domain.error.CoreAuthFailure
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.usecase.auth.SocialLoginUseCase
-import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.feature.onboarding.presentation.reporting.OnboardingFailureStage
 import com.cambridge.feature.onboarding.presentation.reporting.recordOnboardingFailure
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.common.result.runCatchingCancellable
+import com.careercompass.core.domain.error.CoreAuthFailure
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.usecase.auth.SocialLoginUseCase
+import com.careercompass.core.model.auth.SocialProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

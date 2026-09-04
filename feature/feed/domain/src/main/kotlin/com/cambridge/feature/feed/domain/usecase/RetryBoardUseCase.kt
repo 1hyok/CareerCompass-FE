@@ -1,6 +1,6 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.BoardRepository
+import com.careercompass.core.domain.repository.BoardRepository
 import javax.inject.Inject
 
 /** 수집 실패 게시판 재시도 — `POST /boards/{id}/retry`. */

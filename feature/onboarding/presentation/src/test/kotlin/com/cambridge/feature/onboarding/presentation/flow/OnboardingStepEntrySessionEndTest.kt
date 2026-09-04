@@ -4,12 +4,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeExperienceRepository
-import com.cambridge.core.domain.testing.FakePastApplicationRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.model.user.JobInterest
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.onboarding.domain.testing.FakeOnboardingProgressRepository
 import com.cambridge.feature.onboarding.domain.usecase.AddExperienceUseCase
@@ -27,6 +21,12 @@ import com.cambridge.feature.onboarding.domain.usecase.UpdatePastApplicationItem
 import com.cambridge.feature.onboarding.domain.usecase.UploadPastApplicationUseCase
 import com.cambridge.feature.onboarding.presentation.OnboardingStep1Event
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeExperienceRepository
+import com.careercompass.core.domain.testing.FakePastApplicationRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.model.user.JobInterest
+import com.careercompass.core.model.user.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

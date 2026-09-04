@@ -1,6 +1,6 @@
 package com.cambridge.feature.feed.domain.model
 
-import com.cambridge.core.model.posting.Posting
+import com.careercompass.core.model.posting.Posting
 
 /**
  * 피드 한 페이지 — 서버 페이지에 클라이언트 필터(마감일·검색어)를 적용한 결과.

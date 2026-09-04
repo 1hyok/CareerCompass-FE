@@ -1,6 +1,6 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.PostingRepository
+import com.careercompass.core.domain.repository.PostingRepository
 import javax.inject.Inject
 
 /** 북마크를 뒤집는다 — `POST`/`DELETE /postings/{id}/bookmark`. 성공 시 새 북마크 값을 돌려준다. */

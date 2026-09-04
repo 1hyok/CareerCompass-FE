@@ -5,13 +5,13 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.cambridge.core.common.result.runCatchingCancellable
 import com.cambridge.feature.feed.data.di.FeedSnapshotDataStore
 import com.cambridge.feature.feed.data.snapshot.FeedSnapshotDto
 import com.cambridge.feature.feed.data.snapshot.toDomain
 import com.cambridge.feature.feed.data.snapshot.toDto
 import com.cambridge.feature.feed.domain.model.FeedSnapshot
 import com.cambridge.feature.feed.domain.repository.FeedSnapshotRepository
+import com.careercompass.core.common.result.runCatchingCancellable
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.SerializationException

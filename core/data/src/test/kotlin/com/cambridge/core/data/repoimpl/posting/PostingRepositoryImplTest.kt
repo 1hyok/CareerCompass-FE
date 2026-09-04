@@ -1,9 +1,5 @@
 package com.cambridge.core.data.repoimpl.posting
 
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.model.posting.PostingQuery
-import com.cambridge.core.model.posting.PostingSort
-import com.cambridge.core.model.posting.PostingType
 import com.cambridge.core.network.dto.PostingBoardDto
 import com.cambridge.core.network.dto.PostingDetailDto
 import com.cambridge.core.network.dto.PostingDto
@@ -11,6 +7,10 @@ import com.cambridge.core.network.dto.PostingListDto
 import com.cambridge.core.network.model.ApiException
 import com.cambridge.core.network.model.BaseResponse
 import com.cambridge.core.network.service.PostingApiService
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.model.posting.PostingQuery
+import com.careercompass.core.model.posting.PostingSort
+import com.careercompass.core.model.posting.PostingType
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

@@ -1,9 +1,9 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.PostingRepository
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter
 import com.cambridge.feature.feed.domain.model.FeedPage
 import com.cambridge.feature.feed.domain.model.FeedQuery
+import com.careercompass.core.domain.repository.PostingRepository
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject

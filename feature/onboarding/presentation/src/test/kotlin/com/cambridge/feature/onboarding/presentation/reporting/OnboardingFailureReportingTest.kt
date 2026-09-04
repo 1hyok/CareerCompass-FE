@@ -1,9 +1,9 @@
 package com.cambridge.feature.onboarding.presentation.reporting
 
-import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
-import com.cambridge.core.common.reporting.ERROR_REPORT_KEY_TYPE
-import com.cambridge.core.domain.error.CoreAuthFailure
-import com.cambridge.core.model.auth.SocialProvider
+import com.careercompass.core.common.reporting.ERROR_REPORT_KEY_TRANSPORT
+import com.careercompass.core.common.reporting.ERROR_REPORT_KEY_TYPE
+import com.careercompass.core.domain.error.CoreAuthFailure
+import com.careercompass.core.model.auth.SocialProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

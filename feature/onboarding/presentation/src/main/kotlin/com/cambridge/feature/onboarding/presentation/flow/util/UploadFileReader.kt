@@ -3,10 +3,10 @@ package com.cambridge.feature.onboarding.presentation.flow.util
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
-import com.cambridge.core.model.application.MAX_PAST_APPLICATION_FILE_BYTES
-import com.cambridge.core.model.application.PastApplicationFileFormat
-import com.cambridge.core.model.application.UploadFile
 import com.cambridge.feature.onboarding.presentation.flow.OnboardingFailureReason
+import com.careercompass.core.model.application.MAX_PAST_APPLICATION_FILE_BYTES
+import com.careercompass.core.model.application.PastApplicationFileFormat
+import com.careercompass.core.model.application.UploadFile
 import java.io.IOException
 
 /** 파일 선택 결과를 [UploadFile] 로 만들지 못한 이유를 화면 사유와 함께 담는다. */

@@ -1,6 +1,6 @@
 package com.cambridge.careercompass_fe.reporting
 
-import com.cambridge.core.common.reporting.ErrorReporter
+import com.careercompass.core.common.reporting.ErrorReporter
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import javax.inject.Inject
 import javax.inject.Singleton

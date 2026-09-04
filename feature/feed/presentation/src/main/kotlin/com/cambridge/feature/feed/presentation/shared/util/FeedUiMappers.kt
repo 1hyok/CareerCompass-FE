@@ -2,17 +2,6 @@ package com.cambridge.feature.feed.presentation.shared.util
 
 import android.content.res.Resources
 import androidx.annotation.StringRes
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardDetection
-import com.cambridge.core.model.board.BoardDetectionStatus
-import com.cambridge.core.model.posting.Posting
-import com.cambridge.core.model.posting.PostingDetail
-import com.cambridge.core.model.posting.PostingSort
-import com.cambridge.core.model.posting.PostingType
-import com.cambridge.core.model.posting.Suitability
-import com.cambridge.core.model.posting.SuitabilityAxisKind
-import com.cambridge.core.model.posting.SuitabilityLabel
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.core.ui.component.CareerCompassScoreLevel
 import com.cambridge.feature.feed.presentation.FeedFilterUiModel
 import com.cambridge.feature.feed.presentation.FeedListingCategory
@@ -42,14 +31,25 @@ import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityAxisUiMo
 import com.cambridge.feature.feed.presentation.postingdetail.SuitabilityUiModel
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
 import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardDetection
+import com.careercompass.core.model.board.BoardDetectionStatus
+import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.model.posting.PostingSort
+import com.careercompass.core.model.posting.PostingType
+import com.careercompass.core.model.posting.Suitability
+import com.careercompass.core.model.posting.SuitabilityAxisKind
+import com.careercompass.core.model.posting.SuitabilityLabel
+import com.careercompass.core.model.user.UserProfile
 import java.text.NumberFormat
 import java.time.Clock
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import com.cambridge.core.model.board.BoardStatus as DomainBoardStatus
-import com.cambridge.core.model.board.BoardType as DomainBoardType
 import com.cambridge.feature.feed.domain.model.FeedDeadlineFilter as DomainDeadlineFilter
+import com.careercompass.core.model.board.BoardStatus as DomainBoardStatus
+import com.careercompass.core.model.board.BoardType as DomainBoardType
 
 /*
  * 도메인 → 화면 계약 매핑. 전부 순수 함수다 — `@Composable` 이 아니고, 문구는 [Resources] 로만 만든다.

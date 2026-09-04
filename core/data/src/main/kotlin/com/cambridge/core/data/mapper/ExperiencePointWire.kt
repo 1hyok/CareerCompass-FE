@@ -1,8 +1,8 @@
 package com.cambridge.core.data.mapper
 
-import com.cambridge.core.model.experience.EXPERIENCE_YEAR_RANGE
-import com.cambridge.core.model.experience.ExperiencePoint
-import com.cambridge.core.model.experience.ExperienceType
+import com.careercompass.core.model.experience.EXPERIENCE_YEAR_RANGE
+import com.careercompass.core.model.experience.ExperiencePoint
+import com.careercompass.core.model.experience.ExperienceType
 import kotlinx.serialization.json.JsonObject
 
 /**

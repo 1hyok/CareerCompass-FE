@@ -1,12 +1,12 @@
 package com.cambridge.careercompass_fe.navigation
 
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.testing.FakeAppSettingsRepository
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
-import com.cambridge.core.domain.usecase.auth.LogoutUseCase
-import com.cambridge.core.model.settings.ThemeMode
-import com.cambridge.core.model.user.UserProfile
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.testing.FakeAppSettingsRepository
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
+import com.careercompass.core.domain.usecase.auth.LogoutUseCase
+import com.careercompass.core.model.settings.ThemeMode
+import com.careercompass.core.model.user.UserProfile
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -371,7 +371,7 @@ class MyTabPlaceholderViewModelTest {
     fun `저장이 실패해도 화면은 저장소 값을 따른다`() {
         // 화면이 낙관적으로 갱신하지 않으므로, 실패하면 아무것도 되돌리지 않아도 원래 값이 남는다.
         val failing =
-            object : com.cambridge.core.domain.settings.AppSettingsRepository {
+            object : com.careercompass.core.domain.settings.AppSettingsRepository {
                 override val themeMode = appSettingsRepository.themeMode
 
                 override suspend fun setThemeMode(mode: ThemeMode) = throw IllegalStateException("저장 실패")

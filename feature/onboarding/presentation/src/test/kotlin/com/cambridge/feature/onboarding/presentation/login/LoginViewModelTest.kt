@@ -1,12 +1,12 @@
 package com.cambridge.feature.onboarding.presentation.login
 
-import com.cambridge.core.domain.error.CoreAuthFailure
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.domain.usecase.auth.SocialLoginUseCase
-import com.cambridge.core.model.auth.Session
-import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.feature.onboarding.presentation.reporting.ONBOARDING_REPORT_KEY_PROVIDER
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
+import com.careercompass.core.domain.error.CoreAuthFailure
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.domain.usecase.auth.SocialLoginUseCase
+import com.careercompass.core.model.auth.Session
+import com.careercompass.core.model.auth.SocialProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

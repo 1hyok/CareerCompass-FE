@@ -1,11 +1,11 @@
 package com.cambridge.feature.feed.presentation.postingdetail
 
-import com.cambridge.core.model.posting.SuitabilityLabel
 import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.feature.feed.domain.model.FeedQuery
 import com.cambridge.feature.feed.presentation.feedfilter.FeedMinScoreFilter
 import com.cambridge.feature.feed.presentation.postingdetail.component.badgeTone
 import com.cambridge.feature.feed.presentation.shared.util.toMinScore
+import com.careercompass.core.model.posting.SuitabilityLabel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

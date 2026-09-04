@@ -2,14 +2,14 @@ package com.cambridge.careercompass_fe.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.common.reporting.recordStagedFailure
-import com.cambridge.core.domain.repository.AuthRepository
-import com.cambridge.core.domain.repository.UserProfileRepository
-import com.cambridge.core.domain.settings.AppSettingsRepository
-import com.cambridge.core.domain.usecase.auth.LogoutUseCase
-import com.cambridge.core.model.settings.ThemeMode
-import com.cambridge.core.model.user.UserProfile
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.common.reporting.recordStagedFailure
+import com.careercompass.core.domain.repository.AuthRepository
+import com.careercompass.core.domain.repository.UserProfileRepository
+import com.careercompass.core.domain.settings.AppSettingsRepository
+import com.careercompass.core.domain.usecase.auth.LogoutUseCase
+import com.careercompass.core.model.settings.ThemeMode
+import com.careercompass.core.model.user.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

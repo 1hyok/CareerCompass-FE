@@ -1,8 +1,6 @@
 package com.cambridge.feature.feed.presentation.postingraw
 
 import androidx.lifecycle.SavedStateHandle
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakePostingRepository
 import com.cambridge.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.cambridge.feature.feed.presentation.FIXED_CLOCK
 import com.cambridge.feature.feed.presentation.MainDispatcherRule
@@ -10,6 +8,8 @@ import com.cambridge.feature.feed.presentation.RecordingErrorReporter
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.cambridge.feature.feed.presentation.postingDetail
 import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakePostingRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

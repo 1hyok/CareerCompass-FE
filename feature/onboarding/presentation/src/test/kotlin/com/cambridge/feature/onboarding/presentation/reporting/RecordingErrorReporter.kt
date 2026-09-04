@@ -1,6 +1,6 @@
 package com.cambridge.feature.onboarding.presentation.reporting
 
-import com.cambridge.core.common.reporting.ErrorReporter
+import com.careercompass.core.common.reporting.ErrorReporter
 
 /** 테스트용 [ErrorReporter] — 실제로 기록된(걸러지지 않은) 실패와 속성을 모은다. */
 internal class RecordingErrorReporter : ErrorReporter {

@@ -8,10 +8,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.domain.usecase.auth.SocialLoginUseCase
-import com.cambridge.core.model.auth.SocialProvider
 import com.cambridge.feature.onboarding.presentation.reporting.RecordingErrorReporter
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.domain.usecase.auth.SocialLoginUseCase
+import com.careercompass.core.model.auth.SocialProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation

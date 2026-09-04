@@ -1,6 +1,6 @@
 package com.cambridge.feature.feed.presentation.shared.model
 
-import com.cambridge.core.model.user.UserProfile
+import com.careercompass.core.model.user.UserProfile
 
 /**
  * 적합도 표시가 어느 모양이어야 하는지 — 문구·점수 모델은 각 화면이 붙인다.

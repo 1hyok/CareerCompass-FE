@@ -1,18 +1,18 @@
 package com.cambridge.core.data.repoimpl.board
 
-import com.cambridge.core.common.result.runCatchingCancellable
 import com.cambridge.core.data.failure.mapDataFailure
 import com.cambridge.core.data.mapper.BoardMapper
-import com.cambridge.core.domain.repository.BoardRepository
-import com.cambridge.core.model.board.Board
-import com.cambridge.core.model.board.BoardDetection
-import com.cambridge.core.model.board.BoardRegistration
-import com.cambridge.core.model.board.BoardUpdate
 import com.cambridge.core.network.dto.BoardDetectRequestDto
 import com.cambridge.core.network.model.requireData
 import com.cambridge.core.network.model.requireOk
 import com.cambridge.core.network.service.BoardApiService
 import com.cambridge.core.network.service.BoardDetectApiService
+import com.careercompass.core.common.result.runCatchingCancellable
+import com.careercompass.core.domain.repository.BoardRepository
+import com.careercompass.core.model.board.Board
+import com.careercompass.core.model.board.BoardDetection
+import com.careercompass.core.model.board.BoardRegistration
+import com.careercompass.core.model.board.BoardUpdate
 import javax.inject.Inject
 
 internal class BoardRepositoryImpl

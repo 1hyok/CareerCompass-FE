@@ -1,8 +1,8 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.domain.testing.FakeUserProfileRepository
 import com.cambridge.feature.onboarding.domain.model.OnboardingProgress
 import com.cambridge.feature.onboarding.domain.testing.FakeOnboardingProgressRepository
+import com.careercompass.core.domain.testing.FakeUserProfileRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame

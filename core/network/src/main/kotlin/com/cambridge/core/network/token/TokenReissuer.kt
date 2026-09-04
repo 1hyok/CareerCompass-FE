@@ -1,9 +1,9 @@
 package com.cambridge.core.network.token
 
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.SessionEndedException
-import com.cambridge.core.domain.repository.AuthRepository
 import com.cambridge.core.network.model.ApiException
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.SessionEndedException
+import com.careercompass.core.domain.repository.AuthRepository
 import kotlinx.coroutines.runBlocking
 import retrofit2.HttpException
 import java.io.IOException

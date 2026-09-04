@@ -1,12 +1,12 @@
 package com.cambridge.core.network.interceptor
 
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.SessionEndedException
-import com.cambridge.core.domain.testing.FakeAuthRepository
-import com.cambridge.core.model.auth.TokenBundle
 import com.cambridge.core.network.model.ApiException
 import com.cambridge.core.network.token.AccessTokenExpiryTracker
 import com.cambridge.core.network.token.TokenReissuer
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.SessionEndedException
+import com.careercompass.core.domain.testing.FakeAuthRepository
+import com.careercompass.core.model.auth.TokenBundle
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
@@ -24,7 +24,7 @@ class TokenAuthenticatorTest {
     }
 
     private fun authenticator(repository: FakeAuthRepository): TokenAuthenticator {
-        val lazy = dagger.Lazy<com.cambridge.core.domain.repository.AuthRepository> { repository }
+        val lazy = dagger.Lazy<com.careercompass.core.domain.repository.AuthRepository> { repository }
         return TokenAuthenticator(
             authRepository = lazy,
             tokenReissuer = TokenReissuer(lazy, AccessTokenExpiryTracker { 0L }, NoopReporter),

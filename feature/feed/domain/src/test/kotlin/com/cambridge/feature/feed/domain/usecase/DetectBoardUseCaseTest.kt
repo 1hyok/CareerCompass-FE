@@ -1,10 +1,10 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.testing.FakeBoardRepository
-import com.cambridge.core.model.board.BoardDetection
-import com.cambridge.core.model.board.BoardDetectionStatus
 import com.cambridge.feature.feed.domain.error.FeedFailure
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.testing.FakeBoardRepository
+import com.careercompass.core.model.board.BoardDetection
+import com.careercompass.core.model.board.BoardDetectionStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

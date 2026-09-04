@@ -1,8 +1,8 @@
 package com.cambridge.feature.onboarding.presentation.reporting
 
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.common.reporting.recordStagedFailure
-import com.cambridge.core.model.auth.SocialProvider
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.common.reporting.recordStagedFailure
+import com.careercompass.core.model.auth.SocialProvider
 
 /** 리포팅 속성 키 — 온보딩 흐름의 어느 단계에서 실패했는지. */
 public const val ONBOARDING_REPORT_KEY_STAGE: String = "onboarding_stage"

@@ -14,9 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cambridge.core.model.application.PastApplicationFileFormat
-import com.cambridge.core.model.application.PastApplicationItem
-import com.cambridge.core.model.application.UploadFile
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocument
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocumentFormat
 import com.cambridge.feature.onboarding.presentation.OnboardingApplicationDocumentStatus
@@ -35,9 +32,12 @@ import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabel
 import com.cambridge.feature.onboarding.presentation.pastapplication.UploadLabelSheet
 import com.cambridge.feature.onboarding.presentation.pastapplication.labelResId
 import com.cambridge.feature.onboarding.presentation.shared.component.OnboardingSheetHost
+import com.careercompass.core.model.application.PastApplicationFileFormat
+import com.careercompass.core.model.application.PastApplicationItem
+import com.careercompass.core.model.application.UploadFile
 
 /**
- * Step 4(과거 지원서) 화면의 상태 배선. 파일 선택(SAF)은 여기서 열고, 읽은 [com.cambridge.core.model.application.UploadFile]
+ * Step 4(과거 지원서) 화면의 상태 배선. 파일 선택(SAF)은 여기서 열고, 읽은 [com.careercompass.core.model.application.UploadFile]
  * 만 [viewModel] 에 넘긴다. [viewModel] 은 그래프 스코프 [OnboardingViewModel] 이어야 한다.
  *
  * 라벨 시트가 열린 채 프로세스가 죽으면 고른 파일도 함께 사라진다 — `UploadFile` 은 스트림을 여는 람다라 어떤

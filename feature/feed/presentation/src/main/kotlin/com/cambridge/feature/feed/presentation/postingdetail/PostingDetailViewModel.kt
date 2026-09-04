@@ -3,11 +3,6 @@ package com.cambridge.feature.feed.presentation.postingdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cambridge.core.common.reporting.ErrorReporter
-import com.cambridge.core.domain.error.CoreDataFailure
-import com.cambridge.core.domain.repository.UserProfileRepository
-import com.cambridge.core.model.posting.PostingDetail
-import com.cambridge.core.model.user.UserProfile
 import com.cambridge.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.cambridge.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
 import com.cambridge.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
@@ -17,6 +12,11 @@ import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
 import com.cambridge.feature.feed.presentation.shared.model.judgeSuitability
 import com.cambridge.feature.feed.presentation.shared.model.toFeedFailureReason
+import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.domain.error.CoreDataFailure
+import com.careercompass.core.domain.repository.UserProfileRepository
+import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.model.user.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

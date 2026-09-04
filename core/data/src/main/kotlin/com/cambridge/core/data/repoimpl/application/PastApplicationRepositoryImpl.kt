@@ -1,17 +1,17 @@
 package com.cambridge.core.data.repoimpl.application
 
-import com.cambridge.core.common.result.runCatchingCancellable
 import com.cambridge.core.data.failure.mapDataFailure
 import com.cambridge.core.data.mapper.PastApplicationMapper
-import com.cambridge.core.domain.repository.PastApplicationRepository
-import com.cambridge.core.model.application.PastApplication
-import com.cambridge.core.model.application.PastApplicationCategory
-import com.cambridge.core.model.application.PastApplicationItem
-import com.cambridge.core.model.application.UploadFile
 import com.cambridge.core.network.dto.UpdateItemCategoryRequestDto
 import com.cambridge.core.network.model.requireData
 import com.cambridge.core.network.model.requireOk
 import com.cambridge.core.network.service.PastApplicationApiService
+import com.careercompass.core.common.result.runCatchingCancellable
+import com.careercompass.core.domain.repository.PastApplicationRepository
+import com.careercompass.core.model.application.PastApplication
+import com.careercompass.core.model.application.PastApplicationCategory
+import com.careercompass.core.model.application.PastApplicationItem
+import com.careercompass.core.model.application.UploadFile
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody

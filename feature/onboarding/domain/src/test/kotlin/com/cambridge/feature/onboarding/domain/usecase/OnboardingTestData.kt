@@ -1,7 +1,7 @@
 package com.cambridge.feature.onboarding.domain.usecase
 
-import com.cambridge.core.model.user.JobInterest
-import com.cambridge.core.model.user.UserProfile
+import com.careercompass.core.model.user.JobInterest
+import com.careercompass.core.model.user.UserProfile
 
 internal fun sampleProfile(
     onboardingDone: Boolean = false,

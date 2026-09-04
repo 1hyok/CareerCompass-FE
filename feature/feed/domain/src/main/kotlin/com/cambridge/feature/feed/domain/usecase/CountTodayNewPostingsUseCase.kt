@@ -1,8 +1,8 @@
 package com.cambridge.feature.feed.domain.usecase
 
-import com.cambridge.core.domain.repository.PostingRepository
-import com.cambridge.core.model.posting.PostingQuery
-import com.cambridge.core.model.posting.PostingSort
+import com.careercompass.core.domain.repository.PostingRepository
+import com.careercompass.core.model.posting.PostingQuery
+import com.careercompass.core.model.posting.PostingSort
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
