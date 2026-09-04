@@ -3,18 +3,14 @@ package com.cambridge.core.data.mapper
 import com.cambridge.core.model.experience.Experience
 import com.cambridge.core.model.experience.ExperienceDetails
 import com.cambridge.core.model.experience.ExperienceDraft
+import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.core.network.dto.ExperienceDto
 import com.cambridge.core.network.dto.ExperienceRequestDto
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
@@ -22,6 +18,9 @@ import kotlinx.serialization.json.put
  *
  * 키 이름은 명세의 프로젝트 예시(`role·techs·summary·link`)를 따르고, 나머지 유형은 기능 스펙 F1-3 의 필드를
  * camelCase 로 옮긴 가정이다. 서버가 확정되면 여기 한 곳만 고친다.
+ *
+ * 시점(`startDate`·`data.year`·`data.acquiredYearMonth`)은 정밀도 판정이 붙어 있어 [ExperiencePointWire]
+ * 한 곳에 모아 뒀다 — 모델에서는 상세 필드가 아니라 기간이 시점의 정본이다(#207).
  */
 internal object ExperienceMapper {
     fun toExperience(dto: ExperienceDto): Experience {
@@ -31,8 +30,8 @@ internal object ExperienceMapper {
         return Experience(
             id = dto.id,
             title = dto.title,
-            startDate = dto.startDate?.let(WireTime::parseDate),
-            endDate = dto.endDate?.let(WireTime::parseDate),
+            startPoint = ExperiencePointWire.readStart(type, dto.data, dto.startDate),
+            endPoint = ExperiencePointWire.readEnd(type, dto.endDate),
             details = toDetails(type, dto.data),
             createdAt = dto.createdAt?.let(WireTime::parseInstant),
         )
@@ -42,9 +41,9 @@ internal object ExperienceMapper {
         ExperienceRequestDto(
             type = draft.type.wireValue,
             title = draft.title,
-            startDate = draft.startDate?.let(WireTime::formatDate),
-            endDate = draft.endDate?.let(WireTime::formatDate),
-            data = toData(draft.details),
+            startDate = ExperiencePointWire.writeWireDate(draft.type, draft.startPoint),
+            endDate = ExperiencePointWire.writeWireDate(draft.type, draft.endPoint),
+            data = toData(draft.details, draft.startPoint),
         )
 
     private fun toDetails(
@@ -54,47 +53,52 @@ internal object ExperienceMapper {
         when (type) {
             ExperienceType.Project -> {
                 ExperienceDetails.Project(
-                    role = data.string("role"),
-                    techs = data.strings("techs"),
-                    summary = data.string("summary"),
-                    link = data.string("link"),
+                    role = data.stringOrNull("role"),
+                    techs = data.stringsOrEmpty("techs"),
+                    summary = data.stringOrNull("summary"),
+                    link = data.stringOrNull("link"),
                 )
             }
 
             ExperienceType.Award -> {
                 ExperienceDetails.Award(
-                    contestName = data.requiredString("contestName"),
-                    rank = data.requiredString("rank"),
-                    year = data.int("year"),
-                    organizer = data.string("organizer"),
+                    contestName = data.requireString("contestName"),
+                    rank = data.requireString("rank"),
+                    organizer = data.stringOrNull("organizer"),
                 )
             }
 
             ExperienceType.Intern -> {
                 ExperienceDetails.Intern(
-                    company = data.requiredString("company"),
-                    role = data.requiredString("role"),
-                    summary = data.string("summary"),
+                    company = data.requireString("company"),
+                    role = data.requireString("role"),
+                    summary = data.stringOrNull("summary"),
                 )
             }
 
             ExperienceType.Activity -> {
                 ExperienceDetails.Activity(
-                    organization = data.requiredString("organization"),
-                    role = data.string("role"),
-                    summary = data.string("summary"),
+                    organization = data.requireString("organization"),
+                    role = data.stringOrNull("role"),
+                    summary = data.stringOrNull("summary"),
                 )
             }
 
             ExperienceType.Certificate -> {
-                ExperienceDetails.Certificate(
-                    issuer = data.string("issuer"),
-                    acquiredYearMonth = data.string("acquiredYearMonth"),
-                )
+                ExperienceDetails.Certificate(issuer = data.stringOrNull("issuer"))
             }
         }
 
-    private fun toData(details: ExperienceDetails): JsonObject =
+    /**
+     * 상세 필드를 `data` 객체로 옮긴다.
+     *
+     * 수상의 `year` 와 자격증의 `acquiredYearMonth` 는 모델에서 [ExperienceDraft.startPoint] 로 옮겨 갔지만
+     * **와이어 계약은 그대로**라, 시점에서 되돌려 적는다.
+     */
+    private fun toData(
+        details: ExperienceDetails,
+        startPoint: ExperiencePoint?,
+    ): JsonObject =
         buildJsonObject {
             when (details) {
                 is ExperienceDetails.Project -> {
@@ -107,7 +111,7 @@ internal object ExperienceMapper {
                 is ExperienceDetails.Award -> {
                     put("contestName", details.contestName)
                     put("rank", details.rank)
-                    details.year?.let { put("year", it) }
+                    ExperiencePointWire.writeAwardYear(startPoint)?.let { put("year", it) }
                     details.organizer?.let { put("organizer", it) }
                 }
 
@@ -125,23 +129,8 @@ internal object ExperienceMapper {
 
                 is ExperienceDetails.Certificate -> {
                     details.issuer?.let { put("issuer", it) }
-                    details.acquiredYearMonth?.let { put("acquiredYearMonth", it) }
+                    ExperiencePointWire.writeAcquiredYearMonth(startPoint)?.let { put("acquiredYearMonth", it) }
                 }
             }
         }
-
-    private fun JsonObject.string(key: String): String? =
-        (this[key]?.takeUnless { it is JsonNull } as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank)
-
-    private fun JsonObject.requiredString(key: String): String = string(key) ?: throw IllegalStateException("경험 데이터에 '$key' 가 없습니다.")
-
-    private fun JsonObject.int(key: String): Int? = (this[key]?.takeUnless { it is JsonNull } as? JsonPrimitive)?.intOrNull
-
-    private fun JsonObject.strings(key: String): List<String> =
-        (this[key]?.takeUnless { it is JsonNull } as? JsonArray)
-            ?.jsonArray
-            ?.map { it.jsonPrimitive.content }
-            ?.filter(String::isNotBlank)
-            ?.distinct()
-            .orEmpty()
 }

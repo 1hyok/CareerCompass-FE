@@ -4,6 +4,7 @@ import com.cambridge.core.domain.testing.FakeExperienceRepository
 import com.cambridge.core.model.experience.Experience
 import com.cambridge.core.model.experience.ExperienceDetails
 import com.cambridge.core.model.experience.ExperienceDraft
+import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
 import com.cambridge.core.model.paging.CursorPage
 import com.cambridge.feature.onboarding.domain.model.OnboardingStep
@@ -21,8 +22,8 @@ class ExperienceUseCasesTest {
         Experience(
             id = 7L,
             title = "CareerCompass",
-            startDate = LocalDate.of(2025, 9, 1),
-            endDate = null,
+            startPoint = ExperiencePoint.Date(LocalDate.of(2025, 9, 1)),
+            endPoint = null,
             details = ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin"), summary = null, link = null),
             createdAt = null,
         )
@@ -52,9 +53,9 @@ class ExperienceUseCasesTest {
             val draft =
                 ExperienceDraft(
                     title = "수상",
-                    startDate = null,
-                    endDate = null,
-                    details = ExperienceDetails.Award(contestName = "수상", rank = "대상", year = 2025, organizer = null),
+                    startPoint = ExperiencePoint.Year(2025),
+                    endPoint = null,
+                    details = ExperienceDetails.Award(contestName = "수상", rank = "대상", organizer = null),
                 )
 
             val created = AddExperienceUseCase(repository)(draft).getOrThrow()
@@ -71,8 +72,8 @@ class ExperienceUseCasesTest {
             val draft =
                 ExperienceDraft(
                     title = "인턴",
-                    startDate = LocalDate.of(2025, 1, 1),
-                    endDate = null,
+                    startPoint = ExperiencePoint.YearMonth(2025, 1),
+                    endPoint = null,
                     details = ExperienceDetails.Intern(company = "카카오", role = "개발", summary = null),
                 )
 
@@ -86,15 +87,15 @@ class ExperienceUseCasesTest {
             val draft =
                 ExperienceDraft(
                     title = "CareerCompass 리뉴얼",
-                    startDate = LocalDate.of(2025, 9, 1),
-                    endDate = LocalDate.of(2026, 2, 1),
+                    startPoint = ExperiencePoint.Date(LocalDate.of(2025, 9, 1)),
+                    endPoint = ExperiencePoint.Date(LocalDate.of(2026, 2, 1)),
                     details = ExperienceDetails.Project(role = "안드로이드", techs = listOf("Kotlin"), summary = "요약", link = null),
                 )
 
             val updated = UpdateExperienceUseCase(repository)(id = 7L, draft = draft).getOrThrow()
 
             assertEquals("CareerCompass 리뉴얼", updated.title)
-            assertEquals(LocalDate.of(2026, 2, 1), updated.endDate)
+            assertEquals(ExperiencePoint.Date(LocalDate.of(2026, 2, 1)), updated.endPoint)
             assertEquals(listOf(updated), repository.experiences.toList())
         }
 
@@ -106,8 +107,8 @@ class ExperienceUseCasesTest {
             val draft =
                 ExperienceDraft(
                     title = "CareerCompass",
-                    startDate = LocalDate.of(2025, 9, 1),
-                    endDate = null,
+                    startPoint = ExperiencePoint.Date(LocalDate.of(2025, 9, 1)),
+                    endPoint = null,
                     details = ExperienceDetails.Project(role = null, techs = emptyList(), summary = null, link = null),
                 )
 

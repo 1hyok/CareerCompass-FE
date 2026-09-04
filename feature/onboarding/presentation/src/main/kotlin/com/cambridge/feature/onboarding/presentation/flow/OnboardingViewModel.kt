@@ -14,6 +14,7 @@ import com.cambridge.core.model.application.UploadFile
 import com.cambridge.core.model.experience.Experience
 import com.cambridge.core.model.experience.ExperienceDetails
 import com.cambridge.core.model.experience.ExperienceDraft
+import com.cambridge.core.model.experience.ExperiencePoint
 import com.cambridge.core.model.experience.ExperienceType
 import com.cambridge.core.model.experience.MAX_EXPERIENCE_CARDS
 import com.cambridge.core.model.user.MAX_JOB_INTERESTS
@@ -69,7 +70,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
-import java.time.LocalDate
 import java.time.Year
 import javax.inject.Inject
 
@@ -1127,25 +1127,19 @@ private fun OnboardingStep3FormState.restore(
  * 상세 값이 하나라도 있으면 [ExperienceEditorState.isDetailExpanded] 를 켜서 펼친 채로 연다. 접힌 채 열면
  * 사용자는 그 값이 사라졌다고 읽는다.
  *
- * ### 시점 칸은 그 유형의 정밀도 그대로 연다 (#166)
+ * ### 시점 칸은 그 카드가 아는 정밀도 그대로 연다 (#166 · #207)
  * 연도만 있는 수상 카드를 「2025.01」로 열면, 사용자가 준 적 없는 1월이 화면에 뜨고 저장에 실린다.
- * 그래서 수상은 연도를 **연도로**(「2025」) 열고, 자격증은 연월을 연월로 연다. 상세 필드가 그 유형의 정본이라
- * `startDate` 보다 먼저 읽는다 — 카드 목록(`OnboardingStep3Entry.periodText`)과 같은 순서다.
+ * 이제 시점의 정밀도는 카드가 값으로 들고 있으므로(`ExperiencePoint`), 유형별로 어느 필드를 먼저 볼지
+ * 따지지 않고 **그 값이 아는 만큼** 그린다 — 연이면 「2025」, 연월 이상이면 「2025.06」.
  *
  * ### 칸이 담지 못하는 일(day)은 원본째로 들고 간다 (#171)
  * 시점 칸은 `YYYY.MM` 이라 `2025-06-15` 를 「2025.06」으로밖에 못 그린다. 그 글만 들고 저장하면 사용자가
- * 손대지도 않은 일이 1일로 깎이므로, 원본 일자를 [ExperienceEditorState.startDateOrigin]·
+ * 손대지도 않은 일이 1일로 깎이므로, 원본 시점을 [ExperienceEditorState.startDateOrigin]·
  * [ExperienceEditorState.endDateOrigin] 에 함께 실어 [toDraft] 가 되돌릴 수 있게 한다.
- * 기간이 없는 유형(수상·자격증)은 시점을 `startDate` 에 적지 않으므로(#166) 되돌릴 것도 없어 비운다.
  */
 internal fun Experience.toEditorState(): ExperienceEditorState {
     val details = details
-    val start =
-        when (details) {
-            is ExperienceDetails.Certificate -> details.acquiredYearMonth?.replace('-', '.') ?: startDate?.toEditorYearMonth() ?: ""
-            is ExperienceDetails.Award -> details.year?.let { "%04d".format(it) } ?: startDate?.toEditorYearMonth() ?: ""
-            else -> startDate?.toEditorYearMonth() ?: ""
-        }
+    val start = startPoint?.toEditorText().orEmpty()
     val primary =
         when (details) {
             is ExperienceDetails.Project -> details.role
@@ -1177,9 +1171,9 @@ internal fun Experience.toEditorState(): ExperienceEditorState {
         type = type,
         title = title,
         startDate = start,
-        endDate = if (ExperienceEditorRules.hasPeriod(type)) endDate?.toEditorYearMonth().orEmpty() else "",
-        startDateOrigin = if (ExperienceEditorRules.hasPeriod(type)) startDate else null,
-        endDateOrigin = if (ExperienceEditorRules.hasPeriod(type)) endDate else null,
+        endDate = endPoint?.toEditorText().orEmpty(),
+        startDateOrigin = startPoint,
+        endDateOrigin = endPoint,
         primary = primary.orEmpty(),
         secondary = secondary.orEmpty(),
         techs = techs,
@@ -1189,7 +1183,18 @@ internal fun Experience.toEditorState(): ExperienceEditorState {
     )
 }
 
-private fun LocalDate.toEditorYearMonth(): String = "%04d.%02d".format(year, monthValue)
+/**
+ * 시점을 그 정밀도가 담기는 칸 글로 옮긴다 — 연 정밀도는 `2025`, 그보다 자세하면 `2025.06`.
+ *
+ * 연도만 아는 카드를 「2025.01」로 열면 사용자가 준 적 없는 1월이 화면에 뜨고 그대로 저장에 실린다(#166).
+ * 반대로 `2025-06-15` 를 「2025.06」으로 여는 것은 칸이 일을 담지 못해서일 뿐이고, 잃은 일은
+ * [ExperienceEditorState.startDateOrigin] 이 들고 있다가 되돌린다(#171).
+ */
+private fun ExperiencePoint.toEditorText(): String =
+    when (this) {
+        is ExperiencePoint.Year -> "%04d".format(year)
+        is ExperiencePoint.WithMonth -> "%04d.%02d".format(year, month)
+    }
 
 /** 문서를 목록에서 빼면서 펼침 상태도 함께 정리한다 — 목록에 없는 문서를 펼친 채로 두면 상태 불변식이 깨진다. */
 private fun OnboardingStep4FormState.removeDocument(documentId: String): OnboardingStep4FormState =
@@ -1268,8 +1273,8 @@ internal fun ExperienceEditorState.withTechTagCommitted(): ExperienceEditorState
 /** 시트 입력을 [ExperienceEditorRules] 로 검증해 필드 오류를 채운 사본을 돌려준다. */
 internal fun validateExperienceEditor(editor: ExperienceEditorState): ExperienceEditorState {
     val type = editor.type
-    val start = ExperienceEditorRules.parseYearMonth(editor.startDate)
-    val end = ExperienceEditorRules.parseYearMonth(editor.endDate)
+    val start = ExperienceEditorRules.parseYearMonthPoint(editor.startDate)
+    val end = ExperienceEditorRules.parseYearMonthPoint(editor.endDate)
     val titleError =
         when {
             editor.title.isBlank() -> {
@@ -1360,12 +1365,11 @@ private fun validateOptionalText(
  * 표에 없는 값은 **읽지 않는다**. 유형을 바꿔도 시트는 이전 유형에 친 글을 지우지 않으므로(칩을 잘못 눌렀다
  * 돌아온 사용자를 위해), 새 유형이 쓰지 않는 값이 서버로 새지 않는 것은 여기서 보장한다.
  *
- * ### 없는 값을 만들지 않는다 (#166)
- * 시트를 열었다 저장만 해도 없던 값이 생기면 안 된다. 걸리는 곳은 **시점 한 칸이 유형마다 다른 정밀도의 필드로
- * 가는** 수상·자격증이었다 — 연도 `2025` 를 `2025-01-01` 로, 취득 연월 `2025-06` 을 `2025-06-01` 로 넓혀
- * [ExperienceDraft.startDate] 에 실었다. 그래서 기간이 없는 유형([ExperienceEditorRules.hasPeriod])은
- * `startDate` 를 **비운다** — 그 유형의 시점은 `year`·`acquiredYearMonth` 한 곳에만 둔다. 근거는
- * [ExperienceEditorRules.hasPeriod] KDoc(같은 사실의 다른 정밀도 · 좁히기는 도출, 넓히기는 날조).
+ * ### 없는 값을 만들지 않는다 (#166 · #207)
+ * 시트를 열었다 저장만 해도 없던 값이 생기면 안 된다. 걸리는 곳은 **시점 한 칸이 유형마다 다른 정밀도로 가는**
+ * 수상·자격증이었다 — 연도 `2025` 를 `2025-01-01` 로, 취득 연월 `2025-06` 을 `2025-06-01` 로 넓혀 실었다.
+ * 이제 넓히는 길이 아예 없다 — 수상 칸은 [ExperienceEditorRules.parseYearPoint] 로 연 정밀도 시점이 되고,
+ * 모델이 그보다 자세한 시점을 수상 카드에 담지 않는다(`ExperienceType.maxPointPrecision`).
  *
  * 반대 방향인 좁히기(`YYYY.MM` → 연도)는 그대로 한다 — 예전 카드가 남긴 일자에서 연도를 읽는 것은 새 정보를
  * 만들지 않는다.
@@ -1373,21 +1377,18 @@ private fun validateOptionalText(
  * ### 있던 값도 바꾸지 않는다 (#171)
  * #166 이 막은 것은 「없던 값이 생긴다」였고, 남아 있던 것은 그 반대편인 **「있던 값이 바뀐다」**였다 — 시점 칸이
  * 월 정밀도라 `2025-06-15` 짜리 카드를 열었다 저장만 해도 시작일이 `2025-06-01` 로 깎였다. 그래서 사용자가 그
- * 칸의 달을 바꾸지 않았으면 원본의 일을 되돌린다([ExperienceEditorRules.resolveDate]). 이 칸은 일을 표현할
+ * 칸의 달을 바꾸지 않았으면 원본 시점을 되돌린다([ExperienceEditorRules.resolvePoint]). 이 칸은 일을 표현할
  * 수단이 없으므로, 달이 같다는 것은 「일에 대해 아무 말도 하지 않았다」는 뜻이다.
+ *
+ * ### 지켜 낸 일과 새로 친 달이 어긋나는 경우
+ * 6월 20일 시작을 그대로 두고 종료만 6월로 당기면 「6월 20일 ~ 6월」이 된다. 예전에는 이것을 거꾸로 된 기간으로
+ * 보고 지켜 낸 일을 버렸지만, 지금은 모델이 **두 시점을 더 굵은 쪽 정밀도로 견주므로**(`ExperiencePoint.isBefore`)
+ * 그대로 성립한다 — 종료가 말한 것은 달까지뿐이라 20일보다 앞선다고 단정할 근거가 없다.
  */
 internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
     val trimmedTitle = title.trim()
-    val hasPeriod = ExperienceEditorRules.hasPeriod(type)
-    val keptStart = ExperienceEditorRules.resolveDate(startDate, startDateOrigin)
-    val keptEnd = if (hasPeriod) ExperienceEditorRules.resolveDate(endDate, endDateOrigin) else null
-    // 지켜 낸 일이 사용자가 방금 친 기간과 어긋나면 — 6월 20일 시작을 그대로 두고 종료만 6월로 당긴 경우 —
-    // **사용자의 입력이 이긴다.** 화면에 보이는 것은 달 하나뿐이라 「종료가 시작보다 빠르다」고 되물어도 사용자는
-    // 무엇이 틀렸는지 볼 수 없고, 검증(`validateExperienceEditor`)도 화면과 같은 월 정밀도로 판정해 통과시킨다.
-    // 지키려던 일을 놓아 주면 사용자가 준 정밀도 그대로의 기간이 남는다.
-    val keptInverted = keptStart != null && keptEnd != null && keptEnd.isBefore(keptStart)
-    val start = if (keptInverted) ExperienceEditorRules.parseYearMonth(startDate) else keptStart
-    val end = if (keptInverted) ExperienceEditorRules.parseYearMonth(endDate) else keptEnd
+    val start = resolveStartPoint()
+    val end = if (ExperienceEditorRules.hasPeriod(type)) ExperienceEditorRules.resolvePoint(endDate, endDateOrigin) else null
     val primaryText = primary.trim().ifEmpty { null }
     val secondaryText = secondary.trim().ifEmpty { null }
     val linkText = if (ExperienceEditorRules.hasLink(type)) link.trim().ifEmpty { null } else null
@@ -1409,7 +1410,6 @@ internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
                 ExperienceDetails.Award(
                     contestName = trimmedTitle,
                     rank = requireNotNull(primaryText) { "award rank is required" },
-                    year = ExperienceEditorRules.parseYear(startDate),
                     organizer = secondaryText,
                 )
             }
@@ -1431,16 +1431,26 @@ internal fun ExperienceEditorState.toDraft(): ExperienceDraft {
             }
 
             ExperienceType.Certificate -> {
-                ExperienceDetails.Certificate(
-                    issuer = primaryText,
-                    acquiredYearMonth = start?.let { "%04d-%02d".format(it.year, it.monthValue) },
-                )
+                ExperienceDetails.Certificate(issuer = primaryText)
             }
         }
     return ExperienceDraft(
         title = trimmedTitle,
-        startDate = if (hasPeriod) start else null,
-        endDate = end,
+        startPoint = start,
+        endPoint = end,
         details = details,
     )
 }
+
+/**
+ * 시점 칸의 글을 그 유형이 담을 수 있는 정밀도의 시점으로 읽는다.
+ *
+ * 수상만 칸 형식이 `YYYY` 라 따로 읽는다 — 나머지는 `YYYY.MM` 이고, 칸이 담지 못하는 정밀도는 원본에서
+ * 되돌린다([ExperienceEditorRules.resolvePoint]).
+ */
+private fun ExperienceEditorState.resolveStartPoint(): ExperiencePoint? =
+    if (type == ExperienceType.Award) {
+        ExperienceEditorRules.parseYearPoint(startDate)
+    } else {
+        ExperienceEditorRules.resolvePoint(startDate, startDateOrigin)
+    }
