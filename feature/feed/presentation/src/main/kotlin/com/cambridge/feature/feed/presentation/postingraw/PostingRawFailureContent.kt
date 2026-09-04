@@ -3,7 +3,7 @@ package com.cambridge.feature.feed.presentation.postingraw
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.cambridge.core.ui.component.CareerCompassEmptyState
+import com.cambridge.core.ui.component.CareerCompassFailureState
 import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.feature.feed.presentation.R
 import com.cambridge.feature.feed.presentation.shared.component.FeedMaintenanceState
@@ -47,7 +47,8 @@ internal fun PostingRawFailureContent(
         }
 
         FeedFailureReason.Generic -> {
-            CareerCompassEmptyState(
+            // 「원문」이라는 명사는 실패 표에 문맥이 없어 이 화면의 문구를 쓴다. 부품은 실패 전용이다(#222).
+            CareerCompassFailureState(
                 title = stringResource(R.string.feed_posting_raw_error_title),
                 description = stringResource(R.string.feed_posting_raw_error_description),
                 actionText = stringResource(R.string.feed_posting_raw_error_retry),

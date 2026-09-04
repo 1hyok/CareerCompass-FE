@@ -19,6 +19,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
+import com.cambridge.core.ui.failure.FailureAction
+import com.cambridge.core.ui.failure.FailureDisplay
+import com.cambridge.core.ui.failure.FailureKind
+import com.cambridge.core.ui.failure.FailureSurface
+import com.cambridge.core.ui.failure.display
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -203,6 +208,115 @@ public class CareerCompassStateViewTest {
             }
 
         assertEquals("progress must be null or between 0 and 1", error.message)
+    }
+
+    @Test
+    public fun failureState_rendersCopyAndInvokesAction() {
+        var clickCount = 0
+
+        setStateContent {
+            CareerCompassFailureState(
+                title = "문제가 생겼어요",
+                description = "잠시 후 다시 시도해 주세요",
+                actionText = "다시 시도",
+                onActionClick = { clickCount++ },
+            )
+        }
+
+        composeRule.onNodeWithText("문제가 생겼어요").assertExists()
+        composeRule.onNodeWithText("잠시 후 다시 시도해 주세요").assertExists()
+        composeRule.onNode(hasText("다시 시도") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(1, clickCount)
+        }
+    }
+
+    /** 재시도해도 답이 갈리지 않는 실패 — 호출자가 버튼을 빼면 눌러도 소용없는 버튼이 생기지 않는다(#222). */
+    @Test
+    public fun failureState_withoutActionRendersNoButton() {
+        setStateContent {
+            CareerCompassFailureState(
+                title = "더 담을 수 없어요",
+                description = "게시판은 최대 20개까지 등록할 수 있어요",
+                actionText = null,
+                onActionClick = null,
+            )
+        }
+
+        composeRule.onNodeWithText("더 담을 수 없어요").assertExists()
+        composeRule.onAllNodes(hasClickAction()).assertCountEquals(0)
+    }
+
+    @Test
+    public fun failureState_halfSuppliedActionIsRejected() {
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                setStateContent {
+                    CareerCompassFailureState(
+                        title = "문제가 생겼어요",
+                        description = "잠시 후 다시 시도해 주세요",
+                        actionText = "다시 시도",
+                        onActionClick = null,
+                    )
+                }
+            }
+
+        assertEquals("actionText and onActionClick must both be null or both be non-null", error.message)
+    }
+
+    /** 표의 행을 그대로 — `Unexpected` 는 재시도가 붙고, 문맥(`Posting`)이 명사를 채운다. */
+    @Test
+    public fun failureState_fromTableRowRendersRowCopyAndRetry() {
+        val actions = mutableListOf<String>()
+
+        setStateContent {
+            CareerCompassFailureState(
+                display = FailureKind.Unexpected.display(FailureSurface.Posting),
+                onActionClick = { actions += "retry" },
+            )
+        }
+
+        composeRule.onNodeWithText("공고를 불러오지 못했어요").assertExists()
+        composeRule.onNodeWithText("잠시 후 다시 시도해 주세요").assertExists()
+        composeRule.onNode(hasText("다시 시도") and hasClickAction()).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf("retry"), actions)
+        }
+    }
+
+    /**
+     * 표가 「할 수 있는 일이 없다」고 하면 호출자가 콜백을 넘겨도 버튼을 그리지 않는다 — 판정은 표가 갖고
+     * 화면은 그것을 뒤집지 못한다(#204·#222).
+     */
+    @Test
+    public fun failureState_tableRowWithoutActionIgnoresCallback() {
+        setStateContent {
+            CareerCompassFailureState(
+                display = FailureKind.ParsingFailed.display(),
+                onActionClick = {},
+            )
+        }
+
+        composeRule.onAllNodes(hasClickAction()).assertCountEquals(0)
+    }
+
+    /** 표에 행동이 있어도 화면이 그 길을 못 열면(콜백 없음) 버튼이 없다. */
+    @Test
+    public fun failureState_tableRowWithActionButNoCallbackRendersNoButton() {
+        val display =
+            FailureDisplay(
+                titleRes = android.R.string.dialog_alert_title,
+                descriptionRes = android.R.string.unknownName,
+                action = FailureAction.CompleteProfile,
+            )
+
+        setStateContent {
+            CareerCompassFailureState(display = display, onActionClick = null)
+        }
+
+        composeRule.onAllNodes(hasClickAction()).assertCountEquals(0)
     }
 
     @Test

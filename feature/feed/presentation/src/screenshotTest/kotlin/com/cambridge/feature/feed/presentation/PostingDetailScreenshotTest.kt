@@ -169,7 +169,11 @@ public fun PostingDetailErrorPreview() {
     PostingDetailPreviewSurface(
         state =
             PostingDetailUiState(
-                PostingDetailContentState.Error(message = "공고를 불러오지 못했어요. 네트워크 연결을 확인해 주세요"),
+                PostingDetailContentState.Error(
+                    title = "공고를 불러오지 못했어요",
+                    description = "잠시 후 다시 시도해 주세요",
+                    isRetryable = true,
+                ),
             ),
     )
 }

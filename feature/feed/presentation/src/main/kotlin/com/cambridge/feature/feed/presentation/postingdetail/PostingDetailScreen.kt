@@ -42,6 +42,8 @@ import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
+import com.cambridge.core.ui.component.CareerCompassFailureState
+import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.core.ui.component.CareerCompassStatePresentation
 import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
@@ -100,10 +102,25 @@ public fun PostingDetailScreen(
                 )
             }
 
-            is PostingDetailContentState.Error -> {
-                PostingDetailError(
-                    message = content.message,
+            PostingDetailContentState.NetworkUnavailable -> {
+                // 상세는 스냅샷을 저장하지 않아 오프라인 경로가 없다.
+                CareerCompassNetworkErrorState(
                     onRetryClick = { onEvent(PostingDetailEvent.RetryClicked) },
+                    onOfflineClick = null,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            is PostingDetailContentState.Error -> {
+                // 실패 전용 부품(#222). 재시도 버튼은 표의 판정(isRetryable)을 따른다 — 눌러도 같은 답이 오는
+                // 실패에 버튼을 주면 사용자는 누르고 같은 실패를 다시 만난다.
+                val onRetry: (() -> Unit)? =
+                    if (content.isRetryable) ({ onEvent(PostingDetailEvent.RetryClicked) }) else null
+                CareerCompassFailureState(
+                    title = content.title,
+                    description = content.description,
+                    actionText = stringResource(R.string.feed_posting_detail_retry).takeIf { content.isRetryable },
+                    onActionClick = onRetry,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -184,33 +201,6 @@ private fun PostingBookmarkToggle(
             modifier = Modifier.size(FEED_ICON_SIZE),
             tint = if (bookmarked) colors.primaryEmphasis else colors.onSurface,
         )
-    }
-}
-
-@Composable
-private fun PostingDetailError(
-    message: String,
-    onRetryClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier.padding(CareerCompassTheme.spacing.large),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CareerCompassTheme.spacing.medium),
-        ) {
-            Text(
-                text = message,
-                color = CareerCompassTheme.colors.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                style = CareerCompassTheme.typography.bodyMedium,
-            )
-            CareerCompassButton(
-                text = stringResource(R.string.feed_posting_detail_retry),
-                onClick = onRetryClick,
-                variant = CareerCompassButtonVariant.Secondary,
-            )
-        }
     }
 }
 

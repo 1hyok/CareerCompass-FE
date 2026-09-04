@@ -121,7 +121,12 @@ class PostingDetailContractTest {
                 "sourceLabel must not be blank" to { samplePosting().copy(sourceLabel = " ") },
                 "collectedAtLabel must not be blank" to { samplePosting().copy(collectedAtLabel = " ") },
                 "deadlineLabel must not be blank" to { samplePosting().copy(deadlineLabel = " ") },
-                "message must not be blank" to { PostingDetailContentState.Error(message = " ") },
+                "title must not be blank" to {
+                    PostingDetailContentState.Error(title = " ", description = "잠시 후 다시 시도해 주세요", isRetryable = true)
+                },
+                "description must not be blank" to {
+                    PostingDetailContentState.Error(title = "문제가 생겼어요", description = " ", isRetryable = false)
+                },
             )
 
         invalidFactories.forEach { (expectedMessage, factory) ->

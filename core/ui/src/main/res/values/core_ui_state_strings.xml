@@ -8,6 +8,9 @@
 
     <string name="core_ui_state_empty_illustration" translatable="false">🔍</string>
 
+    <!-- 사유를 특정하지 못한 실패(#222) — 「검색 결과 없음」의 🔍 와 한눈에 갈려야 한다. -->
+    <string name="core_ui_state_failure_illustration" translatable="false">⚠️</string>
+
     <string name="core_ui_state_permission_denied_illustration" translatable="false">🔔</string>
     <string name="core_ui_state_open_settings">설정에서 권한 켜기</string>
     <string name="core_ui_state_later">나중에</string>

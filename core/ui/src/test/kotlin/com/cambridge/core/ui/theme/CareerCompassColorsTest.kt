@@ -304,7 +304,7 @@ public class CareerCompassColorsTest {
                     "브랜드 마크 글리프·완료 체크 · OnboardingBrandMark, OnboardingCompleteScreen",
                 ),
                 // ---- 화면 바탕·카드 위의 전경 ----
-                ContrastPair("onSurface", "subtleSurface", TEXT_MINIMUM_RATIO, "화면 제목·본문 · 모든 화면 루트"),
+                ContrastPair("onSurface", "subtleSurface", TEXT_MINIMUM_RATIO, "화면 제목·본문 · 모든 화면 루트 · 상태 화면 제목 · CareerCompassStateView"),
                 ContrastPair("onSurface", "surfaceVariant", TEXT_MINIMUM_RATIO, "적합도 칩 Mid 점수 · CareerCompassScoreChip"),
                 ContrastPair(
                     "onSurface",
@@ -337,7 +337,7 @@ public class CareerCompassColorsTest {
                     "mutedContent",
                     "subtleSurface",
                     TEXT_MINIMUM_RATIO,
-                    "적합도 자리표시 칩 11sp · FeedSuitabilityChip",
+                    "적합도 자리표시 칩 11sp · FeedSuitabilityChip · 상태 화면 본문(실패 포함) · CareerCompassStateView",
                 ),
                 ContrastPair(
                     "primaryEmphasis",

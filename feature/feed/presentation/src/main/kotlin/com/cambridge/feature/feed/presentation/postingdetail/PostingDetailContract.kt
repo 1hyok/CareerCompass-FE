@@ -179,13 +179,29 @@ public data class PostingDetailUiModel(
 public sealed interface PostingDetailContentState {
     public data object Loading : PostingDetailContentState
 
+    /**
+     * 사유를 특정하지 못한 실패 — 실패 표의 행(#204)을 제목·본문으로 나눠 든다.
+     *
+     * [isRetryable] 은 표의 판정(`FailureDisplay.isRetryable`)이라 화면이 뒤집지 못한다 — 재시도해도 답이
+     * 갈리지 않는 실패에는 「다시 시도」를 그리지 않는다(#222).
+     */
     public data class Error(
-        val message: String,
+        val title: String,
+        val description: String,
+        val isRetryable: Boolean,
     ) : PostingDetailContentState {
         init {
-            requireNonBlank("message", message)
+            requireNonBlank("title", title)
+            requireNonBlank("description", description)
         }
     }
+
+    /**
+     * 연결 없음 — 문구는 부품이 고정한다(`CareerCompassNetworkErrorState`). 상세는 스냅샷을 저장하지 않아
+     * 오프라인 경로가 없다. 피드 홈·내 게시판·원문 보기와 같은 화면이다(#222 에서 [Error] 의 한 줄 문장에서
+     * 갈라 냈다).
+     */
+    public data object NetworkUnavailable : PostingDetailContentState
 
     /**
      * 서버 점검(503 `LLM_UNAVAILABLE`). [Error] 와 달리 문구가 아니라 전용 안내 화면으로 그린다 —

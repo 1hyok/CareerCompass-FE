@@ -25,7 +25,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cambridge.core.ui.R
+import com.cambridge.core.ui.failure.FailureDisplay
 import com.cambridge.core.ui.failure.FailureKind
+import com.cambridge.core.ui.failure.actionLabel
 import com.cambridge.core.ui.failure.description
 import com.cambridge.core.ui.failure.display
 import com.cambridge.core.ui.failure.title
@@ -223,6 +225,83 @@ public fun CareerCompassEmptyState(
                 )
             }
         },
+    )
+}
+
+/**
+ * 사유를 특정하지 못한 실패 — Figma 09 Edge Cases 다섯 장에는 없는 여섯째 상태다(#222).
+ *
+ * 나머지 실패가 전부 접히는 자리라 **실제로는 가장 자주 뜨는 실패 화면**인데, 그동안 「검색 결과 없음」
+ * 부품(🔍)을 돌려 썼다. 그 삽화를 보면 사용자는 자기 조건이 잘못됐다고 읽는다 — 서버가 500 을 준 것인데.
+ * 삽화·문구·행동이 [CareerCompassEmptyState] 와 달라야 하는 이유가 그것이다.
+ *
+ * **행동 버튼의 유무는 호출자가 정한다** — 재시도해도 답이 갈리지 않는 실패가 있다(상한 초과·중복·차단,
+ * #204 의 표가 그 판정을 갖는다). [actionText] 와 [onActionClick] 은 둘 다 있거나 둘 다 없다. 표의 행을
+ * 그대로 그리려면 [FailureDisplay] 를 받는 판을 쓴다.
+ *
+ * [title] and [description] must be non-blank. A supplied [actionText] must be non-blank.
+ */
+@Composable
+public fun CareerCompassFailureState(
+    title: String,
+    description: String,
+    actionText: String?,
+    onActionClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    require(title.isNotBlank()) { "title must not be blank" }
+    require(description.isNotBlank()) { "description must not be blank" }
+    require((actionText == null) == (onActionClick == null)) {
+        "actionText and onActionClick must both be null or both be non-null"
+    }
+    require(actionText == null || actionText.isNotBlank()) {
+        "actionText must be null or non-blank"
+    }
+
+    CareerCompassStateLayout(
+        title = title,
+        description = description,
+        modifier = modifier,
+        illustration = {
+            StateEmoji(R.string.core_ui_state_failure_illustration)
+        },
+        details = null,
+        actions = {
+            if (actionText != null && onActionClick != null) {
+                CareerCompassButton(
+                    text = actionText,
+                    onClick = onActionClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    size = CareerCompassButtonSize.Large,
+                )
+            }
+        },
+    )
+}
+
+/**
+ * 실패 표의 한 행([FailureDisplay], #204)을 그대로 그린다.
+ *
+ * 버튼은 **표가 행동을 갖고**([FailureDisplay.action] ≠ 없음) **호출자가 그 행동을 받을 때**([onActionClick]
+ * ≠ `null`)만 붙는다. 표가 「할 수 있는 일이 없다」고 하면 호출자가 콜백을 넘겨도 그리지 않는다 — 눌러도
+ * 같은 실패를 다시 만나는 버튼을 만들지 않는다. 반대로 표에 행동이 있어도 화면이 그 길을 못 열면(프로필
+ * 화면이 없는 자리 등) 콜백을 넘기지 않으면 된다.
+ */
+@Composable
+public fun CareerCompassFailureState(
+    display: FailureDisplay,
+    onActionClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val actionText = display.actionLabel()
+    val hasAction = actionText != null && onActionClick != null
+
+    CareerCompassFailureState(
+        title = display.title(),
+        description = display.description(),
+        actionText = actionText.takeIf { hasAction },
+        onActionClick = onActionClick.takeIf { hasAction },
+        modifier = modifier,
     )
 }
 

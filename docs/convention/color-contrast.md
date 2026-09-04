@@ -101,7 +101,7 @@
 | `onSurfaceVariant / subtleSurface` | 4.5:1 | 7.49:1 | 13.36:1 | 통과 | 화면 보조 문구 · FeedScreen.kt:200 |
 | `onSurfaceVariant / primaryContainer` | 4.5:1 | 7.42:1 | 6.56:1 | 통과 | ScoreChip High 라벨 |
 | `mutedContent / surface` | 4.5:1 | 4.74:1 | 7.11:1 | 통과 | 카드 메타 12sp SemiBold · FeedScreen.kt:738 |
-| `mutedContent / subtleSurface` | 4.5:1 | 4.54:1 | 7.85:1 | 통과 | 적합도 자리표시 칩 11sp · FeedSuitabilityChip.kt:81 |
+| `mutedContent / subtleSurface` | 4.5:1 | 4.54:1 | 7.85:1 | 통과 | 적합도 자리표시 칩 11sp · FeedSuitabilityChip.kt:81 · 상태 화면 본문(실패 `CareerCompassFailureState` 포함, #222) · CareerCompassStateView.kt |
 | `primaryEmphasis / surface` | 4.5:1 | 5.48:1 | 9.33:1 | 통과 | 정렬 선택 문구·북마크 아이콘 · FeedSortMenuContent.kt:110 |
 | `primaryEmphasis / subtleSurface` | 4.5:1 | 5.25:1 | 10.30:1 | 통과 | 더보기 스피너·진행 세그먼트 |
 | `primaryEmphasis / primaryContainer` | 4.5:1 | 5.21:1 | 5.06:1 | 통과 | 프로필 배너 행동 문구 11sp · FeedScreen.kt:882 |
