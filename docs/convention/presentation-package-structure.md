@@ -55,7 +55,7 @@ draft/editor/toolbar/style/Xxx.kt           # 4단계 — 금지
 사용처의 1단계 폴더를 센다.
 
 ```bash
-M=feature/feed/presentation/src/main/kotlin/com/cambridge/feature/feed/presentation
+M=feature/feed/presentation/src/main/kotlin/com/careercompass/feature/feed/presentation
 git grep -lw 'PostingCard' -- "$M" | sed "s#$M/##" | cut -d/ -f1 | sort -u
 ```
 

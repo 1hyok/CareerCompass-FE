@@ -34,7 +34,7 @@
 
 ```kotlin
 android {
-    namespace = "com.cambridge.feature.feed.presentation"
+    namespace = "com.careercompass.feature.feed.presentation"
     resourcePrefix = "feed_"
 }
 ```

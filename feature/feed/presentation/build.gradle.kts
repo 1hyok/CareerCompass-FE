@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cambridge.feature.feed.presentation"
+    namespace = "com.careercompass.feature.feed.presentation"
     resourcePrefix = "feed_"
     testOptions.unitTests.isIncludeAndroidResources = true
     experimentalProperties["android.experimental.enableScreenshotTest"] = true
