@@ -131,7 +131,24 @@ public fun PostingDetailAnalyzingPreview() {
             PostingDetailUiState(
                 PostingDetailContentState.Loaded(
                     employmentPostingPreview().copy(
-                        suitability = PostingSuitabilityState.Analyzing,
+                        suitability = PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = false),
+                    ),
+                ),
+            ),
+    )
+}
+
+/** 자동 재조회를 다 쓴 뒤(#221) — 진행 표시를 거두고 「다시 확인」을 연다. 실패도 성공도 약속하지 않는 문구다. */
+@PreviewTest
+@Preview(name = "Posting detail analysis pending", widthDp = 360, heightDp = 772)
+@Composable
+public fun PostingDetailAnalysisPendingPreview() {
+    PostingDetailPreviewSurface(
+        state =
+            PostingDetailUiState(
+                PostingDetailContentState.Loaded(
+                    employmentPostingPreview().copy(
+                        suitability = PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = true),
                     ),
                 ),
             ),

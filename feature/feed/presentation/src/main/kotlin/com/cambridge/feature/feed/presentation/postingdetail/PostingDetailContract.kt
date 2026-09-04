@@ -108,8 +108,16 @@ public sealed interface PostingSuitabilityState {
     /** The user has not entered enough profile data to compute a score. */
     public data object ProfileIncomplete : PostingSuitabilityState
 
-    /** The posting is still being parsed, so the score is not available yet. */
-    public data object Analyzing : PostingSuitabilityState
+    /**
+     * 서버가 아직 점수를 주지 않았다 — 파싱 전일 수도, 영구 실패일 수도 있다(계약이 둘을 가르지 못한다, #200).
+     *
+     * @property isAutoRecheckExhausted 화면이 스스로 다시 물어보는 횟수를 다 썼다. 그때까지는 기다리는
+     *   상태라 행동 버튼이 없고, 다 쓴 뒤에는 「다시 확인」이 실제로 상태를 바꾸는 유일한 손잡이라 버튼을
+     *   연다(#221). 문구도 갈린다 — 다 쓴 뒤에는 「곧 됩니다」를 약속하지 않는다.
+     */
+    public data class Analyzing(
+        val isAutoRecheckExhausted: Boolean,
+    ) : PostingSuitabilityState
 
     /** The analysis finished and [suitability] can be rendered. */
     public data class Ready(
@@ -214,6 +222,14 @@ public sealed interface PostingDetailEvent {
     ) : PostingDetailEvent
 
     public data object RetryClicked : PostingDetailEvent
+
+    /**
+     * 적합도 카드의 「다시 확인」 — 자동 재조회를 다 쓴 뒤에만 그려진다(#221).
+     *
+     * [RetryClicked] 와 다르다: 그쪽은 화면 전체를 로딩으로 되돌리지만, 이쪽은 읽은 상세를 그대로 둔 채
+     * 적합도만 조용히 다시 묻는다.
+     */
+    public data object SuitabilityRecheckClicked : PostingDetailEvent
 }
 
 /** Draft generation is offered only for employment and scholarship postings (spec F3-3). */

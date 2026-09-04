@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,11 +36,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cambridge.core.ui.component.CareerCompassAnalyzingState
 import com.cambridge.core.ui.component.CareerCompassBadge
 import com.cambridge.core.ui.component.CareerCompassBadgeTone
 import com.cambridge.core.ui.component.CareerCompassButton
 import com.cambridge.core.ui.component.CareerCompassButtonSize
 import com.cambridge.core.ui.component.CareerCompassButtonVariant
+import com.cambridge.core.ui.component.CareerCompassStatePresentation
 import com.cambridge.core.ui.icon.CareerCompassIcons
 import com.cambridge.core.ui.theme.CareerCompassTheme
 import com.cambridge.feature.feed.presentation.FeedListingUiModel
@@ -233,6 +234,7 @@ private fun PostingDetailBody(
         PostingSuitabilityCard(
             suitability = posting.suitability,
             onCompleteProfileClick = { onEvent(PostingDetailEvent.CompleteProfileClicked) },
+            onRecheckClick = { onEvent(PostingDetailEvent.SuitabilityRecheckClicked) },
         )
         if (posting.keywords.isNotEmpty()) {
             PostingKeywordsCard(keywords = posting.keywords)
@@ -302,10 +304,15 @@ private fun PostingHeaderCard(posting: PostingDetailUiModel) {
     }
 }
 
+/**
+ * 적합도 카드 — 세 판정([PostingSuitabilityState])이 세 모양이다. 「분석 중」과 「프로필 미입력」을 섞지 않는다:
+ * 뒤쪽은 사용자가 할 일이 있고 앞쪽은 기다리는 수밖에 없다(#100·#221).
+ */
 @Composable
 private fun PostingSuitabilityCard(
     suitability: PostingSuitabilityState,
     onCompleteProfileClick: () -> Unit,
+    onRecheckClick: () -> Unit,
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
@@ -332,20 +339,18 @@ private fun PostingSuitabilityCard(
                 }
             }
 
-            PostingSuitabilityState.Analyzing -> {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = colors.primaryEmphasis,
-                        strokeWidth = 2.dp,
-                    )
-                    Text(
-                        text = stringResource(R.string.feed_posting_detail_analyzing),
-                        color = colors.onSurfaceVariant,
-                        style = CareerCompassTheme.typography.bodyMedium,
+            is PostingSuitabilityState.Analyzing -> {
+                if (suitability.isAutoRecheckExhausted) {
+                    PostingSuitabilityPending(onRecheckClick = onRecheckClick)
+                } else {
+                    // Figma 09 「분석 중」을 카드 안에 끼운다 — 화면을 통째로 덮으면 제목·원문 보기가 사라진다.
+                    // 기다리는 상태라 행동 버튼이 없다(엣지 상태 §3) — 화면이 스스로 다시 묻는다.
+                    CareerCompassAnalyzingState(
+                        title = stringResource(R.string.feed_posting_detail_analyzing),
+                        description = stringResource(R.string.feed_posting_detail_analyzing_description),
+                        progress = null,
+                        progressLabel = null,
+                        presentation = CareerCompassStatePresentation.Inline,
                     )
                 }
             }
@@ -354,6 +359,43 @@ private fun PostingSuitabilityCard(
                 PostingSuitabilityReady(suitability = suitability.suitability)
             }
         }
+    }
+}
+
+/**
+ * 자동 재조회를 다 쓴 뒤 — 진행 표시를 거둔다. 도는 인디케이터는 「무언가 하고 있다」는 뜻인데 이제 아무것도
+ * 하지 않는다.
+ *
+ * 「다시 확인」은 실제로 상태를 바꾸는 버튼이다(누르면 한 번 더 묻는다). 영구 실패를 나타낼 계약이 없으므로
+ * (#200) 문구는 실패도 성공도 약속하지 않고, 하단 바에 늘 있는 「원문 보기」를 대안으로 가리킨다.
+ */
+@Composable
+private fun PostingSuitabilityPending(onRecheckClick: () -> Unit) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing.medium),
+    ) {
+        Text(
+            text = stringResource(R.string.feed_posting_detail_analysis_pending_title),
+            color = colors.onSurface,
+            textAlign = TextAlign.Center,
+            style = CareerCompassTheme.typography.headline4,
+        )
+        Text(
+            text = stringResource(R.string.feed_posting_detail_analysis_pending_description),
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            style = CareerCompassTheme.typography.bodyMedium,
+        )
+        CareerCompassButton(
+            text = stringResource(R.string.feed_posting_detail_analysis_recheck),
+            onClick = onRecheckClick,
+            variant = CareerCompassButtonVariant.Secondary,
+        )
     }
 }
 

@@ -99,7 +99,7 @@ public fun PostingDetailEntry(
     }
 
     val uiState =
-        remember(state.loadState, state.profile, resources) {
+        remember(state.loadState, state.profile, state.isSuitabilityRecheckExhausted, resources) {
             state.toUiState(resources, viewModel.clock)
         }
 
@@ -156,6 +156,7 @@ internal fun PostingDetailViewState.toUiState(
                                 toSuitabilityState(
                                     judgement = judgeSuitability(hasScore = loadState.detail.suitability != null, profile = profile),
                                     suitability = loadState.detail.suitability,
+                                    isAutoRecheckExhausted = isSuitabilityRecheckExhausted,
                                     resources = resources,
                                 ),
                             profile = profile,
@@ -165,10 +166,16 @@ internal fun PostingDetailViewState.toUiState(
             },
     )
 
-/** 판정 → 카드 상태. 「준비됨」인데 점수가 없는 모순은 「분석 중」으로 접는다. */
+/**
+ * 판정 → 카드 상태. 「준비됨」인데 점수가 없는 모순은 「분석 중」으로 접는다.
+ *
+ * 판정은 새로 하지 않는다 — [judgeSuitability] 하나를 목록 카드와 나눠 쓴다(#100). 여기서 더하는 것은
+ * 「분석 중」이 기다리는 중인지, 기다리기를 그만뒀는지([isAutoRecheckExhausted])뿐이다(#221).
+ */
 internal fun toSuitabilityState(
     judgement: SuitabilityJudgement,
     suitability: Suitability?,
+    isAutoRecheckExhausted: Boolean,
     resources: Resources,
 ): PostingSuitabilityState =
     when (judgement) {
@@ -177,12 +184,12 @@ internal fun toSuitabilityState(
         }
 
         SuitabilityJudgement.Analyzing -> {
-            PostingSuitabilityState.Analyzing
+            PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = isAutoRecheckExhausted)
         }
 
         SuitabilityJudgement.Ready -> {
             suitability?.let { PostingSuitabilityState.Ready(it.toSuitabilityUiModel(resources)) }
-                ?: PostingSuitabilityState.Analyzing
+                ?: PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = isAutoRecheckExhausted)
         }
     }
 

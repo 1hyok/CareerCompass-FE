@@ -19,6 +19,9 @@ public enum class FeedFailureStage(
     FilterBoards("filter_boards"),
     Bookmark("bookmark"),
     PostingDetail("posting_detail"),
+
+    /** 적합도 자동 재조회(#221) — 화면을 흔들지 않는 조용한 실패라 [PostingDetail] 과 갈라 센다. */
+    SuitabilityRecheck("suitability_recheck"),
     PostingRaw("posting_raw"),
     BoardDetect("board_detect"),
     BoardRegister("board_register"),

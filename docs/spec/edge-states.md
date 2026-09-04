@@ -11,12 +11,12 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 
 ## 0. 부품 — `core:ui` 의 상태 화면 5종
 
-전부 [`core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt`](../../core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt) 한 파일에 있고, 공통 뼈대(`CareerCompassStateLayout`)가 `fillMaxSize` 로 **화면 한 장을 통째로 차지한다**. 카드 안이나 목록 끝에 끼워 넣는 용도가 아니다.
+전부 [`core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt`](../../core/ui/src/main/kotlin/com/cambridge/core/ui/component/CareerCompassStateView.kt) 한 파일에 있고, 공통 뼈대(`CareerCompassStateLayout`)가 `fillMaxSize` 로 **화면 한 장을 통째로 차지한다**. 카드 안이나 목록 끝에 끼워 넣는 용도가 아니다. **예외는 「분석 중」 하나다** — `presentation = Inline` 을 받아 카드 안에 들어간다(#221). 기다리는 상태만 화면의 나머지가 그대로 쓸모 있어서다(실패·빈 결과·권한·점검은 화면이 더 보여 줄 것이 없다).
 
 | 컴포넌트 | Figma 09 | 문구를 누가 정하나 | 행동 슬롯 | 삽화 |
 |---|---|---|---|---|
 | `CareerCompassNetworkErrorState` | 연결 실패 | **부품이 고정** — 호출자는 문구를 못 바꾼다 | 「다시 시도」 고정 + 「오프라인 모드로 보기」(`onOfflineClick != null` 일 때만) | 📡 |
-| `CareerCompassAnalyzingState` | 분석 중 | 호출자(`title`·`description`·`progressLabel`) | **없음** — 행동 슬롯이 빈 `{}` 로 닫혀 있다 | 진행 인디케이터 |
+| `CareerCompassAnalyzingState` | 분석 중 | 호출자(`title`·`description`·`progressLabel`) + `presentation`(FullScreen / **Inline**, #221) | **없음** — 행동 슬롯이 빈 `{}` 로 닫혀 있다 | 진행 인디케이터 |
 | `CareerCompassEmptyState` | 검색 결과 없음 | 호출자(`title`·`description`·`actionText`) | 행동 0개 또는 1개(`actionText`+`onActionClick` 은 둘 다 있거나 둘 다 없다) | 🔍 |
 | `CareerCompassPermissionDeniedState` | 알림 권한 꺼짐 | 호출자(`title`·`description`·`benefits`) | 「설정에서 권한 켜기」 + 「나중에」 고정 | 🔔 |
 | `CareerCompassMaintenanceState` | 서버 점검 | 호출자(`title`·`description`·`statusLabel`·`contactLabel`) | 「새로고침」 고정 + 「오프라인 모드로 보기」(선택) | 🛠 |
@@ -35,7 +35,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 
 ### 지금 아무 데서도 안 쓰이는 부품
 
-- **`CareerCompassAnalyzingState`** — 운영 코드 호출처가 **0곳**이다(스크린샷 프리뷰와 유닛 테스트뿐). 앱의 「분석 중」은 전부 화면 한 장이 아니라 **인라인 한 줄**이라 이 부품이 들어갈 자리가 없었다(§2.2). 화면 한 장을 쓸 자리가 생기기 전에는 쓰이지 않는다.
+- ~~**`CareerCompassAnalyzingState`** — 운영 코드 호출처가 0곳~~ — **#221 부터 공고 상세의 적합도 카드가 `Inline` 으로 쓴다**(§2.2). 앱의 「분석 중」은 화면 한 장을 덮을 자리가 없어 부품 쪽에 카드 안 표현을 열었다. 다른 진행 표시(온보딩 문서 분류·게시판 감지)에는 쓰지 않는다 — 문서마다 한 줄이라 부품을 문서 수만큼 반복하면 카드가 화면을 넘기고, 감지는 URL 입력칸이 살아 있어야 해 이미 힌트와 타임아웃 상자로 끝나는 길이 있다.
 - **`CareerCompassPermissionDeniedState`** — 호출처 0곳. 알림 권한 상태 자체가 미구현이다(§2.4).
 
 ---
@@ -53,7 +53,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 | 온보딩 학교 선택 시트 | — (로컬 목록) | — | 맨 `Text` + 직접 입력 버튼 | — | — | — |
 | 온보딩 완료 | 없음 | 없음 | — | 없음 | 없음 | 없음 |
 | 피드 홈 | `CareerCompassNetworkErrorState` | `FeedLoading` | `CareerCompassEmptyState` × 6사유 | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
-| 공고 상세 | `PostingDetailError`(손으로 그림) | `FeedLoadingContent` | — | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
+| 공고 상세 | `PostingDetailError`(손으로 그림) | `FeedLoadingContent` · 적합도 카드는 `CareerCompassAnalyzingState(Inline)` → 소진 뒤 「다시 확인」(#221) | — | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
 | 원문 보기 | `CareerCompassNetworkErrorState` | `FeedLoadingContent` | 본문 자리 대체 문구 | 없음 | **일반 실패로 접힘 ⚠️ #212** | 셸에 알림 → 로그인 |
 | 내 게시판(목록) | `CareerCompassNetworkErrorState` | `FeedLoadingContent` | `BoardListEmpty`(손으로 그림) | 없음 | `FeedMaintenanceState` | 셸에 알림 → 로그인 |
 | 게시판 등록 | 스낵바 / 타임아웃 상자 | 인라인 진행 줄 × 2 | 감지 실패 상자 4종 | 없음 | **스낵바 일반 문구로 접힘 ⚠️ #212** | 셸에 알림 → 로그인 |
@@ -90,7 +90,7 @@ Figma 09 Edge Cases 는 상태 화면을 **다섯 장**만 그려 두었다 — 
 
 ### 2.2 로딩 · 분석 중
 
-Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가 없다.** 진행 표시는 전부 인라인이다 — 화면을 통째로 덮으면 사용자가 방금 누른 버튼과 입력이 사라지기 때문이다.
+Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통째로 덮을 자리가 없다** — 덮으면 사용자가 방금 누른 버튼과 입력이 사라지기 때문이다. 그래서 부품에 카드 안 표현(`CareerCompassStatePresentation.Inline`)을 열어 공고 상세의 적합도 카드에 넣었고(#221), 나머지 진행 표시는 손으로 그린 인라인이다.
 
 | 화면 · 자리 | 컴포넌트 | 문구(리소스 = 값) | 행동 |
 |---|---|---|---|
@@ -101,7 +101,8 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 피드 홈 — 이어 읽기 실패 | `FeedLoadMoreActionRow` | `feed_load_more_failed` = 공고를 더 불러오지 못했어요 | 「다시 시도」(`feed_error_retry`) → `LoadMoreSelected` |
 | 피드 카드 — 적합도 | `FeedSuitabilityChip` | `feed_suitability_analyzing` = 분석 중 | 없음 |
 | 공고 상세 — 화면 | `FeedLoadingContent` | `feed_posting_detail_loading` = 공고를 불러오는 중이에요 | 없음 |
-| 공고 상세 — 적합도 카드 | 카드 안 `Row` + 진행 인디케이터 | `feed_posting_detail_analyzing` = AI가 분석 중이에요 | 없음 |
+| 공고 상세 — 적합도 카드 | `CareerCompassAnalyzingState(presentation = Inline)` | `feed_posting_detail_analyzing` = AI가 분석 중이에요 / `feed_posting_detail_analyzing_description` = 적합도가 나오면 이 자리에 바로 보여 드릴게요 | 없음 — 화면이 스스로 5초 × 4회 조용히 다시 읽는다(`PostingDetailViewModel`, #221). 「분석 중」과 「프로필 미입력」은 판정(`judgeSuitability`)이 가르고, 재조회도 「분석 중」일 때만 돈다 |
+| 공고 상세 — 적합도 카드 · 자동 재조회 소진 | 카드 안 문구 + 버튼(`PostingSuitabilityPending`) — 진행 표시를 거둔다 | `feed_posting_detail_analysis_pending_title` = 아직 적합도가 나오지 않았어요 / `feed_posting_detail_analysis_pending_description` = 분석이 오래 걸리는 공고도 있고, 끝내 분석되지 않는 공고도 있어요.(줄바꿈)「원문 보기」로 내용을 먼저 확인할 수 있어요 | 「다시 확인」(`feed_posting_detail_analysis_recheck`) → `SuitabilityRecheckClicked` — 한 번만 더 묻고, 여전히 없으면 다시 이 상태 |
 | 원문 보기 | `FeedLoadingContent` | `feed_posting_detail_loading` = 공고를 불러오는 중이에요 (**상세 문구를 그대로 재사용한다**) | 없음 |
 | 내 게시판 | `FeedLoadingContent` | `feed_board_list_loading` = 게시판을 불러오는 중이에요 | 없음 |
 | 게시판 등록 — 구조 감지 | `BoardDetectingRow` | `feed_board_register_detecting` = 게시글 구조를 분석하고 있어요 / `feed_board_register_detecting_hint` = 사이트 응답 속도에 따라 1분 넘게 걸릴 수 있어요 | 없음 — 「구조 분석하기」가 잠긴다 |
@@ -113,6 +114,8 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 온보딩 문서 분류 | 카드 상태 줄 | `onboarding_step4_document_processing` = 분류 중 | 없음 |
 
 「분석 중」이 진행률(`progress`·`progressLabel`)을 말할 수 있는 자리는 아직 없다 — 서버가 진행률을 주지 않는다. 그래서 모든 진행 표시가 **무한 인디케이터**다.
+
+**「분석 중」이 끝나는 길**은 공고 상세에만 있다(#221) — 5초 × 4회 자동 재조회, 그 뒤 「다시 확인」. 파싱이 영구 실패한 공고는 계약에 그 상태를 나타낼 자리가 없어(#200) 영원히 「분석 중」이다. 그래서 다 쓴 뒤의 문구는 「실패했어요」도 「곧 됩니다」도 말하지 않고, 하단 바에 늘 있는 「원문 보기」를 대안으로 가리킨다.
 
 ### 2.3 빈 결과 (사유별)
 
@@ -223,7 +226,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 그 자리가
 | 알림 권한 꺼짐 | **할 수 있다**(설정에서 켜기) | 권한은 사용자만 켤 수 있다 | **상태 자체가 없음 ❌ #197** |
 | 감지 타임아웃 | **할 수 있다** | 사이트가 느렸을 뿐이라 다시 시도하면 된다 | 「다시 시도」 ✅ |
 | 감지 실패(로그인 필요·SPA·차단) | **기다릴 수도 없다** — 되돌릴 길이 사용자 손에 없다 | 재시도해도 같은 답이 온다 | 재시도 버튼 없음 ✅ (#204 에서 뗐다. URL 입력란과 「구조 분석하기」가 위에 남아 주소를 고칠 길은 열려 있다) |
-| 로딩 · 분석 중 | **기다린다** | 진행 중인 요청을 사용자가 앞당길 수 없다 | 버튼 없음 ✅ |
+| 로딩 · 분석 중 | **기다린다** | 진행 중인 요청을 사용자가 앞당길 수 없다 | 버튼 없음 ✅ — 공고 상세의 자동 재조회가 **멈춘 뒤에는** 「다시 확인」(#221). 누르는 것이 실제로 상태를 바꾸므로(누르지 않으면 아무 일도 안 일어난다) 이 규칙과 충돌하지 않는다 |
 
 ### 빈 칸으로 드러난 결함
 
