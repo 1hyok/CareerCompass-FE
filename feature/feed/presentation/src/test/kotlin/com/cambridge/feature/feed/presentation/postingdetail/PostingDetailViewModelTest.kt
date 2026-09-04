@@ -20,6 +20,8 @@ import com.cambridge.feature.feed.presentation.shared.model.FeedFailureReason
 import com.cambridge.feature.feed.presentation.shared.model.SuitabilityJudgement
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.net.UnknownHostException
 
@@ -207,6 +210,194 @@ class PostingDetailViewModelTest {
             }
 
         assertTrue(viewModel(repository).state.value.sessionEnded)
+    }
+
+    // ---- 적합도 자동 재조회 (#221) ----
+
+    /** 재조회 횟수를 세는 저장소 — [detail] 을 바꾸면 다음 재조회부터 그 값이 나간다. */
+    private class CountingRepository(
+        var detail: PostingDetail,
+        private val failAfterFirst: Throwable? = null,
+    ) {
+        var fetches = 0
+        val repository =
+            FakePostingRepository(
+                onGetPostingDetail = {
+                    fetches++
+                    val failure = failAfterFirst
+                    if (failure != null && fetches > 1) Result.failure(failure) else Result.success(detail)
+                },
+            )
+    }
+
+    @Test
+    fun `분석 중이면 간격마다 조용히 다시 읽고 점수가 오면 멈춘다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true))
+            val viewModel = viewModel(counting.repository)
+            assertEquals(1, counting.fetches)
+            assertEquals(SuitabilityJudgement.Analyzing, viewModel.state.value.suitabilityJudgement)
+
+            advanceInterval()
+            assertEquals(2, counting.fetches)
+            // 화면은 흔들리지 않는다 — 읽은 상세가 그대로 `Loaded` 다.
+            assertTrue(viewModel.state.value.loadState is PostingDetailLoadState.Loaded)
+            assertFalse(viewModel.state.value.isSuitabilityRecheckExhausted)
+
+            counting.detail = counting.detail.copy(suitability = sampleSuitability())
+            advanceInterval()
+            assertEquals(3, counting.fetches)
+            assertEquals(SuitabilityJudgement.Ready, viewModel.state.value.suitabilityJudgement)
+
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT * 3)
+            assertEquals(3, counting.fetches)
+            assertFalse(viewModel.state.value.isSuitabilityRecheckExhausted)
+            // 이미 읽은 공고라 읽음 요청도 되풀이되지 않는다.
+            assertTrue(counting.repository.readCalls.isEmpty())
+        }
+
+    @Test
+    fun `자동 재조회를 다 쓰면 멈추고 다시 확인은 한 번만 더 묻는다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true))
+            val viewModel = viewModel(counting.repository)
+
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT)
+            assertEquals(1 + SUITABILITY_AUTO_RECHECK_LIMIT, counting.fetches)
+            assertTrue(viewModel.state.value.isSuitabilityRecheckExhausted)
+
+            // 무한 폴링이 아니다 — 시간이 더 지나도 묻지 않는다.
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT * 3)
+            assertEquals(1 + SUITABILITY_AUTO_RECHECK_LIMIT, counting.fetches)
+
+            viewModel.onEvent(PostingDetailEvent.SuitabilityRecheckClicked)
+            assertEquals(2 + SUITABILITY_AUTO_RECHECK_LIMIT, counting.fetches)
+            // 여전히 분석 중이면 다시 소진 상태다 — 버튼이 남아 있어야 한 번 더 누를 수 있다.
+            assertTrue(viewModel.state.value.isSuitabilityRecheckExhausted)
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT)
+            assertEquals(2 + SUITABILITY_AUTO_RECHECK_LIMIT, counting.fetches)
+
+            counting.detail = counting.detail.copy(suitability = sampleSuitability())
+            viewModel.onEvent(PostingDetailEvent.SuitabilityRecheckClicked)
+            assertEquals(SuitabilityJudgement.Ready, viewModel.state.value.suitabilityJudgement)
+            assertFalse(viewModel.state.value.isSuitabilityRecheckExhausted)
+        }
+
+    @Test
+    fun `프로필 미입력이면 재조회하지 않는다 — 기다릴 일이 아니라 할 일이 있다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true))
+            val viewModel = viewModel(counting.repository, profile = profile(jobInterests = emptyList(), tags = emptyList()))
+            assertEquals(SuitabilityJudgement.ProfileIncomplete, viewModel.state.value.suitabilityJudgement)
+
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT * 2)
+
+            assertEquals(1, counting.fetches)
+            assertFalse(viewModel.state.value.isSuitabilityRecheckExhausted)
+            viewModel.onEvent(PostingDetailEvent.SuitabilityRecheckClicked)
+            assertEquals(1, counting.fetches)
+        }
+
+    /**
+     * 프로필이 늦게 와서 「프로필 미입력」으로 갈리면 그 자리에서 멈춘다 — 판정이 폴링의 게이트다(#100 의 분리가
+     * 여기서도 지켜진다). 프로필을 채우고 돌아와 다시 「분석 중」이 되면 그때 처음부터 다시 센다.
+     */
+    @Test
+    fun `프로필 판정이 바뀌면 재조회가 멈추고 다시 분석 중이 되면 처음부터 센다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true))
+            val profileRepository = FakeUserProfileRepository(initialProfile = null)
+            val viewModel =
+                PostingDetailViewModel(
+                    savedStateHandle = SavedStateHandle(mapOf(FEED_ARG_POSTING_ID to POSTING_ID)),
+                    openPostingDetail = OpenPostingDetailUseCase(counting.repository),
+                    togglePostingBookmark = TogglePostingBookmarkUseCase(counting.repository),
+                    userProfileRepository = profileRepository,
+                    errorReporter = reporter,
+                    clock = FIXED_CLOCK,
+                )
+            assertEquals(SuitabilityJudgement.Analyzing, viewModel.state.value.suitabilityJudgement)
+            advanceInterval()
+            assertEquals(2, counting.fetches)
+
+            profileRepository.profileState.value = profile(jobInterests = emptyList(), tags = emptyList())
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT * 2)
+            assertEquals(2, counting.fetches)
+            assertFalse(viewModel.state.value.isSuitabilityRecheckExhausted)
+
+            profileRepository.profileState.value = profile()
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT)
+            assertEquals(2 + SUITABILITY_AUTO_RECHECK_LIMIT, counting.fetches)
+            assertTrue(viewModel.state.value.isSuitabilityRecheckExhausted)
+        }
+
+    @Test
+    fun `재조회 실패는 화면을 흔들지 않고 별도 단계로 기록한다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val counting =
+                CountingRepository(
+                    postingDetail(id = POSTING_ID, isRead = true),
+                    failAfterFirst = CoreDataFailure.ServerError("INTERNAL_ERROR", RuntimeException()),
+                )
+            val viewModel = viewModel(counting.repository)
+
+            advanceInterval()
+
+            assertEquals(2, counting.fetches)
+            assertTrue(viewModel.state.value.loadState is PostingDetailLoadState.Loaded)
+            assertEquals(listOf("suitability_recheck"), reporter.stages)
+        }
+
+    @Test
+    fun `화면 전체 다시 시도는 소진을 지우고 자동 재조회를 처음부터 센다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true))
+            val viewModel = viewModel(counting.repository)
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT)
+            assertTrue(viewModel.state.value.isSuitabilityRecheckExhausted)
+
+            viewModel.onEvent(PostingDetailEvent.RetryClicked)
+
+            assertFalse(viewModel.state.value.isSuitabilityRecheckExhausted)
+            assertEquals(2 + SUITABILITY_AUTO_RECHECK_LIMIT, counting.fetches)
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT)
+            assertEquals(2 + SUITABILITY_AUTO_RECHECK_LIMIT * 2, counting.fetches)
+            assertTrue(viewModel.state.value.isSuitabilityRecheckExhausted)
+        }
+
+    /** 소진 여부는 화면 계약의 「분석 중」에 실려 카드가 두 모양을 그린다. */
+    @Test
+    fun `소진 여부는 화면 계약의 분석 중 상태에 실린다`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val counting = CountingRepository(postingDetail(id = POSTING_ID, isRead = true))
+            val viewModel = viewModel(counting.repository)
+            val resources = RuntimeEnvironment.getApplication().resources
+
+            assertEquals(
+                PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = false),
+                viewModel.state.value
+                    .toUiState(resources, FIXED_CLOCK)
+                    .loadedSuitability(),
+            )
+
+            advanceInterval(times = SUITABILITY_AUTO_RECHECK_LIMIT)
+
+            assertEquals(
+                PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = true),
+                viewModel.state.value
+                    .toUiState(resources, FIXED_CLOCK)
+                    .loadedSuitability(),
+            )
+        }
+
+    private fun PostingDetailUiState.loadedSuitability(): PostingSuitabilityState =
+        (content as PostingDetailContentState.Loaded).posting.suitability
+
+    private fun kotlinx.coroutines.test.TestScope.advanceInterval(times: Int = 1) {
+        repeat(times) {
+            advanceTimeBy(SUITABILITY_AUTO_RECHECK_INTERVAL.inWholeMilliseconds)
+            runCurrent()
+        }
     }
 
     private fun sampleSuitability(): Suitability =

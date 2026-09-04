@@ -32,6 +32,26 @@ import com.cambridge.core.ui.failure.title
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
 /**
+ * 상태 부품이 차지하는 자리 — 화면 한 장인가, 카드·구역 안인가.
+ *
+ * Figma 09 Edge Cases 는 다섯 상태를 전부 화면 한 장으로 그렸지만, 앱에는 화면을 통째로 덮을 수 없는 자리가
+ * 있다 — 공고 상세의 적합도 카드가 그렇다(#221). 제목·원문 보기·다른 카드가 살아 있어야 하므로 카드 한 칸만
+ * 「분석 중」이어야 한다. 기본값이 [FullScreen] 이라 기존 호출처는 한 줄도 바뀌지 않는다.
+ */
+public enum class CareerCompassStatePresentation {
+    /** 화면 한 장을 통째로 — 배경을 깔고 행동 버튼을 바닥에 붙인다. */
+    FullScreen,
+
+    /**
+     * 카드·구역 안에 끼워 넣는다 — 폭만 채우고 높이는 내용만큼, 배경 없음, 행동은 본문 바로 아래.
+     *
+     * 화면 한 장 뼈대는 `weight(1f)` 로 본문을 가운데 띄우는데 그것은 높이가 정해진 부모에서만 성립한다.
+     * 카드는 내용만큼 자라므로 뼈대를 따로 둔다.
+     */
+    Inline,
+}
+
+/**
  * Displays the offline error state with a retry action and an optional offline-mode action.
  *
  * When [onOfflineClick] is `null`, the offline-mode action is not displayed.
@@ -81,6 +101,10 @@ public fun CareerCompassNetworkErrorState(
  * [title] and [description] must be non-blank. A `null` [progress] renders an indeterminate
  * indicator; when supplied it must be between `0f` and `1f`, inclusive. [progressLabel] is shown
  * whenever it is supplied and must then be non-blank.
+ *
+ * [presentation] 이 [CareerCompassStatePresentation.Inline] 이면 카드 안에 들어가는 모양이 된다 — 다섯 부품
+ * 중 이것만 그 자리를 여는 이유는, 「기다리는 중」은 화면의 나머지가 그대로 쓸모 있는 유일한 상태라서다
+ * (실패·빈 결과·권한·점검은 화면이 더 보여 줄 것이 없다).
  */
 @Composable
 public fun CareerCompassAnalyzingState(
@@ -89,6 +113,7 @@ public fun CareerCompassAnalyzingState(
     progress: Float?,
     progressLabel: String?,
     modifier: Modifier = Modifier,
+    presentation: CareerCompassStatePresentation = CareerCompassStatePresentation.FullScreen,
 ) {
     require(title.isNotBlank()) { "title must not be blank" }
     require(description.isNotBlank()) { "description must not be blank" }
@@ -105,6 +130,7 @@ public fun CareerCompassAnalyzingState(
         title = title,
         description = description,
         modifier = modifier,
+        presentation = presentation,
         illustration = {
             if (progress == null) {
                 CircularProgressIndicator(
@@ -343,6 +369,41 @@ private fun CareerCompassStateLayout(
     illustration: @Composable () -> Unit,
     details: (@Composable ColumnScope.() -> Unit)?,
     actions: @Composable ColumnScope.() -> Unit,
+    presentation: CareerCompassStatePresentation = CareerCompassStatePresentation.FullScreen,
+) {
+    when (presentation) {
+        CareerCompassStatePresentation.FullScreen -> {
+            FullScreenStateLayout(
+                title = title,
+                description = description,
+                modifier = modifier,
+                illustration = illustration,
+                details = details,
+                actions = actions,
+            )
+        }
+
+        CareerCompassStatePresentation.Inline -> {
+            InlineStateLayout(
+                title = title,
+                description = description,
+                modifier = modifier,
+                illustration = illustration,
+                details = details,
+                actions = actions,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FullScreenStateLayout(
+    title: String,
+    description: String,
+    modifier: Modifier,
+    illustration: @Composable () -> Unit,
+    details: (@Composable ColumnScope.() -> Unit)?,
+    actions: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
@@ -390,6 +451,52 @@ private fun CareerCompassStateLayout(
             verticalArrangement = Arrangement.spacedBy(spacing.small),
             content = actions,
         )
+    }
+}
+
+/**
+ * 카드 안 뼈대 — 배경도 `weight` 도 없다. 행동은 같은 열에 이어 붙어 비어 있으면 자리도 없다.
+ *
+ * 제목은 [CareerCompassTheme.typography.headline4] 다 — 카드 제목(`headline2`)보다 한 단계 작아야 카드
+ * 안의 상태가 카드 자체보다 크게 말하지 않는다.
+ */
+@Composable
+private fun InlineStateLayout(
+    title: String,
+    description: String,
+    modifier: Modifier,
+    illustration: @Composable () -> Unit,
+    details: (@Composable ColumnScope.() -> Unit)?,
+    actions: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = CareerCompassTheme.colors
+    val spacing = CareerCompassTheme.spacing
+
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = spacing.medium),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing.small),
+    ) {
+        illustration()
+        Text(
+            text = title,
+            color = colors.onSurface,
+            textAlign = TextAlign.Center,
+            style = CareerCompassTheme.typography.headline4,
+        )
+        Text(
+            text = description,
+            color = colors.mutedContent,
+            textAlign = TextAlign.Center,
+            style = CareerCompassTheme.typography.bodyMedium,
+        )
+        if (details != null) {
+            details()
+        }
+        actions()
     }
 }
 

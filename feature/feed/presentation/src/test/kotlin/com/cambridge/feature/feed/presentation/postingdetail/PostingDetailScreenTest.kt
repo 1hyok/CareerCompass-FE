@@ -85,14 +85,54 @@ class PostingDetailScreenTest {
         }
     }
 
+    /** 기다리는 상태 — 시안 09 「분석 중」이 카드 안에 뜨고, 눌러도 아무 일 없는 버튼은 없다(#221). */
     @Test
     fun analyzing_showsProgressCopyWithoutScore() {
         composeRule.setDetailContent(
-            state = loadedState(posting = samplePosting(suitability = PostingSuitabilityState.Analyzing)),
+            state = loadedState(posting = samplePosting(suitability = PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = false))),
         )
 
         composeRule.onNodeWithText("AI가 분석 중이에요").assertIsDisplayed()
+        composeRule.onNodeWithText("적합도가 나오면 이 자리에 바로 보여 드릴게요").performScrollTo().assertIsDisplayed()
+        composeRule
+            .onAllNodes(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ProgressBarRangeInfo,
+                    ProgressBarRangeInfo.Indeterminate,
+                ),
+            ).assertCountEquals(1)
         composeRule.onAllNodesWithText("88").assertCountEquals(0)
+        composeRule.onAllNodesWithText("다시 확인").assertCountEquals(0)
+        // 「분석 중」과 「프로필 미입력」을 섞지 않는다.
+        composeRule.onAllNodesWithText("프로필 입력하기").assertCountEquals(0)
+    }
+
+    /**
+     * 자동 재조회를 다 쓴 뒤 — 진행 표시를 거두고(아무것도 하지 않는데 돌면 거짓말이다) 「다시 확인」을 연다.
+     * 그 버튼은 화면 전체를 되돌리는 `RetryClicked` 가 아니라 적합도만 다시 묻는 이벤트를 낸다.
+     */
+    @Test
+    fun analysisPending_dropsIndicatorAndRecheckEmitsSuitabilityEvent() {
+        val events = mutableListOf<PostingDetailEvent>()
+        composeRule.setDetailContent(
+            state = loadedState(posting = samplePosting(suitability = PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = true))),
+            onEvent = events::add,
+        )
+
+        composeRule.onNodeWithText("아직 적합도가 나오지 않았어요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("AI가 분석 중이에요").assertCountEquals(0)
+        composeRule
+            .onAllNodes(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ProgressBarRangeInfo,
+                    ProgressBarRangeInfo.Indeterminate,
+                ),
+            ).assertCountEquals(0)
+        composeRule.onNode(hasText("다시 확인") and hasClickAction()).performScrollTo().performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(listOf(PostingDetailEvent.SuitabilityRecheckClicked), events)
+        }
     }
 
     @Test

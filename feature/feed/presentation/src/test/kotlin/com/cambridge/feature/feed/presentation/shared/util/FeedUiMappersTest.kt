@@ -206,7 +206,7 @@ class FeedUiMappersTest {
             postingDetail(
                 id = 8,
                 type = PostingType.Contest,
-            ).toDetailUiModel(resources, FIXED_CLOCK, PostingSuitabilityState.Analyzing, profile())
+            ).toDetailUiModel(resources, FIXED_CLOCK, PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = false), profile())
 
         assertEquals("미정", model.deadlineLabel)
         assertFalse(model.canCreateDraft)

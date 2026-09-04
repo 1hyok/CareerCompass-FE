@@ -28,6 +28,7 @@ import com.cambridge.core.ui.component.CareerCompassEmptyState
 import com.cambridge.core.ui.component.CareerCompassMaintenanceState
 import com.cambridge.core.ui.component.CareerCompassNetworkErrorState
 import com.cambridge.core.ui.component.CareerCompassPermissionDeniedState
+import com.cambridge.core.ui.component.CareerCompassStatePresentation
 import com.cambridge.core.ui.component.CareerCompassTopAppBar
 import com.cambridge.core.ui.theme.CareerCompassTheme
 
@@ -244,6 +245,24 @@ public fun CareerCompassAnalyzingStatePreview() {
             progress = 0.75f,
             progressLabel = "3/4 단계 · 약 10초 남음",
         )
+    }
+}
+
+/** 카드 안 표현(#221) — 캔버스를 카드 하나 높이로 잡아 배경 없이 내용만큼만 차지하는지 못 박는다. */
+@PreviewTest
+@Preview(name = "State - Analyzing inline", widthDp = 360, heightDp = 240)
+@Composable
+public fun CareerCompassAnalyzingStateInlinePreview() {
+    ShellPreviewSurface {
+        CareerCompassCard(modifier = Modifier.padding(16.dp)) {
+            CareerCompassAnalyzingState(
+                title = "AI가 분석 중이에요",
+                description = "적합도가 나오면 이 자리에 바로 보여 드릴게요",
+                progress = null,
+                progressLabel = null,
+                presentation = CareerCompassStatePresentation.Inline,
+            )
+        }
     }
 }
 

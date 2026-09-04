@@ -1,8 +1,12 @@
 package com.cambridge.core.ui.component
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -11,6 +15,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
@@ -133,6 +138,37 @@ public class CareerCompassStateViewTest {
                     ProgressBarRangeInfo.Indeterminate,
                 ),
             ).assertCountEquals(1)
+    }
+
+    /**
+     * 카드 안 표현(#221) — 문구와 인디케이터는 그대로 나오되, **아래 내용을 화면 밖으로 밀어내지 않는다.**
+     * 화면 한 장 뼈대(`fillMaxSize`)를 그대로 쓰면 뒤따르는 내용이 보이지 않게 된다.
+     */
+    @Test
+    public fun analyzingState_inlinePresentationLeavesRoomForContentBelow() {
+        setStateContent {
+            Column {
+                CareerCompassAnalyzingState(
+                    title = "AI가 분석 중이에요",
+                    description = "적합도가 나오면 이 자리에 바로 보여 드릴게요",
+                    progress = null,
+                    progressLabel = null,
+                    presentation = CareerCompassStatePresentation.Inline,
+                )
+                Text(text = "아래 내용", modifier = Modifier.testTag("below"))
+            }
+        }
+
+        composeRule.onNodeWithText("AI가 분석 중이에요").assertIsDisplayed()
+        composeRule.onNodeWithText("적합도가 나오면 이 자리에 바로 보여 드릴게요").assertIsDisplayed()
+        composeRule
+            .onAllNodes(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ProgressBarRangeInfo,
+                    ProgressBarRangeInfo.Indeterminate,
+                ),
+            ).assertCountEquals(1)
+        composeRule.onNodeWithTag("below").assertIsDisplayed()
     }
 
     @Test
