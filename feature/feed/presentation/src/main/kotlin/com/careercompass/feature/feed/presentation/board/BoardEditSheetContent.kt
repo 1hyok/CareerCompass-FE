@@ -43,7 +43,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedSectionT
  * testable and previewable on its own. Inputs lock while a save is in flight.
  */
 @Composable
-public fun BoardEditSheetContent(
+internal fun BoardEditSheetContent(
     state: BoardEditUiState,
     onEvent: (BoardEditEvent) -> Unit,
     modifier: Modifier = Modifier,

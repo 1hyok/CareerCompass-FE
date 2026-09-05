@@ -66,7 +66,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedTopBar
 
 /** Stateless posting detail screen matching the CareerCompass "공고 상세" design (spec F3-3). */
 @Composable
-public fun PostingDetailContent(
+internal fun PostingDetailContent(
     state: PostingDetailUiState,
     onEvent: (PostingDetailEvent) -> Unit,
     modifier: Modifier = Modifier,

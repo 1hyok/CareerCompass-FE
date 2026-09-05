@@ -36,7 +36,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedSectionT
  * testable and previewable on its own.
  */
 @Composable
-public fun FeedFilterSheetContent(
+internal fun FeedFilterSheetContent(
     state: FeedFilterUiState,
     onEvent: (FeedFilterEvent) -> Unit,
     modifier: Modifier = Modifier,

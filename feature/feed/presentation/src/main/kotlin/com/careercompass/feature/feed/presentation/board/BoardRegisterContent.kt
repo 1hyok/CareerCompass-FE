@@ -45,7 +45,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedTopBar
 
 /** Stateless board registration screen: URL → structure detection → preview → name/type/cycle (spec F2-1). */
 @Composable
-public fun BoardRegisterContent(
+internal fun BoardRegisterContent(
     state: BoardRegisterUiState,
     onEvent: (BoardRegisterEvent) -> Unit,
     modifier: Modifier = Modifier,

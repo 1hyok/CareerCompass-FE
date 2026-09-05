@@ -608,7 +608,7 @@ private fun FeedLoadMoreActionRow(
  * **읽음·읽지 않음을 모두** 실어, 표시가 없는 쪽(읽지 않음)도 침묵하지 않게 한다.
  */
 @Composable
-public fun FeedListingCard(
+internal fun FeedListingCard(
     listing: FeedListingUiModel,
     onSelected: () -> Unit,
     onBookmarkToggled: () -> Unit,

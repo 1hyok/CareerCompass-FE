@@ -28,7 +28,7 @@ import com.careercompass.feature.onboarding.presentation.shared.component.Onboar
 
 /** Stateless completion screen shown once every onboarding step is done. */
 @Composable
-public fun OnboardingCompleteContent(
+internal fun OnboardingCompleteContent(
     state: OnboardingCompleteUiState,
     onEvent: (OnboardingCompleteEvent) -> Unit,
     modifier: Modifier = Modifier,

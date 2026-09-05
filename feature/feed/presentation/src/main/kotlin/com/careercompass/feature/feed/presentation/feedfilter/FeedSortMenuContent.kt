@@ -31,7 +31,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedIconButt
 
 /** Radio list of the feed sort orders (spec F2-3). The host decides how it is anchored. */
 @Composable
-public fun FeedSortMenuContent(
+internal fun FeedSortMenuContent(
     state: FeedSortMenuUiState,
     onEvent: (FeedSortMenuEvent) -> Unit,
     modifier: Modifier = Modifier,
