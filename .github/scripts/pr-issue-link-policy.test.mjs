@@ -11,6 +11,7 @@ import {
     GITHUB_WEB_FLOW_ID,
 } from "./ci-test-plan.mjs";
 import {
+    extractClosingIssueNumbers,
     extractSameRepositoryIssueNumbers,
     extractTitleIssueNumber,
     validatePullRequestIssueLink,
@@ -110,18 +111,29 @@ function issueLoader(items) {
 test("extracts closing and non-closing Issue references without duplicates", () => {
     assert.deepEqual(
         extractSameRepositoryIssueNumbers(
-            "Refs #12, Part of: 1hyok/CareerCompass-FE#13, Related to #14, and closes https://github.com/1hyok/CareerCompass-FE/issues/12",
-            "1hyok/CareerCompass-FE",
+            "Refs #12, Part of: Team-CareerCompass/CareerCompass-FE#13, Related to #14, and closes https://github.com/Team-CareerCompass/CareerCompass-FE/issues/12",
+            "Team-CareerCompass/CareerCompass-FE",
         ),
         [12, 13, 14],
+    );
+});
+
+test("extracts only the references GitHub auto-closes on merge", () => {
+    // #1748 — 대표 Issue 판정은 GitHub 이 실제로 닫는 형태만 센다. 콜론이 끼거나 Refs·Part of 는 제외.
+    assert.deepEqual(
+        extractClosingIssueNumbers(
+            "Refs #12, Part of #13, closes #14, Fixed: #15, resolves Team-CareerCompass/CareerCompass-FE#16, fixes https://github.com/Team-CareerCompass/CareerCompass-FE/issues/17, Closed outside/repository#18",
+            "Team-CareerCompass/CareerCompass-FE",
+        ),
+        [14, 16, 17],
     );
 });
 
 test("ignores another repository and the empty PR template", () => {
     assert.deepEqual(
         extractSameRepositoryIssueNumbers(
-            "Refs outside/repository#1\n- Refs #",
-            "1hyok/CareerCompass-FE",
+            "Refs outside/repository#1\n- Closes #",
+            "Team-CareerCompass/CareerCompass-FE",
         ),
         [],
     );
@@ -131,7 +143,14 @@ test("ignores Issue references in comments and code examples", () => {
     assert.deepEqual(
         extractSameRepositoryIssueNumbers(
             "<!-- Refs #1 -->\n`Part of #2`\n```md\nCloses #3\n```",
-            "1hyok/CareerCompass-FE",
+            "Team-CareerCompass/CareerCompass-FE",
+        ),
+        [],
+    );
+    assert.deepEqual(
+        extractClosingIssueNumbers(
+            "<!-- Closes #1 -->\n`Fixes #2`\n```md\nCloses #3\n```",
+            "Team-CareerCompass/CareerCompass-FE",
         ),
         [],
     );
@@ -143,47 +162,49 @@ test("extracts exactly one representative Issue from the end of the PR title", (
     assert.equal(extractTitleIssueNumber("fix(home): correct navigation #1228"), null);
 });
 
-test("accepts a same-repository open Issue", async () => {
+test("accepts a same-repository open Issue closed by the PR", async () => {
     const result = await validatePullRequestIssueLink({
-        pullRequest: pullRequest({ title: "change (#1228)", body: "Refs #1228" }),
-        repository: "1hyok/CareerCompass-FE",
+        pullRequest: pullRequest({ title: "change (#1228)", body: "Closes #1228" }),
+        repository: "Team-CareerCompass/CareerCompass-FE",
         loadIssue: issueLoader(new Map([[1228, assignedIssue(1228)]])),
     });
     assert.deepEqual(result, { issues: [1228], rejected: [] });
 });
 
-test("allows multiple pull requests to share one Issue regardless of closing behavior or state", async () => {
-    const loadIssue = issueLoader(new Map([[601, assignedIssue(601, { state: "closed" })]]));
-    const results = await Promise.all([
-        validatePullRequestIssueLink({
-            pullRequest: pullRequest({ number: 7, title: "first change (#601)", body: "Part of #601" }),
-            repository: "1hyok/CareerCompass-FE",
-            loadIssue,
-        }),
-        validatePullRequestIssueLink({
-            pullRequest: pullRequest({ number: 8, title: "second change (#601)", body: "Refs #601" }),
-            repository: "1hyok/CareerCompass-FE",
-            loadIssue,
-        }),
-        validatePullRequestIssueLink({
-            pullRequest: pullRequest({ number: 9, title: "last change (#601)", body: "Closes #601" }),
-            repository: "1hyok/CareerCompass-FE",
-            loadIssue,
-        }),
-    ]);
+test("rejects a representative Issue that is only referenced, not closed", async () => {
+    // #1748 — 대표 Issue 를 Refs·Part of 로 걸면 블로커가 열린 Issue 를 merge-order-guard 밖에서 머지하거나
+    // Issue 의 일부만 하고 남는 몫을 산문에 남기는 통로가 된다. 일부만 하면 그 몫을 새 Issue 로 분리한다.
+    const loadIssue = issueLoader(new Map([[601, assignedIssue(601)]]));
+    for (const body of ["Part of #601", "Refs #601", "Closes: #601"]) {
+        await assert.rejects(
+            validatePullRequestIssueLink({
+                pullRequest: pullRequest({ title: "partial change (#601)", body }),
+                repository: "Team-CareerCompass/CareerCompass-FE",
+                loadIssue,
+            }),
+            /Refs 로는 대표 Issue를 걸 수 없습니다.*새 Issue로 분리해 대표 Issue로 삼/,
+            body,
+        );
+    }
+});
 
-    assert.deepEqual(results, [
-        { issues: [601], rejected: [] },
-        { issues: [601], rejected: [] },
-        { issues: [601], rejected: [] },
-    ]);
+test("accepts every GitHub closing keyword for the representative Issue regardless of Issue state", async () => {
+    const loadIssue = issueLoader(new Map([[601, assignedIssue(601, { state: "closed" })]]));
+    for (const body of ["Closes #601", "fixes #601", "Resolved #601", "Fix Team-CareerCompass/CareerCompass-FE#601"]) {
+        const result = await validatePullRequestIssueLink({
+            pullRequest: pullRequest({ title: "change (#601)", body }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
+            loadIssue,
+        });
+        assert.deepEqual(result, { issues: [601], rejected: [] }, body);
+    }
 });
 
 test("rejects a PR number used as an Issue reference", async () => {
     await assert.rejects(
         validatePullRequestIssueLink({
-            pullRequest: pullRequest({ title: "change (#1227)", body: "Refs #1227" }),
-            repository: "1hyok/CareerCompass-FE",
+            pullRequest: pullRequest({ title: "change (#1227)", body: "Closes #1227" }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([[1227, { number: 1227, state: "closed", pull_request: {} }]])),
         }),
         /Issue가 아니라 PR/,
@@ -193,7 +214,7 @@ test("rejects a PR number used as an Issue reference", async () => {
 test("accepts a closed Issue while warning about a missing reference", async () => {
     const result = await validatePullRequestIssueLink({
         pullRequest: pullRequest({ title: "change (#2)", body: "Closes #1 and fixes #2" }),
-        repository: "1hyok/CareerCompass-FE",
+        repository: "Team-CareerCompass/CareerCompass-FE",
         loadIssue: issueLoader(new Map([[2, assignedIssue(2, { state: "closed" })]])),
     });
 
@@ -206,8 +227,8 @@ test("accepts a closed Issue while warning about a missing reference", async () 
 test("rejects an author who is not an assignee of the representative Issue", async () => {
     await assert.rejects(
         validatePullRequestIssueLink({
-            pullRequest: pullRequest({ title: "change (#1228)", body: "Refs #1228" }),
-            repository: "1hyok/CareerCompass-FE",
+            pullRequest: pullRequest({ title: "change (#1228)", body: "Closes #1228" }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([
                 [1228, assignedIssue(1228, { assignees: [{ login: "someone-else" }] })],
             ])),
@@ -219,8 +240,8 @@ test("rejects an author who is not an assignee of the representative Issue", asy
 test("rejects an unassigned representative Issue", async () => {
     await assert.rejects(
         validatePullRequestIssueLink({
-            pullRequest: pullRequest({ title: "change (#1228)", body: "Refs #1228" }),
-            repository: "1hyok/CareerCompass-FE",
+            pullRequest: pullRequest({ title: "change (#1228)", body: "Closes #1228" }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([
                 [1228, assignedIssue(1228, { assignees: [] })],
             ])),
@@ -233,10 +254,10 @@ test("matches the assignee login case-insensitively among multiple assignees", a
     const result = await validatePullRequestIssueLink({
         pullRequest: pullRequest({
             title: "change (#1228)",
-            body: "Refs #1228",
+            body: "Closes #1228",
             user: { login: "Author", type: "User" },
         }),
-        repository: "1hyok/CareerCompass-FE",
+        repository: "Team-CareerCompass/CareerCompass-FE",
         loadIssue: issueLoader(new Map([
             [1228, assignedIssue(1228, { assignees: [{ login: "someone-else" }, "author"] })],
         ])),
@@ -244,10 +265,10 @@ test("matches the assignee login case-insensitively among multiple assignees", a
     assert.deepEqual(result, { issues: [1228], rejected: [] });
 });
 
-test("checks the assignee only on the representative Issue, not other references", async () => {
+test("keeps Refs for Issues the PR touches but does not close, and checks the assignee only on the representative Issue", async () => {
     const result = await validatePullRequestIssueLink({
-        pullRequest: pullRequest({ title: "change (#1228)", body: "Refs #1228\nRefs #1229" }),
-        repository: "1hyok/CareerCompass-FE",
+        pullRequest: pullRequest({ title: "change (#1228)", body: "Closes #1228\nRefs #1229" }),
+        repository: "Team-CareerCompass/CareerCompass-FE",
         loadIssue: issueLoader(new Map([
             [1228, assignedIssue(1228)],
             [1229, assignedIssue(1229, { assignees: [{ login: "someone-else" }] })],
@@ -256,7 +277,8 @@ test("checks the assignee only on the representative Issue, not other references
     assert.deepEqual(result, { issues: [1228, 1229], rejected: [] });
 });
 
-test("exempts bot authors from the assignee check but keeps the Issue link requirement", async () => {
+test("exempts bot authors from the assignee check and the closing keyword but keeps the Issue link requirement", async () => {
+    // 봇 PR 은 사람이 나중에 링크를 붙이는 구조라 대표 Issue 를 Refs 로 거는 현행을 유지한다 (#1748).
     const loadIssue = issueLoader(new Map([[12, assignedIssue(12, { assignees: [] })]]));
     const result = await validatePullRequestIssueLink({
         pullRequest: pullRequest({
@@ -264,7 +286,7 @@ test("exempts bot authors from the assignee check but keeps the Issue link requi
             body: "Refs #12",
             user: { login: "dependabot[bot]", type: "Bot" },
         }),
-        repository: "1hyok/CareerCompass-FE",
+        repository: "Team-CareerCompass/CareerCompass-FE",
         loadIssue,
     });
     assert.deepEqual(result, { issues: [12], rejected: [] });
@@ -276,142 +298,45 @@ test("exempts bot authors from the assignee check but keeps the Issue link requi
                 body: "",
                 user: { login: "dependabot[bot]", type: "Bot" },
             }),
-            repository: "1hyok/CareerCompass-FE",
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue,
         }),
         /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
     );
 });
 
-test("only trusted same-repository Dependabot bypasses the human Issue link template", async () => {
-    let issueLoads = 0;
-    const dependabot = dependabotPullRequest();
-    const result = await validatePullRequestIssueLink({
-        pullRequest: dependabot,
-        repository,
-        actor: dependabotActor,
-        loadIssue: async () => {
-            issueLoads += 1;
-            throw new Error("must not load");
-        },
-    });
-    assert.deepEqual(result, {
-        issues: [],
-        rejected: [],
-        exemption: "trusted-dependabot",
-    });
-    assert.equal(issueLoads, 0);
-
-    const untrusted = [
-        { pullRequest: { ...dependabot, user: { ...dependabotIdentity, type: "User" } }, actor: dependabotActor },
-        { pullRequest: { ...dependabot, user: { ...dependabotIdentity, id: 1 } }, actor: dependabotActor },
-        { pullRequest: { ...dependabot, user: { login: "another-bot[bot]", type: "Bot", id: 1 } }, actor: dependabotActor },
-        { pullRequest: { ...dependabot, head: { ...dependabot.head, ref: "feature/not-dependabot" } }, actor: dependabotActor },
-        { pullRequest: { ...dependabot, head: { ...dependabot.head, repo: { full_name: "outside/fork" } } }, actor: dependabotActor },
-        { pullRequest: { ...dependabot, base: { ...dependabot.base, ref: "main" } }, actor: dependabotActor },
-        { pullRequest: { ...dependabot, head: { ...dependabot.head, sha: "f".repeat(40) } }, actor: { login: "maintainer", type: "User", id: 7 } },
-        { pullRequest: dependabot, actor: { ...dependabotActor, action: "edited" } },
-        { pullRequest: { ...dependabot, commits: 2 }, actor: dependabotActor },
-    ];
-    for (const { pullRequest: pullRequestPayload, actor } of untrusted) {
-        await assert.rejects(
-            validatePullRequestIssueLink({
-                pullRequest: pullRequestPayload,
-                repository,
-                actor,
-                loadIssue: async () => {
-                    throw new Error("not found");
-                },
-            }),
-            /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
-        );
-    }
-});
-
-test("edited Dependabot Issue exemption은 trusted_head_commit provenance와 실제 wrapper를 요구한다", async () => {
-    const dependabot = dependabotPullRequest();
-    const actor = { ...dependabotActor, action: "edited" };
-    const headCommit = verifiedDependabotHeadCommit(dependabot);
-    let issueLoads = 0;
-
-    const result = await validatePullRequestIssueLink({
-        pullRequest: dependabot,
-        repository,
-        actor,
-        headCommit,
-        loadIssue: async () => {
-            issueLoads += 1;
-            throw new Error("must not load");
-        },
-    });
-    assert.deepEqual(result, {
-        issues: [],
-        rejected: [],
-        exemption: "trusted-dependabot",
-    });
-    assert.equal(issueLoads, 0);
-
-    await assert.rejects(
-        validatePullRequestIssueLink({
-            pullRequest: dependabot,
-            repository,
-            actor,
-            headCommit: {
-                ...headCommit,
-                commit: {
-                    verification: { ...headCommit.commit.verification, signature: "" },
-                },
-            },
-            loadIssue: async () => {
-                throw new Error("must not load");
-            },
-        }),
-        /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
-    );
-
-    const root = await mkdtemp(path.join(os.tmpdir(), "dependabot-edited-issue-link-"));
-    const payloadPath = path.join(root, "pull-request-event.json");
-    await writeFile(payloadPath, JSON.stringify({
-        pull_request: dependabot,
-        trusted_head_commit: headCommit,
-    }));
-    const { stdout } = await execFileAsync(process.execPath, [issueValidatorPath, payloadPath], {
-        env: {
-            ...process.env,
-            GH_TOKEN: "test-token-not-used-by-exemption",
-            GITHUB_REPOSITORY: repository,
-            TRUSTED_PR_ACTOR_ID: String(actor.id),
-            TRUSTED_PR_ACTOR_LOGIN: actor.login,
-            TRUSTED_PR_ACTOR_TYPE: actor.type,
-            TRUSTED_PR_EVENT_ACTION: actor.action,
-        },
-    });
-    assert.match(stdout, /trusted same-repository Dependabot/);
-});
-
-test("the issue-assignee-exempt label skips the assignee check but keeps the Issue link requirement", async () => {
+test("the issue-assignee-exempt label skips the assignee check but keeps the Issue link and closing requirements", async () => {
     const labels = [{ name: "issue-assignee-exempt" }];
     const loadIssue = issueLoader(new Map([
         [1228, assignedIssue(1228, { assignees: [{ login: "someone-else" }] })],
     ]));
     const result = await validatePullRequestIssueLink({
-        pullRequest: pullRequest({ title: "change (#1228)", body: "Refs #1228", labels }),
-        repository: "1hyok/CareerCompass-FE",
+        pullRequest: pullRequest({ title: "change (#1228)", body: "Closes #1228", labels }),
+        repository: "Team-CareerCompass/CareerCompass-FE",
         loadIssue,
     });
     assert.deepEqual(result, { issues: [1228], rejected: [] });
 
     const unassigned = await validatePullRequestIssueLink({
-        pullRequest: pullRequest({ title: "change (#12)", body: "Refs #12", labels }),
-        repository: "1hyok/CareerCompass-FE",
+        pullRequest: pullRequest({ title: "change (#12)", body: "Closes #12", labels }),
+        repository: "Team-CareerCompass/CareerCompass-FE",
         loadIssue: issueLoader(new Map([[12, assignedIssue(12, { assignees: [] })]])),
     });
     assert.deepEqual(unassigned, { issues: [12], rejected: [] });
 
     await assert.rejects(
         validatePullRequestIssueLink({
+            pullRequest: pullRequest({ title: "change (#1228)", body: "Refs #1228", labels }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
+            loadIssue,
+        }),
+        /Refs 로는 대표 Issue를 걸 수 없습니다/,
+    );
+
+    await assert.rejects(
+        validatePullRequestIssueLink({
             pullRequest: pullRequest({ title: "change", body: "", labels }),
-            repository: "1hyok/CareerCompass-FE",
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue,
         }),
         /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
@@ -423,10 +348,10 @@ test("unrelated labels keep the assignee rejection and point at the exempt label
         validatePullRequestIssueLink({
             pullRequest: pullRequest({
                 title: "change (#1228)",
-                body: "Refs #1228",
-                labels: [{ name: "review-debt-exempt" }, "bug"],
+                body: "Closes #1228",
+                labels: [{ name: "documentation" }, "bug"],
             }),
-            repository: "1hyok/CareerCompass-FE",
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([
                 [1228, assignedIssue(1228, { assignees: [{ login: "someone-else" }] })],
             ])),
@@ -438,8 +363,8 @@ test("unrelated labels keep the assignee rejection and point at the exempt label
 test("requires the pull request author login", async () => {
     await assert.rejects(
         validatePullRequestIssueLink({
-            pullRequest: pullRequest({ title: "change (#1228)", body: "Refs #1228", user: null }),
-            repository: "1hyok/CareerCompass-FE",
+            pullRequest: pullRequest({ title: "change (#1228)", body: "Closes #1228", user: null }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([[1228, assignedIssue(1228)]])),
         }),
         /pull_request\.user\.login 값이 없습니다/,
@@ -450,7 +375,7 @@ test("rejects a missing Issue", async () => {
     await assert.rejects(
         validatePullRequestIssueLink({
             pullRequest: pullRequest({ title: "change (#1)", body: "Closes #1" }),
-            repository: "1hyok/CareerCompass-FE",
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map()),
         }),
         /연결된 실제 Issue가 없습니다.*조회 실패/,
@@ -461,7 +386,7 @@ test("requires an explicit Issue reference rather than an incidental number ment
     await assert.rejects(
         validatePullRequestIssueLink({
             pullRequest: pullRequest({ title: "change (#1228)", body: "See #1228 for context" }),
-            repository: "1hyok/CareerCompass-FE",
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([[1228, { number: 1228, state: "open" }]])),
         }),
         /Issue 참조가 없습니다/,
@@ -472,7 +397,7 @@ test("requires the Issue reference in the PR body as well as the title", async (
     await assert.rejects(
         validatePullRequestIssueLink({
             pullRequest: pullRequest({ title: "change (#1228)" }),
-            repository: "1hyok/CareerCompass-FE",
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([[1228, { number: 1228, state: "open" }]])),
         }),
         /Issue 참조가 없습니다/,
@@ -482,8 +407,8 @@ test("requires the Issue reference in the PR body as well as the title", async (
 test("requires the representative Issue at the end of the PR title", async () => {
     await assert.rejects(
         validatePullRequestIssueLink({
-            pullRequest: pullRequest({ title: "change", body: "Refs #1228" }),
-            repository: "1hyok/CareerCompass-FE",
+            pullRequest: pullRequest({ title: "change", body: "Closes #1228" }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([[1228, { number: 1228, state: "open" }]])),
         }),
         /제목은 대표 Issue 번호 하나로 끝나야 합니다/,
@@ -493,8 +418,8 @@ test("requires the representative Issue at the end of the PR title", async () =>
 test("requires the title Issue to be linked in the PR body", async () => {
     await assert.rejects(
         validatePullRequestIssueLink({
-            pullRequest: pullRequest({ title: "change (#1229)", body: "Refs #1228" }),
-            repository: "1hyok/CareerCompass-FE",
+            pullRequest: pullRequest({ title: "change (#1229)", body: "Closes #1228" }),
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([
                 [1228, { number: 1228, state: "open" }],
                 [1229, { number: 1229, state: "open" }],
@@ -509,9 +434,9 @@ test("requires the title Issue itself to be an Issue when other body references 
         validatePullRequestIssueLink({
             pullRequest: pullRequest({
                 title: "change (#1227)",
-                body: "Refs #1227\nRefs #1228",
+                body: "Closes #1227\nRefs #1228",
             }),
-            repository: "1hyok/CareerCompass-FE",
+            repository: "Team-CareerCompass/CareerCompass-FE",
             loadIssue: issueLoader(new Map([
                 [1227, { number: 1227, state: "closed", pull_request: {} }],
                 [1228, { number: 1228, state: "open" }],
@@ -541,14 +466,16 @@ test("required Repository Quality check runs the issue guard on pull requests", 
     );
 });
 
-test("the PR template tells authors to reuse an Issue across pull requests", async () => {
+test("the PR template tells authors to close the representative Issue and to split partial work into a new Issue", async () => {
     const template = await readFile(templateUrl, "utf8");
-    assert.match(template, /관련된 기존 Issue를 재사용/);
     assert.match(template, /PR 제목 끝에 대표 Issue 하나를 `\(#N\)` 형식/);
-    assert.match(template, /여러 PR이 같은 Issue를 공유/);
+    assert.match(template, /대표 Issue.*Closes/);
+    assert.match(template, /Refs 로는 걸 수 없/);
+    assert.match(template, /일부만.*새 Issue.*분리/);
+    assert.match(template, /blocked_by.*merge-order-guard/);
     assert.match(template, /대표 Issue에는 PR 작성자가 담당자로 지정/);
-    assert.match(template, /최종 완료하는 PR에서만 Closes\/Fixes\/Resolves/);
-    assert.match(template, /^- Refs #$/m);
-    assert.doesNotMatch(template, /^- Closes #$/m);
-    assert.doesNotMatch(template, /^- closed #$/m);
+    assert.match(template, /^- Closes #$/m);
+    assert.doesNotMatch(template, /^- Refs #$/m);
+    assert.doesNotMatch(template, /여러 PR이 같은 Issue를 공유/);
+    assert.doesNotMatch(template, /최종 완료하는 PR에서만/);
 });

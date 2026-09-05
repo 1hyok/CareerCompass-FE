@@ -97,7 +97,7 @@ function escapeRegExp(value) {
 }
 
 function isPublicGitHubReference(value) {
-    return /^https:\/\/github\.com\/1hyok\/CareerCompass-(?:FE|BE)\/(?:issues|pull)\/\d+(?:[#?][^\s]*)?$/i.test(
+    return /^https:\/\/github\.com\/Team-CareerCompass\/CareerCompass-(?:FE|BE)\/(?:issues|pull)\/\d+(?:[#?][^\s]*)?$/i.test(
         value,
     );
 }
@@ -385,7 +385,7 @@ export function buildPublicQaEvidence(raw, originalFile) {
                 ? { interpretation_notes: INTERPRETATION_NOTES_BY_HEAD.get(headSha) }
                 : {}),
         },
-        repository: typeof raw.repository === "string" ? raw.repository : "1hyok/CareerCompass-FE",
+        repository: typeof raw.repository === "string" ? raw.repository : "Team-CareerCompass/CareerCompass-FE",
         head_sha: headSha,
         head_ref:
             typeof raw.head_ref === "string"

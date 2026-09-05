@@ -156,7 +156,7 @@ test("merge group validation falls back to the full suite without a pull request
         (entry.match(/\|\| github\.event\.pull_request\.number \|\| 0\)\) \}\}/g) ?? []).length,
         VALIDATION_WORKFLOWS.length,
     );
-    for (const gate of ["Require linked Issue", "Validate CI Test Plan"]) {
+    for (const gate of ["Require linked Issue", "Validate CI Test Plan", "Reject test-only production declarations"]) {
         assert.match(
             repositoryQuality,
             new RegExp(`- name: ${gate}\\n\\s+if: inputs\\.pull_request_number > 0`),
@@ -253,6 +253,11 @@ test("repository quality owns fail-closed paginated impact classification and PR
     assert.match(repositoryQuality, /pull_request_json=%s\\n' "\$policy_payload_file"/);
     assert.match(repositoryQuality, /trusted_head_commit: \$headCommit\[0\]/);
     assert.doesNotMatch(unitTest, /Validate CI Test Plan/);
+    // #1895 — 새 프로덕션 함수의 main 참조 게이트는 PR files API 의 patch 로 판정하므로 files_json 을 받는다.
+    assert.match(
+        repositoryQuality,
+        /validate-test-only-production-declarations\.mjs\n\s+"\$\{\{ steps\.changed-files\.outputs\.pull_request_json \}\}"\n\s+"\$\{\{ steps\.classify-documentation-changes\.outputs\.files_json \}\}"/,
+    );
 });
 
 test("editing CI Test Plan retriggers every required validation context", async () => {
