@@ -7,7 +7,7 @@ import com.careercompass.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.careercompass.feature.feed.presentation.FIXED_CLOCK
 import com.careercompass.feature.feed.presentation.MainDispatcherRule
 import com.careercompass.feature.feed.presentation.RecordingErrorReporter
-import com.careercompass.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
+import com.careercompass.feature.feed.presentation.navigation.FeedRoute
 import com.careercompass.feature.feed.presentation.postingDetail
 import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReason
 import org.junit.Assert.assertEquals
@@ -30,7 +30,7 @@ class PostingRawViewModelTest {
 
     private fun viewModel(repository: FakePostingRepository): PostingRawViewModel =
         PostingRawViewModel(
-            savedStateHandle = SavedStateHandle(mapOf(FEED_ARG_POSTING_ID to POSTING_ID)),
+            route = FeedRoute.PostingRaw(POSTING_ID),
             openPostingDetail = OpenPostingDetailUseCase(repository),
             errorReporter = reporter,
             clock = FIXED_CLOCK,

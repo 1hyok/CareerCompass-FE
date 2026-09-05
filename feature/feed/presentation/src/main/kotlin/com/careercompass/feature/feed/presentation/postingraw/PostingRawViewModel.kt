@@ -1,6 +1,5 @@
 package com.careercompass.feature.feed.presentation.postingraw
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
 import com.careercompass.core.domain.error.CoreDataFailure
@@ -10,16 +9,18 @@ import com.careercompass.core.ui.mvi.MviViewModel
 import com.careercompass.core.ui.mvi.ReducerEvent
 import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.feed.domain.usecase.OpenPostingDetailUseCase
-import com.careercompass.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
+import com.careercompass.feature.feed.presentation.navigation.FeedRoute
 import com.careercompass.feature.feed.presentation.reporting.FeedFailureStage
 import com.careercompass.feature.feed.presentation.reporting.recordFeedFailure
 import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReason
 import com.careercompass.feature.feed.presentation.shared.model.toFeedFailureReason
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.Clock
-import javax.inject.Inject
 
 public sealed interface PostingRawLoadState {
     public data object Loading : PostingRawLoadState
@@ -86,21 +87,24 @@ public sealed interface PostingRawReducerEvent : ReducerEvent {
 }
 
 /** 원문 보기 — 상세와 같은 use case 로 본문·원본 링크를 다시 받는다(이미 읽음 처리된 공고라 추가 요청은 없다). */
-@HiltViewModel
+@HiltViewModel(assistedFactory = PostingRawViewModel.Factory::class)
 public class PostingRawViewModel
-    @Inject
+    @AssistedInject
     constructor(
-        savedStateHandle: SavedStateHandle,
+        @Assisted route: FeedRoute.PostingRaw,
         private val openPostingDetail: OpenPostingDetailUseCase,
         private val errorReporter: ErrorReporter,
         /** Screen 이 수집 시각 표기에 같은 시계를 쓴다. */
         public val clock: Clock,
     ) : MviViewModel<PostingRawIntent, PostingRawViewState, PostingRawReducerEvent>(
-            PostingRawViewState(
-                postingId =
-                    requireNotNull(savedStateHandle.get<Long>(FEED_ARG_POSTING_ID)) { "$FEED_ARG_POSTING_ID is required" },
-            ),
+            PostingRawViewState(postingId = route.postingId),
         ) {
+        /** 공고 id 는 Nav3 키가 나른다 — entry 가 이 팩토리로 키를 넘긴다(#259). */
+        @AssistedFactory
+        public interface Factory {
+            public fun create(route: FeedRoute.PostingRaw): PostingRawViewModel
+        }
+
         private val postingId: Long get() = currentState.postingId
 
         private var loadJob: Job? = null

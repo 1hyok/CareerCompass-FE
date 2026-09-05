@@ -44,8 +44,8 @@ import java.time.format.DateTimeFormatter
 public fun PostingRawScreen(
     onBackClick: () -> Unit,
     onSessionEnded: () -> Unit,
+    viewModel: PostingRawViewModel,
     modifier: Modifier = Modifier,
-    viewModel: PostingRawViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current

@@ -45,8 +45,8 @@ public fun PostingDetailScreen(
     onRawClick: (Long) -> Unit,
     onProfileClick: () -> Unit,
     onSessionEnded: () -> Unit,
+    viewModel: PostingDetailViewModel,
     modifier: Modifier = Modifier,
-    viewModel: PostingDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current

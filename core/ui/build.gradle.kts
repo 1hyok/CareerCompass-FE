@@ -1,6 +1,6 @@
 plugins {
     id("careercompass.android.library.compose")
-    kotlin("plugin.serialization")
+    id("careercompass.android.navigation")
     alias(libs.plugins.compose.screenshot)
     id("careercompass.kover")
 }

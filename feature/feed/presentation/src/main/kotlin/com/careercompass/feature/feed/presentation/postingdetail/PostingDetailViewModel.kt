@@ -1,6 +1,5 @@
 package com.careercompass.feature.feed.presentation.postingdetail
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
 import com.careercompass.core.domain.error.CoreDataFailure
@@ -13,13 +12,16 @@ import com.careercompass.core.ui.mvi.ReducerEvent
 import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.careercompass.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
-import com.careercompass.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
+import com.careercompass.feature.feed.presentation.navigation.FeedRoute
 import com.careercompass.feature.feed.presentation.reporting.FeedFailureStage
 import com.careercompass.feature.feed.presentation.reporting.recordFeedFailure
 import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReason
 import com.careercompass.feature.feed.presentation.shared.model.SuitabilityJudgement
 import com.careercompass.feature.feed.presentation.shared.model.judgeSuitability
 import com.careercompass.feature.feed.presentation.shared.model.toFeedFailureReason
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -27,7 +29,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Clock
-import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -176,11 +177,11 @@ public sealed interface PostingDetailReducerEvent : ReducerEvent {
  * 멈춘다 — 둘을 섞지 않는다는 요구(#100)가 폴링 게이트에서도 지켜진다. 마이 탭에서 프로필을 채우고 돌아와
  * 「분석 중」이 되면 그때 시작한다.
  */
-@HiltViewModel
+@HiltViewModel(assistedFactory = PostingDetailViewModel.Factory::class)
 public class PostingDetailViewModel
-    @Inject
+    @AssistedInject
     constructor(
-        savedStateHandle: SavedStateHandle,
+        @Assisted route: FeedRoute.PostingDetail,
         private val openPostingDetail: OpenPostingDetailUseCase,
         private val togglePostingBookmark: TogglePostingBookmarkUseCase,
         private val userProfileRepository: UserProfileRepository,
@@ -188,11 +189,14 @@ public class PostingDetailViewModel
         /** Screen 이 상대 시각·마감 표기에 같은 시계를 쓴다. */
         public val clock: Clock,
     ) : MviViewModel<PostingDetailIntent, PostingDetailViewState, PostingDetailReducerEvent>(
-            PostingDetailViewState(
-                postingId =
-                    requireNotNull(savedStateHandle.get<Long>(FEED_ARG_POSTING_ID)) { "$FEED_ARG_POSTING_ID is required" },
-            ),
+            PostingDetailViewState(postingId = route.postingId),
         ) {
+        /** 공고 id 는 Nav3 키가 나른다 — entry 가 이 팩토리로 키를 넘긴다(#259). */
+        @AssistedFactory
+        public interface Factory {
+            public fun create(route: FeedRoute.PostingDetail): PostingDetailViewModel
+        }
+
         private val postingId: Long get() = currentState.postingId
 
         private var loadJob: Job? = null
