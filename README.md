@@ -32,7 +32,8 @@ Android 명령 전에는 `local.properties` 의 `sdk.dir` 로 SDK 위치를 제�
 | [`:feature:onboarding`](feature/onboarding) | 소셜 로그인(카카오·Google)·지문 로그인(계정 귀속·성공 뒤 세션 검증)·Step 1~4·완료 화면, 그래프 스코프 ViewModel(검증·저장·업로드·재개), 진행 상태 DataStore, 학교/졸업 피커·경험 빠른 추가·직접 입력 시트, 내비게이션 그래프. 단위/Compose 테스트와 screenshot baseline 포함 | 직무·학교 목록의 서버 연동(현재 로컬 상수), 경험 카드 편집(profile 모듈) |
 | [`:feature:feed`](feature/feed) | 메인 피드(검색·카테고리·필터 시트·정렬·커서 페이징·북마크), 공고 상세(적합도 분석·키워드·자격/우대·지원서 항목·유사 공고)·원문, 게시판 등록(구조 감지·미리보기)·목록·수정 시트(이름·유형·수집 주기 부분 수정), 오프라인 스냅샷(마지막 기본 조회 첫 페이지를 세션 저장소에 남겨 네트워크 단절 시 「오프라인 모드로 보기」로 제공), domain use case(마감·검색 클라이언트 규칙), 내비게이션 그래프 | 지원서 초안 작성 진입(editor 모듈), 알림 화면(notification 모듈), 상세 화면 분석 축 문구의 서버 연동 |
 | [`:app`](app) · [`:baselineprofile`](baselineprofile) | 시작 목적지 ViewModel(로컬 세션·캐시 프로필로 먼저 확정하고 프로필은 백그라운드로 갱신), 온보딩·피드 그래프와 하단 탭을 잇는 앱 셸, 공고 상세 딥링크(`careercompass://postings/{id}`, 인증 뒤 적용), 마이 탭 자리표시자의 세션 카드·로그아웃(확인 다이얼로그 → `LogoutUseCase` → 로그인 화면 복귀), Kakao SDK 초기화, Crashlytics `ErrorReporter`, 계측 테스트의 Hilt fake 주입(`AppNavigationAndroidTest`·API 경계·접근성 smoke), Baseline/Startup Profile, 콜드 스타트 실측([`docs/qa/cold-start-2026-09-03.md`](docs/qa/cold-start-2026-09-03.md)) | 다른 담당 모듈 탭·알림의 실제 진입점, 마이 탭의 나머지 항목(프로필·경험 카드·지문 로그인 끄기·알림 설정 — profile·notification 모듈) |
-| `editor` · `profile` · `foryou` · `notification` | 멀티모듈 build/패키지 골격 | `data`·`domain`·`presentation` 전체 구현 |
+| [`:feature:profile`](feature/profile) | API_SPEC v0.1 §2~§4(프로필·경험 카드·과거 지원서)를 화면이 부를 형태로 접은 domain use case 14개와, 보내기 전에 확정하는 상한 실패(`ProfileFailure`). 엔드포인트·DTO·매퍼·리포지토리 구현은 `core:network`·`core:data` 것을 그대로 쓴다 | 마이 홈·프로필 편집·희망 직무·경험 카드·과거 지원서 화면(`presentation`), 앱 안에서 직접 쓰는 지원서(서버 계약 미정) |
+| `editor` · `foryou` · `notification` | 멀티모듈 build/패키지 골격 | `data`·`domain`·`presentation` 전체 구현 |
 
 ### 모듈
 
