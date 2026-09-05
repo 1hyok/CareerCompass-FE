@@ -15,11 +15,14 @@ import java.io.IOException
  * TLS 회귀도 「네트워크 오류」다. 관측용 분류는 그 안에 든 원본을 다시 읽는다
  * (`core:common` 의 `transportFailureKind`), 그래서 원본을 잃지 않도록 그대로 cause 에 실어 보낸다.
  *
+ * `public` 인 이유는 §9 표가 **하나여야 하기 때문이다.** core 밖의 data 모듈(`feature:foryou:data` 등)이
+ * 자기 API 를 부를 때도 같은 함수로 번역해야, 같은 서버 코드가 화면마다 다른 사유로 흐르는 일이 생기지 않는다.
+ *
  * 오래 걸리는 서버 작업을 기다리는 화면은 그 원본에서 타임아웃 하나만 더 갈라 본다
  * (`CoreDataFailure.NetworkUnavailable.isTimeout`). 여기서 사유를 새로 만들지 않은 것은 의도다 — 사유를 늘리면
  * 갈라 볼 이유가 없는 나머지 화면까지 `is NetworkUnavailable` 이 빗나가 일반 오류로 내려앉는다.
  */
-internal fun <T> Result<T>.mapDataFailure(): Result<T> =
+public fun <T> Result<T>.mapDataFailure(): Result<T> =
     when (val exception = exceptionOrNull()) {
         is ApiException -> Result.failure(exception.toDataFailure())
         is IOException -> Result.failure(CoreDataFailure.NetworkUnavailable(exception))

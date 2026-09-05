@@ -4,8 +4,11 @@ import com.careercompass.core.network.service.AuthApiService
 import com.careercompass.core.network.service.BoardApiService
 import com.careercompass.core.network.service.BoardDetectApiService
 import com.careercompass.core.network.service.ExperienceApiService
+import com.careercompass.core.network.service.ForYouApiService
 import com.careercompass.core.network.service.PastApplicationApiService
 import com.careercompass.core.network.service.PostingApiService
+import com.careercompass.core.network.service.RoadmapApiService
+import com.careercompass.core.network.service.StrengthExportApiService
 import com.careercompass.core.network.service.TokenApiService
 import com.careercompass.core.network.service.UserApiService
 import dagger.Module
@@ -69,4 +72,23 @@ public object ServiceModule {
     public fun provideBoardDetectApiService(
         @Named(NetworkQualifiers.BOARD_DETECT_RETROFIT) retrofit: Retrofit,
     ): BoardDetectApiService = retrofit.create()
+
+    /** §7 신규 기능 셋 — 셋 다 일반 조회·요청이라 MAIN Retrofit 에서 만든다. */
+    @Provides
+    @Singleton
+    public fun provideForYouApiService(
+        @Named(NetworkQualifiers.MAIN_RETROFIT) retrofit: Retrofit,
+    ): ForYouApiService = retrofit.create()
+
+    @Provides
+    @Singleton
+    public fun provideRoadmapApiService(
+        @Named(NetworkQualifiers.MAIN_RETROFIT) retrofit: Retrofit,
+    ): RoadmapApiService = retrofit.create()
+
+    @Provides
+    @Singleton
+    public fun provideStrengthExportApiService(
+        @Named(NetworkQualifiers.MAIN_RETROFIT) retrofit: Retrofit,
+    ): StrengthExportApiService = retrofit.create()
 }

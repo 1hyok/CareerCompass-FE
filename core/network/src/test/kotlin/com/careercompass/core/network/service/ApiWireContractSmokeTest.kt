@@ -10,6 +10,7 @@ import com.careercompass.core.network.dto.JobInterestsRequestDto
 import com.careercompass.core.network.dto.LogoutRequestDto
 import com.careercompass.core.network.dto.RefreshRequestDto
 import com.careercompass.core.network.dto.SocialLoginRequestDto
+import com.careercompass.core.network.dto.StrengthExportRequestDto
 import com.careercompass.core.network.dto.TagsRequestDto
 import com.careercompass.core.network.dto.UpdateItemCategoryRequestDto
 import com.careercompass.core.network.dto.UpdateProfileRequestDto
@@ -63,6 +64,9 @@ class ApiWireContractSmokeTest {
     private lateinit var postingService: PostingApiService
     private lateinit var boardService: BoardApiService
     private lateinit var boardDetectService: BoardDetectApiService
+    private lateinit var forYouService: ForYouApiService
+    private lateinit var roadmapService: RoadmapApiService
+    private lateinit var strengthExportService: StrengthExportApiService
 
     @Before
     fun setUp() {
@@ -97,6 +101,9 @@ class ApiWireContractSmokeTest {
         postingService = publicRetrofit.create(PostingApiService::class.java)
         boardService = publicRetrofit.create(BoardApiService::class.java)
         boardDetectService = publicRetrofit.create(BoardDetectApiService::class.java)
+        forYouService = publicRetrofit.create(ForYouApiService::class.java)
+        roadmapService = publicRetrofit.create(RoadmapApiService::class.java)
+        strengthExportService = publicRetrofit.create(StrengthExportApiService::class.java)
     }
 
     @Test
@@ -480,6 +487,81 @@ class ApiWireContractSmokeTest {
             assertExactlyOneRecordedRequest("PATCH", "/api/v1/boards/3")
             assertExactlyOneRecordedRequest("DELETE", "/api/v1/boards/3")
             assertExactlyOneRecordedRequest("POST", "/api/v1/boards/3/retry")
+        }
+
+    // ── §7 신규 기능 ──
+
+    @Test
+    fun `for you feed preserves route and both reason schemas`() =
+        runTest {
+            installExpectation(
+                method = "GET",
+                path = "/api/v1/feed/for-you",
+                responseBody =
+                    """
+                    {"ok":true,"data":{"topPick":{"postingId":101,"reason":["전공 적합","마감 임박"]},
+                     "byStrength":[{"postingId":102,"reason":"Kotlin 경험이 많아요"}],
+                     "byGap":[{"postingId":103,"reason":"어학·인턴 보완용"}]}}
+                    """.trimIndent(),
+            )
+
+            val data = requireNotNull(forYouService.getForYouFeed().data)
+
+            // 톱 픽은 배열, 나머지 둘은 문자열 — 어긋난 두 스키마가 소켓 경계를 그대로 통과해야 한다.
+            assertEquals(listOf("전공 적합", "마감 임박"), requireNotNull(data.topPick).reason)
+            assertEquals("Kotlin 경험이 많아요", data.byStrength.single().reason)
+            assertEquals(103L, data.byGap.single().postingId)
+            assertExactlyOneRecordedRequest("GET", "/api/v1/feed/for-you")
+        }
+
+    @Test
+    fun `roadmap compare preserves cohort query, route, and schema`() =
+        runTest {
+            installExpectation(
+                method = "GET",
+                path = "/api/v1/roadmap/compare",
+                requestQueryParameters = mapOf("cohort" to "peer"),
+                responseBody =
+                    """
+                    {"ok":true,"data":{"cohort":"peer","sampleSize":86,
+                     "metrics":[{"name":"프로젝트 수","me":4,"peerAvg":2},{"name":"인턴 경험","me":0,"peerAvg":0.8}],
+                     "suggestions":[{"semester":"3-2","action":"SQLD + 토익 800+","expectedLift":12}]}}
+                    """.trimIndent(),
+            )
+
+            val data = requireNotNull(roadmapService.compareRoadmap(cohort = "peer").data)
+
+            assertEquals("peer", data.cohort)
+            assertEquals(86, data.sampleSize)
+            // 명세 예시가 정수와 실수를 한 응답에 섞어 쓴다 — 둘 다 실수로 받아야 파싱이 통과한다.
+            assertEquals(4.0, data.metrics.first().me, 0.0)
+            assertEquals(0.8, data.metrics.last().peerAvg, 0.0)
+            assertEquals(12, data.suggestions.single().expectedLift)
+            assertExactlyOneRecordedRequest("GET", "/api/v1/roadmap/compare")
+        }
+
+    @Test
+    fun `strength export preserves route, strict request body, and schema`() =
+        runTest {
+            installExpectation(
+                method = "POST",
+                path = "/api/v1/export",
+                requestBody =
+                    wireJson.parseToJsonElement("""{"format":"markdown","sections":["basic","skills"]}""").jsonObject,
+                responseBody = """{"ok":true,"data":{"format":"markdown","content":"# 정일혁"}}""",
+            )
+
+            val data =
+                requireNotNull(
+                    strengthExportService
+                        .exportStrengths(
+                            StrengthExportRequestDto(format = "markdown", sections = listOf("basic", "skills")),
+                        ).data,
+                )
+
+            assertEquals("markdown", data.format)
+            assertEquals("# 정일혁", data.content)
+            assertExactlyOneRecordedRequest("POST", "/api/v1/export")
         }
 
     private suspend fun assertSocialLoginContract(

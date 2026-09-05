@@ -58,4 +58,27 @@ class RequestDtoSerializationTest {
         assertEquals("RefreshDto(accessToken=<redacted>, refreshToken=<redacted>, expiresIn=3600)", RefreshDto("a", "r", 3600).toString())
         assertEquals("BiometricRegisterRequestDto(deviceId=<redacted>)", BiometricRegisterRequestDto("device").toString())
     }
+
+    @Test
+    fun `§7 추천은 배열 이유와 문자열 이유를 그대로 받는다`() {
+        val feed =
+            json.decodeFromString(
+                ForYouFeedDto.serializer(),
+                """{"topPick":{"postingId":101,"reason":["전공 적합"]},"byStrength":[{"postingId":102,"reason":"Kotlin 경험"}],"byGap":[]}""",
+            )
+
+        assertEquals(listOf("전공 적합"), feed.topPick?.reason)
+        assertEquals("Kotlin 경험", feed.byStrength.single().reason)
+        // 두 모양을 앱에서 한쪽으로 맞추면 반대쪽이 조용히 실패한다 — 문자열을 배열로 받으려 하면 여기서 막힌다.
+        assertThrows(SerializationException::class.java) {
+            json.decodeFromString(ForYouTopPickDto.serializer(), """{"postingId":101,"reason":"전공 적합"}""")
+        }
+    }
+
+    @Test
+    fun `§7 export 요청은 빈 구획을 만들지 못한다`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            StrengthExportRequestDto(format = "markdown", sections = emptyList())
+        }
+    }
 }
