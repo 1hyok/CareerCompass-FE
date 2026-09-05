@@ -42,7 +42,7 @@ class BiometricEnrollViewModelTest {
     fun `제안 조건을 모두 만족하면 시트를 띄운다`() {
         val viewModel = createViewModel()
 
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
         val state = viewModel.uiState.value
         assertTrue(state.isOffered)
@@ -54,12 +54,12 @@ class BiometricEnrollViewModelTest {
     fun `기기가 지문을 쓸 수 없으면 묻지 않고 통과시킨다`() {
         val viewModel = createViewModel()
 
-        viewModel.onOfferRequested(deviceCanEnroll = false)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = false))
 
         assertFalse(viewModel.uiState.value.isOffered)
         assertTrue(viewModel.uiState.value.canProceed)
 
-        viewModel.onProceedConsumed()
+        viewModel.onIntent(BiometricEnrollIntent.ConsumeProceed)
         assertFalse(viewModel.uiState.value.canProceed)
     }
 
@@ -68,7 +68,7 @@ class BiometricEnrollViewModelTest {
         authRepository.biometricEnabledState.value = true
         val viewModel = createViewModel()
 
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
         assertFalse(viewModel.uiState.value.isOffered)
         assertTrue(viewModel.uiState.value.canProceed)
@@ -79,7 +79,7 @@ class BiometricEnrollViewModelTest {
         authRepository.biometricEnrollDeclinedState.value = true
         val viewModel = createViewModel()
 
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
         assertFalse(viewModel.uiState.value.isOffered)
         assertTrue(viewModel.uiState.value.canProceed)
@@ -96,7 +96,7 @@ class BiometricEnrollViewModelTest {
         }
         val viewModel = createViewModel()
 
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
         assertTrue(viewModel.uiState.value.isOffered)
         assertEquals(1, refreshCalls)
@@ -110,7 +110,7 @@ class BiometricEnrollViewModelTest {
         }
         val viewModel = createViewModel()
 
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
         assertFalse(viewModel.uiState.value.isOffered)
         assertTrue(viewModel.uiState.value.canProceed)
@@ -129,8 +129,8 @@ class BiometricEnrollViewModelTest {
         }
         val viewModel = createViewModel()
 
-        viewModel.onOfferRequested(deviceCanEnroll = true)
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
         gate.complete(Result.success(profile()))
 
         assertEquals(1, refreshCalls)
@@ -139,11 +139,11 @@ class BiometricEnrollViewModelTest {
     @Test
     fun `지문 확인 성공 뒤 서버 등록까지 성공해야 켜진 것으로 본다`() {
         val viewModel = createViewModel()
-        viewModel.onOfferRequested(deviceCanEnroll = true)
-        viewModel.onAuthenticationStarted()
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationStarted)
         assertTrue(viewModel.uiState.value.isRegistering)
 
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationSucceeded)
 
         val state = viewModel.uiState.value
         assertEquals(1, authRepository.registerBiometricCalls)
@@ -158,9 +158,9 @@ class BiometricEnrollViewModelTest {
     fun `서버 등록이 실패하면 안내만 남기고 시트를 유지한다`() {
         authRepository.onRegisterBiometric = { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException())) }
         val viewModel = createViewModel()
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationSucceeded)
 
         val state = viewModel.uiState.value
         assertEquals(BiometricEnrollFailureReason.Registration, state.failure)
@@ -170,7 +170,7 @@ class BiometricEnrollViewModelTest {
         assertFalse(authRepository.biometricEnabledState.value)
         assertEquals(listOf("biometric_enroll"), reporter.stages())
 
-        viewModel.onFailureConsumed()
+        viewModel.onIntent(BiometricEnrollIntent.ConsumeFailure)
         assertNull(viewModel.uiState.value.failure)
     }
 
@@ -179,10 +179,10 @@ class BiometricEnrollViewModelTest {
         val gate = CompletableDeferred<Result<Unit>>()
         authRepository.onRegisterBiometric = { gate.await() }
         val viewModel = createViewModel()
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
-        viewModel.onAuthenticationSucceeded()
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationSucceeded)
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationSucceeded)
         gate.complete(Result.success(Unit))
 
         assertEquals(1, authRepository.registerBiometricCalls)
@@ -192,10 +192,10 @@ class BiometricEnrollViewModelTest {
     @Test
     fun `지문 확인 실패는 안내하고 기록하되 흐름을 막지 않는다`() {
         val viewModel = createViewModel()
-        viewModel.onOfferRequested(deviceCanEnroll = true)
-        viewModel.onAuthenticationStarted()
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationStarted)
 
-        viewModel.onAuthenticationFailed(IllegalStateException("lockout"))
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationFailed(IllegalStateException("lockout")))
 
         val state = viewModel.uiState.value
         assertEquals(BiometricEnrollFailureReason.Authentication, state.failure)
@@ -205,17 +205,17 @@ class BiometricEnrollViewModelTest {
         assertEquals(0, authRepository.registerBiometricCalls)
 
         // 실패 뒤에도 시트를 닫으면 원래 가던 화면으로 이어진다.
-        viewModel.onDeclined()
+        viewModel.onIntent(BiometricEnrollIntent.Decline)
         assertTrue(viewModel.uiState.value.canProceed)
     }
 
     @Test
     fun `프롬프트 취소는 시트를 그대로 두고 표시도 기록도 하지 않는다`() {
         val viewModel = createViewModel()
-        viewModel.onOfferRequested(deviceCanEnroll = true)
-        viewModel.onAuthenticationStarted()
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationStarted)
 
-        viewModel.onAuthenticationCancelled()
+        viewModel.onIntent(BiometricEnrollIntent.AuthenticationCancelled)
 
         val state = viewModel.uiState.value
         assertTrue(state.isOffered)
@@ -228,9 +228,9 @@ class BiometricEnrollViewModelTest {
     @Test
     fun `나중에는 기기에 기록하고 통과시킨다`() {
         val viewModel = createViewModel()
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
-        viewModel.onDeclined()
+        viewModel.onIntent(BiometricEnrollIntent.Decline)
 
         assertEquals(1, authRepository.declineBiometricEnrollCalls)
         assertTrue(authRepository.biometricEnrollDeclinedState.value)
@@ -243,9 +243,9 @@ class BiometricEnrollViewModelTest {
     fun `거절 기록이 실패해도 흐름은 막지 않는다`() {
         authRepository.onDeclineBiometricEnroll = { Result.failure(IllegalStateException("프로필 없음")) }
         val viewModel = createViewModel()
-        viewModel.onOfferRequested(deviceCanEnroll = true)
+        viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = true))
 
-        viewModel.onDeclined()
+        viewModel.onIntent(BiometricEnrollIntent.Decline)
 
         assertTrue(viewModel.uiState.value.canProceed)
         assertEquals(listOf("biometric_enroll"), reporter.stages())

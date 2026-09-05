@@ -7,14 +7,14 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
-import com.careercompass.feature.onboarding.presentation.biometric.BiometricLoginEntry
+import com.careercompass.feature.onboarding.presentation.biometric.BiometricLoginScreen
 import com.careercompass.feature.onboarding.presentation.complete.OnboardingCompleteEntry
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep1Entry
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep2Entry
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep3Entry
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep4Entry
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingViewModel
-import com.careercompass.feature.onboarding.presentation.login.LoginEntry
+import com.careercompass.feature.onboarding.presentation.login.LoginScreen
 
 /**
  * 온보딩 중첩 그래프를 등록한다.
@@ -36,7 +36,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
 ) {
     navigation<OnboardingGraphRoute>(startDestination = startDestination) {
         composable<OnboardingRoute.Login> {
-            LoginEntry(
+            LoginScreen(
                 onLoginSuccess = actions.replaceAuthWithFeed,
                 onNewUserOnboarding = actions.replaceLoginWithOnboarding,
                 isSessionExpiryNoticeVisible = isSessionExpiryNoticeVisible,
@@ -44,7 +44,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
             )
         }
         composable<OnboardingRoute.BiometricLogin> {
-            BiometricLoginEntry(
+            BiometricLoginScreen(
                 onLoginSuccess = actions.replaceAuthWithFeed,
                 onOnboardingRequired = actions.replaceAuthWithOnboarding,
                 onOtherMethodLogin = actions.navigateToLoginFromBiometric,

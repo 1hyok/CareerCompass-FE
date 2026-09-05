@@ -73,9 +73,9 @@ class BiometricLoginViewModelTest {
     fun `인증 성공은 프로필을 한 번 갱신해 세션을 검증하고 완료 사용자를 피드로 보낸다`() {
         stubRefresh { Result.success(profile(name = "정일혁", onboardingDone = true)) }
         val viewModel = createViewModel()
-        viewModel.onAuthenticationStarted()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationStarted)
 
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationSucceeded)
 
         val state = viewModel.uiState.value
         assertEquals(BiometricDestination.Feed, state.pendingNavigation)
@@ -91,7 +91,7 @@ class BiometricLoginViewModelTest {
         stubRefresh { Result.success(profile(name = "정일혁", onboardingDone = false)) }
         val viewModel = createViewModel()
 
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationSucceeded)
 
         assertEquals(BiometricDestination.Onboarding, viewModel.uiState.value.pendingNavigation)
         assertEquals(1, refreshCalls)
@@ -106,12 +106,12 @@ class BiometricLoginViewModelTest {
         }
         val viewModel = createViewModel()
 
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationSucceeded)
         assertTrue(viewModel.uiState.value.isAuthenticating)
         assertNull(viewModel.uiState.value.pendingNavigation)
 
         // 검증이 끝나기 전에 다시 성공이 와도 합류한다 — 갱신은 한 번.
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationSucceeded)
         gate.complete(Result.success(profile(name = "정일혁", onboardingDone = true)))
 
         assertFalse(viewModel.uiState.value.isAuthenticating)
@@ -125,7 +125,7 @@ class BiometricLoginViewModelTest {
         stubRefresh { Result.failure(CoreDataFailure.Unauthorized("AUTH_INVALID", IllegalStateException("만료"))) }
         val viewModel = createViewModel()
 
-        viewModel.onAuthenticationSucceeded()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationSucceeded)
 
         val state = viewModel.uiState.value
         assertEquals(BiometricDestination.SessionExpired, state.pendingNavigation)
@@ -140,7 +140,7 @@ class BiometricLoginViewModelTest {
         stubRefresh { Result.failure(CoreDataFailure.NetworkUnavailable(UnknownHostException("offline"))) }
         val done = createViewModel()
 
-        done.onAuthenticationSucceeded()
+        done.onIntent(BiometricLoginIntent.AuthenticationSucceeded)
 
         assertEquals(BiometricDestination.Feed, done.uiState.value.pendingNavigation)
         assertEquals(listOf("biometric_session_verify"), reporter.stages())
@@ -150,7 +150,7 @@ class BiometricLoginViewModelTest {
         userProfileRepository.onboardingDoneHint = false
         val notDone = createViewModel()
 
-        notDone.onAuthenticationSucceeded()
+        notDone.onIntent(BiometricLoginIntent.AuthenticationSucceeded)
 
         assertEquals(BiometricDestination.Onboarding, notDone.uiState.value.pendingNavigation)
         // 같은 (원인, 단계) 조합의 두 번째 실패는 접힌다 — 오프라인 재시도가 표본을 독점하지 않는다.
@@ -160,9 +160,9 @@ class BiometricLoginViewModelTest {
     @Test
     fun `사용자 취소는 표시도 기록도 하지 않는다`() {
         val viewModel = createViewModel()
-        viewModel.onAuthenticationStarted()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationStarted)
 
-        viewModel.onAuthenticationCancelled()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationCancelled)
 
         val state = viewModel.uiState.value
         assertFalse(state.isAuthenticating)
@@ -173,16 +173,16 @@ class BiometricLoginViewModelTest {
     @Test
     fun `인증 실패는 사유를 표시하고 기록한다`() {
         val viewModel = createViewModel()
-        viewModel.onAuthenticationStarted()
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationStarted)
 
-        viewModel.onAuthenticationFailed(BiometricFailureReason.Lockout, IllegalStateException("lockout"))
+        viewModel.onIntent(BiometricLoginIntent.AuthenticationFailed(BiometricFailureReason.Lockout, IllegalStateException("lockout")))
 
         val state = viewModel.uiState.value
         assertEquals(BiometricFailureReason.Lockout, state.failure)
         assertFalse(state.isAuthenticating)
         assertEquals(listOf("biometric_auth"), reporter.stages())
 
-        viewModel.onFailureConsumed()
+        viewModel.onIntent(BiometricLoginIntent.ConsumeFailure)
         assertNull(viewModel.uiState.value.failure)
     }
 
@@ -191,10 +191,10 @@ class BiometricLoginViewModelTest {
     fun `다른 방법으로 로그인은 만료 표시 없이 로그인 화면으로 보낸다`() {
         val viewModel = createViewModel()
 
-        viewModel.onOtherMethodClicked()
+        viewModel.onIntent(BiometricLoginIntent.ChooseOtherMethod)
         assertEquals(BiometricDestination.Login, viewModel.uiState.value.pendingNavigation)
 
-        viewModel.onNavigationConsumed()
+        viewModel.onIntent(BiometricLoginIntent.ConsumeNavigation)
         assertNull(viewModel.uiState.value.pendingNavigation)
     }
 

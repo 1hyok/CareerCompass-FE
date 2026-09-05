@@ -6,7 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.careercompass.core.ui.theme.CareerCompassTheme
-import com.careercompass.feature.onboarding.presentation.login.LoginScreen
+import com.careercompass.feature.onboarding.presentation.login.LoginContent
+import com.careercompass.feature.onboarding.presentation.login.LoginFailureReason
 import com.careercompass.feature.onboarding.presentation.login.LoginUiState
 
 @PreviewTest
@@ -46,7 +47,7 @@ public fun LoginLoadingPreview() {
 @Preview(name = "Login error", widthDp = 360, heightDp = 800)
 @Composable
 public fun LoginErrorPreview() {
-    LoginPreviewHost(state = LoginUiState(errorMessage = "카카오 로그인에 실패했어요. 다시 시도해 주세요."))
+    LoginPreviewHost(state = LoginUiState(failure = LoginFailureReason.Rejected))
 }
 
 @Composable
@@ -56,7 +57,13 @@ private fun LoginPreviewHost(
 ) {
     CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            LoginScreen(state = state, onEvent = {})
+            LoginContent(
+                state = state,
+                isSessionExpiryNoticeVisible = false,
+                onIntent = {},
+                onSocialLoginClick = {},
+                onSessionExpiryNoticeDismissed = {},
+            )
         }
     }
 }

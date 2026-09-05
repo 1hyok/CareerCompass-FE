@@ -35,7 +35,7 @@ internal fun BiometricEnrollGate(
     val currentOnProceed by rememberUpdatedState(onProceed)
 
     LaunchedEffect(isRequested, activity) {
-        if (isRequested) viewModel.onOfferRequested(deviceCanEnroll = activity.canEnrollBiometric())
+        if (isRequested) viewModel.onIntent(BiometricEnrollIntent.RequestOffer(deviceCanEnroll = activity.canEnrollBiometric()))
     }
 
     // [isRequested] 를 다시 보는 이유 — 판정 도중 호출부가 다른 곳으로 가기로 했을 수 있다(완료 화면의 「게시판 먼저
@@ -43,7 +43,7 @@ internal fun BiometricEnrollGate(
     LaunchedEffect(isRequested, state.canProceed) {
         if (!isRequested || !state.canProceed) return@LaunchedEffect
         currentOnProceed()
-        viewModel.onProceedConsumed()
+        viewModel.onIntent(BiometricEnrollIntent.ConsumeProceed)
     }
 
     val launchPrompt =
@@ -51,37 +51,31 @@ internal fun BiometricEnrollGate(
             title = stringResource(R.string.onboarding_biometric_enroll_prompt_title),
             negativeButtonText = stringResource(R.string.onboarding_biometric_prompt_negative),
             allowedAuthenticators = BIOMETRIC_ENROLL_AUTHENTICATORS,
-            listener = remember(viewModel) { BiometricEnrollPromptListener(viewModel) },
+            listener = remember(viewModel) { BiometricEnrollPromptListener(viewModel::onIntent) },
         )
 
     if (!state.isOffered) return
 
-    val errorMessage = state.failure?.let { it.toMessage() }
-    OnboardingSheetHost(onDismissRequest = viewModel::onDeclined) {
+    OnboardingSheetHost(onDismissRequest = { viewModel.onIntent(BiometricEnrollIntent.Decline) }) {
         BiometricEnrollSheet(
-            state = BiometricEnrollUiState(isRegistering = state.isRegistering, errorMessage = errorMessage),
-            onEvent = { event ->
-                when (event) {
-                    BiometricEnrollEvent.EnrollClicked -> launchPrompt()
-                    BiometricEnrollEvent.LaterClicked -> viewModel.onDeclined()
-                    BiometricEnrollEvent.ErrorDismissed -> viewModel.onFailureConsumed()
-                }
-            },
+            state = state,
+            onIntent = viewModel::onIntent,
+            onEnrollClick = launchPrompt,
         )
     }
 }
 
 private class BiometricEnrollPromptListener(
-    private val viewModel: BiometricEnrollViewModel,
+    private val onIntent: (BiometricEnrollIntent) -> Unit,
 ) : BiometricPromptListener {
-    override fun onStarted(): Unit = viewModel.onAuthenticationStarted()
+    override fun onStarted(): Unit = onIntent(BiometricEnrollIntent.AuthenticationStarted)
 
-    override fun onSucceeded(): Unit = viewModel.onAuthenticationSucceeded()
+    override fun onSucceeded(): Unit = onIntent(BiometricEnrollIntent.AuthenticationSucceeded)
 
-    override fun onCancelled(): Unit = viewModel.onAuthenticationCancelled()
+    override fun onCancelled(): Unit = onIntent(BiometricEnrollIntent.AuthenticationCancelled)
 
     override fun onFailed(
         reason: BiometricFailureReason,
         cause: Throwable,
-    ): Unit = viewModel.onAuthenticationFailed(cause)
+    ): Unit = onIntent(BiometricEnrollIntent.AuthenticationFailed(cause))
 }

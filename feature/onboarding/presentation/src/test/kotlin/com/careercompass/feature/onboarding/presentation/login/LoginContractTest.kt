@@ -1,9 +1,7 @@
 package com.careercompass.feature.onboarding.presentation.login
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -13,33 +11,24 @@ public class LoginContractTest {
         val state = LoginUiState()
 
         assertFalse(state.isLoading)
-        assertNull(state.errorMessage)
+        assertNull(state.failure)
+        assertNull(state.pendingNavigation)
+        assertFalse(state.isBusy)
         assertTrue(state.isActionEnabled)
     }
 
     @Test
     public fun loadingState_disablesActions() {
         assertFalse(LoginUiState(isLoading = true).isActionEnabled)
-        assertTrue(LoginUiState(isLoading = false, errorMessage = "실패").isActionEnabled)
+        assertTrue(LoginUiState(isLoading = false, failure = LoginFailureReason.Rejected).isActionEnabled)
     }
 
+    /** 이동이 대기 중인 동안 버튼이 살아 있으면 이미 로그인한 사용자가 SDK 를 한 번 더 열 수 있다. */
     @Test
-    public fun blankErrorMessage_isRejected() {
-        listOf("", " \t").forEach { blank ->
-            val exception =
-                assertThrows(IllegalArgumentException::class.java) {
-                    LoginUiState(errorMessage = blank)
-                }
+    public fun pendingNavigation_keepsScreenBusy() {
+        val state = LoginUiState(isLoading = false, pendingNavigation = LoginDestination.Feed)
 
-            assertEquals("errorMessage must be null or non-blank", exception.message)
-        }
-    }
-
-    @Test
-    public fun nonBlankErrorMessage_isAccepted() {
-        assertEquals(
-            "카카오 로그인에 실패했어요",
-            LoginUiState(errorMessage = "카카오 로그인에 실패했어요").errorMessage,
-        )
+        assertTrue(state.isBusy)
+        assertFalse(state.isActionEnabled)
     }
 }

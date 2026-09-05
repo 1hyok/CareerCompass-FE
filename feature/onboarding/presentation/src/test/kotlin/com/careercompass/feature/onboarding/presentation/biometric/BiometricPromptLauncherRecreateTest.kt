@@ -153,7 +153,7 @@ class BiometricPromptLauncherRecreateTest {
             if (attached()) {
                 CompositionLocalProvider(LocalActivity provides host) {
                     CareerCompassTheme {
-                        BiometricLoginEntry(
+                        BiometricLoginScreen(
                             onLoginSuccess = {},
                             onOnboardingRequired = {},
                             onOtherMethodLogin = {},

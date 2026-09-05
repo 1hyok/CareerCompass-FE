@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.careercompass.core.model.auth.SocialProvider
 import com.careercompass.core.ui.theme.CareerCompassTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -40,7 +41,7 @@ public class LoginScreenTest {
 
     @Test
     public fun defaultState_showsBrandAndSocialActionsOnly() {
-        setScreen(state = LoginUiState())
+        setContent(state = LoginUiState())
 
         composeRule.onNodeWithText("CareerCompass").assertIsDisplayed()
         composeRule.onNodeWithText("AI가 분석하는 나만의 진로 나침반").assertIsDisplayed()
@@ -55,7 +56,7 @@ public class LoginScreenTest {
 
     @Test
     public fun socialButtons_exposeButtonRoleNameAndTouchTarget() {
-        setScreen(state = LoginUiState())
+        setContent(state = LoginUiState())
 
         listOf(kakaoButton(), googleButton()).forEach { button ->
             button
@@ -69,42 +70,49 @@ public class LoginScreenTest {
     }
 
     @Test
-    public fun socialButtons_emitDistinctEvents() {
-        val events = mutableListOf<LoginEvent>()
-        setScreen(state = LoginUiState(), onEvent = events::add)
+    public fun socialButtons_requestDistinctProviders() {
+        val clicks = mutableListOf<SocialProvider>()
+        val intents = mutableListOf<LoginIntent>()
+        setContent(state = LoginUiState(), onIntent = intents::add, onSocialLoginClick = clicks::add)
 
         kakaoButton().performClick()
         googleButton().performClick()
 
         composeRule.runOnIdle {
-            assertEquals(
-                listOf(LoginEvent.KakaoLoginClicked, LoginEvent.GoogleLoginClicked),
-                events,
-            )
+            assertEquals(listOf(SocialProvider.Kakao, SocialProvider.Google), clicks)
+            // 토큰 요청은 stateful 층의 몫이라 Content 는 Intent 를 만들지 않는다.
+            assertTrue(intents.isEmpty())
         }
     }
 
     @Test
     public fun loadingState_disablesSocialButtonsAndShowsProgress() {
-        val events = mutableListOf<LoginEvent>()
-        setScreen(state = LoginUiState(isLoading = true), onEvent = events::add)
+        val clicks = mutableListOf<SocialProvider>()
+        setContent(state = LoginUiState(isLoading = true), onSocialLoginClick = clicks::add)
 
         composeRule.onNodeWithText("로그인하는 중이에요").assertIsDisplayed()
         kakaoButton().assertIsNotEnabled().performClick()
         googleButton().assertIsNotEnabled().performClick()
 
-        composeRule.runOnIdle { assertTrue(events.isEmpty()) }
+        composeRule.runOnIdle { assertTrue(clicks.isEmpty()) }
+    }
+
+    /** 이동이 대기 중인 동안도 진행 중으로 그린다 — 관문이 프로필을 받는 사이 버튼이 살아 있으면 SDK 를 또 연다. */
+    @Test
+    public fun pendingNavigation_keepsProgressAndLocksButtons() {
+        setContent(state = LoginUiState(pendingNavigation = LoginDestination.Feed))
+
+        composeRule.onNodeWithText("로그인하는 중이에요").assertIsDisplayed()
+        kakaoButton().assertIsNotEnabled()
+        googleButton().assertIsNotEnabled()
     }
 
     @Test
-    public fun errorState_showsDismissibleCard() {
-        val events = mutableListOf<LoginEvent>()
-        setScreen(
-            state = LoginUiState(errorMessage = "카카오 로그인에 실패했어요"),
-            onEvent = events::add,
-        )
+    public fun failureState_showsReasonAndDismissConsumesFailure() {
+        val intents = mutableListOf<LoginIntent>()
+        setContent(state = LoginUiState(failure = LoginFailureReason.Network), onIntent = intents::add)
 
-        composeRule.onNodeWithText("카카오 로그인에 실패했어요").assertIsDisplayed()
+        composeRule.onNodeWithText("네트워크 연결을 확인한 뒤 다시 시도해 주세요").assertIsDisplayed()
         composeRule
             .onNodeWithContentDescription("오류 안내 닫기")
             .assertIsDisplayed()
@@ -114,13 +122,43 @@ public class LoginScreenTest {
             .performClick()
 
         composeRule.runOnIdle {
-            assertEquals(listOf(LoginEvent.ErrorDismissed), events)
+            assertEquals(listOf<LoginIntent>(LoginIntent.ConsumeFailure), intents)
         }
+    }
+
+    /** 만료 안내는 셸의 상태라 닫기가 Intent 가 아니라 셸 콜백으로 돌아간다. */
+    @Test
+    public fun sessionExpiryNotice_showsSameCardAndDismissReturnsToShell() {
+        val intents = mutableListOf<LoginIntent>()
+        var dismissed = 0
+        setContent(
+            state = LoginUiState(),
+            isSessionExpiryNoticeVisible = true,
+            onIntent = intents::add,
+            onSessionExpiryNoticeDismissed = { dismissed++ },
+        )
+
+        composeRule.onNodeWithText("로그인이 만료됐어요. 다시 로그인해 주세요").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("오류 안내 닫기").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(1, dismissed)
+            assertTrue(intents.isEmpty())
+        }
+    }
+
+    /** 방금 누른 버튼의 결과가 급하므로 실패가 만료 안내보다 먼저다. */
+    @Test
+    public fun failure_takesPrecedenceOverSessionExpiryNotice() {
+        setContent(state = LoginUiState(failure = LoginFailureReason.Rejected), isSessionExpiryNoticeVisible = true)
+
+        composeRule.onNodeWithText("로그인에 실패했어요. 다시 시도해 주세요").assertIsDisplayed()
+        composeRule.onAllNodesWithText("로그인이 만료됐어요. 다시 로그인해 주세요").assertCountEquals(0)
     }
 
     @Test
     public fun largeFontScale_keepsSocialButtonsReachable() {
-        setScreen(state = LoginUiState(), fontScale = 2f)
+        setContent(state = LoginUiState(), fontScale = 2f)
 
         kakaoButton().performScrollTo().assertIsDisplayed()
         googleButton().performScrollTo().assertIsDisplayed()
@@ -130,9 +168,12 @@ public class LoginScreenTest {
 
     private fun googleButton() = composeRule.onNode(hasText("Google 계정으로 로그인") and hasClickAction())
 
-    private fun setScreen(
+    private fun setContent(
         state: LoginUiState,
-        onEvent: (LoginEvent) -> Unit = {},
+        isSessionExpiryNoticeVisible: Boolean = false,
+        onIntent: (LoginIntent) -> Unit = {},
+        onSocialLoginClick: (SocialProvider) -> Unit = {},
+        onSessionExpiryNoticeDismissed: () -> Unit = {},
         fontScale: Float = 1f,
     ) {
         composeRule.setContent {
@@ -141,7 +182,13 @@ public class LoginScreenTest {
                 LocalDensity provides Density(currentDensity.density, fontScale),
             ) {
                 CareerCompassTheme {
-                    LoginScreen(state = state, onEvent = onEvent)
+                    LoginContent(
+                        state = state,
+                        isSessionExpiryNoticeVisible = isSessionExpiryNoticeVisible,
+                        onIntent = onIntent,
+                        onSocialLoginClick = onSocialLoginClick,
+                        onSessionExpiryNoticeDismissed = onSessionExpiryNoticeDismissed,
+                    )
                 }
             }
         }

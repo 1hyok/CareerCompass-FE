@@ -1,50 +1,26 @@
 package com.careercompass.feature.onboarding.presentation.biometric
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 public class BiometricLoginContractTest {
     @Test
-    public fun defaultState_isIdleWithOptionalFieldsAbsent() {
-        val state = BiometricLoginUiState(userName = "일혁", accountLabel = null)
+    public fun defaultState_isIdleWithNothingKnownYet() {
+        val state = BiometricLoginUiState()
 
+        assertNull(state.userName)
+        assertFalse(state.isBiometricEnabled)
         assertFalse(state.isAuthenticating)
-        assertNull(state.accountLabel)
-        assertNull(state.errorMessage)
-        assertTrue(state.isBiometricEnabled)
+        assertNull(state.failure)
+        assertNull(state.pendingNavigation)
+        assertTrue(state.isActionEnabled)
     }
 
     @Test
     public fun authenticatingState_disablesBiometricAction() {
-        assertFalse(sampleState().copy(isAuthenticating = true).isBiometricEnabled)
+        assertFalse(BiometricLoginUiState(userName = "일혁", isAuthenticating = true).isActionEnabled)
+        assertTrue(BiometricLoginUiState(userName = "일혁", failure = BiometricFailureReason.Failed).isActionEnabled)
     }
-
-    @Test
-    public fun blankRequiredAndOptionalStrings_areRejected() {
-        val invalidFactories: List<Pair<String, () -> Any>> =
-            listOf(
-                "userName must not be blank" to { sampleState().copy(userName = " \t") },
-                "accountLabel must be null or non-blank" to { sampleState().copy(accountLabel = "") },
-                "errorMessage must be null or non-blank" to { sampleState().copy(errorMessage = " ") },
-            )
-
-        invalidFactories.forEach { (expectedMessage, factory) ->
-            val exception =
-                assertThrows(IllegalArgumentException::class.java) {
-                    factory()
-                }
-
-            assertEquals(expectedMessage, exception.message)
-        }
-    }
-
-    private fun sampleState(): BiometricLoginUiState =
-        BiometricLoginUiState(
-            userName = "일혁",
-            accountLabel = "1hyok@konkuk.ac.kr",
-        )
 }

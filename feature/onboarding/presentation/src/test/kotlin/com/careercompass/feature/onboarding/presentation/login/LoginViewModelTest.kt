@@ -23,6 +23,9 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 
+/**
+ * 로그인의 **비동기 갈래** — SDK 토큰 단계와 서버 로그인, 그 사이의 취소·이탈. 순수 전이는 [LoginReducerTest] 가 본다.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
     private val authRepository = FakeAuthRepository()
@@ -40,11 +43,16 @@ class LoginViewModelTest {
 
     private fun createViewModel() = LoginViewModel(SocialLoginUseCase(authRepository), reporter)
 
+    private fun LoginViewModel.request(
+        provider: SocialProvider,
+        requestToken: suspend () -> Result<String>,
+    ) = onIntent(LoginIntent.RequestSocialLogin(provider, requestToken))
+
     /** SDK 가 곧바로 토큰을 돌려주는 시도. 토큰 단계는 이 테스트들의 관심사가 아니다. */
     private fun LoginViewModel.attemptWith(
         provider: SocialProvider,
         token: String,
-    ) = onSocialLoginRequested(provider) { Result.success(token) }
+    ) = request(provider) { Result.success(token) }
 
     @Test
     fun `신규 사용자는 온보딩으로 보낸다`() {
@@ -112,7 +120,7 @@ class LoginViewModelTest {
     fun `SDK 단계의 사용자 취소는 표시도 기록도 하지 않는다`() {
         val viewModel = createViewModel()
 
-        viewModel.onSocialLoginRequested(SocialProvider.Kakao) { Result.failure(CoreAuthFailure.UserCancelledAuth()) }
+        viewModel.request(SocialProvider.Kakao) { Result.failure(CoreAuthFailure.UserCancelledAuth()) }
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
@@ -125,7 +133,7 @@ class LoginViewModelTest {
     fun `SDK 단계의 다른 실패는 기록하고 사유를 표시한다`() {
         val viewModel = createViewModel()
 
-        viewModel.onSocialLoginRequested(SocialProvider.Google) { Result.failure(IOException("no network")) }
+        viewModel.request(SocialProvider.Google) { Result.failure(IOException("no network")) }
 
         assertEquals(LoginFailureReason.Network, viewModel.uiState.value.failure)
         assertEquals(listOf("social_token_request"), reporter.stages())
@@ -136,7 +144,7 @@ class LoginViewModelTest {
     fun `SDK 진입점이 던진 예외는 앱을 죽이지 않고 실패로 끝난다`() {
         val viewModel = createViewModel()
 
-        viewModel.onSocialLoginRequested(SocialProvider.Kakao) { error("Kakao SDK is not initialized") }
+        viewModel.request(SocialProvider.Kakao) { error("Kakao SDK is not initialized") }
 
         assertEquals(LoginFailureReason.Unknown, viewModel.uiState.value.failure)
         assertFalse(viewModel.uiState.value.isLoading)
@@ -157,11 +165,11 @@ class LoginViewModelTest {
         val viewModel = createViewModel()
         var sdkCalls = 0
 
-        viewModel.onSocialLoginRequested(SocialProvider.Kakao) {
+        viewModel.request(SocialProvider.Kakao) {
             sdkCalls++
             awaitCancellation()
         }
-        viewModel.onSocialLoginRequested(SocialProvider.Google) {
+        viewModel.request(SocialProvider.Google) {
             sdkCalls++
             awaitCancellation()
         }
@@ -172,10 +180,10 @@ class LoginViewModelTest {
     @Test
     fun `화면이 사라지면 진행 중인 토큰 요청을 끊고 조용히 잠금을 푼다`() {
         val viewModel = createViewModel()
-        viewModel.onSocialLoginRequested(SocialProvider.Kakao) { awaitCancellation() }
+        viewModel.request(SocialProvider.Kakao) { awaitCancellation() }
         assertTrue(viewModel.uiState.value.isLoading)
 
-        viewModel.onLoginHostDetached()
+        viewModel.onIntent(LoginIntent.DetachLoginHost)
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
@@ -188,8 +196,8 @@ class LoginViewModelTest {
     fun `잠금이 풀린 뒤에는 다시 로그인할 수 있다`() {
         authRepository.session = session(isNewUser = false)
         val viewModel = createViewModel()
-        viewModel.onSocialLoginRequested(SocialProvider.Kakao) { awaitCancellation() }
-        viewModel.onLoginHostDetached()
+        viewModel.request(SocialProvider.Kakao) { awaitCancellation() }
+        viewModel.onIntent(LoginIntent.DetachLoginHost)
 
         viewModel.attemptWith(SocialProvider.Kakao, "kakao-token")
 
@@ -209,7 +217,7 @@ class LoginViewModelTest {
         assertTrue(viewModel.uiState.value.isLoading)
 
         // 토큰 단계는 이미 끝났다 — 이탈 신호가 서버 로그인까지 끊어 버리면 멀쩡히 끝난 소셜 인증이 버려진다.
-        viewModel.onLoginHostDetached()
+        viewModel.onIntent(LoginIntent.DetachLoginHost)
         assertTrue(viewModel.uiState.value.isLoading)
         serverCall.complete(Unit)
 
@@ -218,17 +226,17 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `단발 신호는 소비하면 비워진다`() {
+    fun `단발 신호는 소비 Intent 로 비워진다`() {
         authRepository.onSocialLogin = { _, _, _ -> Result.failure(IllegalStateException("boom")) }
         val viewModel = createViewModel()
         viewModel.attemptWith(SocialProvider.Kakao, "kakao-token")
 
-        viewModel.onFailureConsumed()
+        viewModel.onIntent(LoginIntent.ConsumeFailure)
         assertNull(viewModel.uiState.value.failure)
 
         authRepository.onSocialLogin = null
         viewModel.attemptWith(SocialProvider.Kakao, "kakao-token")
-        viewModel.onNavigationConsumed()
+        viewModel.onIntent(LoginIntent.ConsumeNavigation)
         assertNull(viewModel.uiState.value.pendingNavigation)
     }
 
