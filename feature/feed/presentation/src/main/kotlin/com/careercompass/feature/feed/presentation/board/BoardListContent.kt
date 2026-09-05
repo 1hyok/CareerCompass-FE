@@ -45,7 +45,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedTopBar
 
 /** Stateless list of registered boards with per-board activation, retry, and delete actions (spec F2-1/F2-2). */
 @Composable
-public fun BoardListContent(
+internal fun BoardListContent(
     state: BoardListUiState,
     onEvent: (BoardListEvent) -> Unit,
     modifier: Modifier = Modifier,

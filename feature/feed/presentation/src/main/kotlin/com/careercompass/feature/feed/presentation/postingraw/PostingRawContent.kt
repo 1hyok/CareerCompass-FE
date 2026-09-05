@@ -30,7 +30,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedTopBar
 
 /** Stateless raw-text view of a posting, with a selectable body and an optional source link action. */
 @Composable
-public fun PostingRawContent(
+internal fun PostingRawContent(
     state: PostingRawUiState,
     onEvent: (PostingRawEvent) -> Unit,
     modifier: Modifier = Modifier,
