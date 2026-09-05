@@ -1,0 +1,24 @@
+<!--
+  Play 스토어 피처 그래픽 1024×500. 스토어가 이 이미지 위에 앱 이름을 겹쳐 그릴 수 있으므로 글자는 왼쪽 아래로 몰고
+  오른쪽 위는 비운다. 색은 브랜드 에메랄드(Brand500 #10B981)에서 짙은 쪽(#047857)으로 가는 대각 그라디언트다.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- 나침반 마크 — 런처 아이콘과 같은 도형(뷰포트 108 기준)을 3.1배로 키워 왼쪽에 둔다. -->
+  <g transform="translate(96 82) scale(3.1) translate(-30 -30)">
+    <path fill="none" stroke="#FFFFFF" stroke-width="5" d="M54,30 a24,24 0 1,1 -0.01,0 z"/>
+    <path fill="#FFFFFF" d="M54,36 L60,54 L54,50.5 L48,54 Z"/>
+    <path fill="#D1FAE5" d="M54,72 L48,54 L54,57.5 L60,54 Z"/>
+    <path fill="#FFFFFF" d="M54,51.5 a2.5,2.5 0 1,1 -0.01,0 z"/>
+  </g>
+
+  <text x="96" y="360" fill="#FFFFFF" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="86" font-weight="700" letter-spacing="-1">CareerCompass</text>
+  <text x="98" y="416" fill="#D1FAE5" font-family="Apple SD Gothic Neo, Noto Sans KR, sans-serif" font-size="34" font-weight="500">공고를 모아서, 적합도를 보고, 지원서를 만든다</text>
+</svg>
