@@ -179,6 +179,28 @@ class TokenReissuerTest {
         assertEquals("transport", reporter.attributes.single()["failure_kind"])
     }
 
+    /**
+     * 이슈 79 가 고칠 현재 동작의 측정이다. 거절과 달리 일시 실패는 액세스 토큰에 묶어 공유하지 않으므로, 같은
+     * 토큰을 든 다음 호출이 회전을 처음부터 다시 시도한다. 재시도 정책이 정해지면 이 기대값이 먼저 바뀐다.
+     */
+    @Test
+    fun `현재 동작 측정 - 일시 실패 뒤 같은 액세스 토큰으로 다시 부르면 회전을 또 시도한다`() {
+        val repository =
+            FakeAuthRepository(accessToken = "old", refreshToken = "refresh").apply {
+                onRotateToken = { Result.failure(ApiException("INTERNAL_ERROR", null, "장애", status = 503)) }
+            }
+        val reissuer = reissuer(repository)
+
+        val first = reissuer.reissue(expectedAccessToken = "old", trigger = Trigger.Unauthorized)
+        val second = reissuer.reissue(expectedAccessToken = "old", trigger = Trigger.Unauthorized)
+
+        assertTrue(first is TokenReissuer.Outcome.ServerFailure)
+        assertTrue(second is TokenReissuer.Outcome.ServerFailure)
+        assertEquals(2, repository.rotateTokenCalls)
+        assertEquals(0, repository.clearSessionCalls)
+        assertEquals(listOf("server", "server"), reporter.attributes.map { it["failure_kind"] })
+    }
+
     @Test
     fun `5xx 는 서버 장애로 분류하고 400 은 거절로 확정한다`() {
         val serverFailure =
