@@ -371,12 +371,6 @@ class MviContractKonsistTest {
          */
         val STATE_HOLDER = Regex("""\b(MutableStateFlow|MutableSharedFlow|Channel)\s*[(<]""")
 
-        /** #245 가 뺀다. Login·Biometric 3개는 첫 묶음에서 옮겼고 `OnboardingViewModel` 이 남았다. */
-        private val ISSUE_245_ONBOARDING =
-            setOf(
-                "com.careercompass.feature.onboarding.presentation.flow.OnboardingViewModel",
-            )
-
         /** #246 이 뺀다. */
         private val ISSUE_246_FEED =
             setOf(
@@ -388,12 +382,12 @@ class MviContractKonsistTest {
             )
 
         /**
-         * 전환 전 9개 중 남은 것. `app` 의 ViewModel 2개(`MainViewModel`·`MyTabPlaceholderViewModel`)는 이 규칙의
+         * 전환 전 9개 중 남은 것(onboarding 4개는 #249·#245 가 옮겼다). `app` 의 ViewModel 2개(`MainViewModel`·`MyTabPlaceholderViewModel`)는 이 규칙의
          * 대상이 아니라 목록에도 없다 — 규칙 B 가 `feature/…/presentation` 만 보기 때문이다.
          *
          * 목록이 비면 규칙 B 의 예외(`- PENDING_MVI_MIGRATION`)도 함께 지운다.
          */
-        val PENDING_MVI_MIGRATION = ISSUE_245_ONBOARDING + ISSUE_246_FEED
+        val PENDING_MVI_MIGRATION = ISSUE_246_FEED
     }
 }
 

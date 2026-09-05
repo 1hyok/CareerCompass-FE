@@ -36,35 +36,37 @@ public fun OnboardingStep1Entry(
     ConsumePendingNavigation(
         destination = state.pendingNavigation,
         onNavigate = onNavigate,
-        onConsumed = viewModel::onNavigationConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeNavigation) },
     )
     ConsumeSessionEnd(
         sessionEnded = state.sessionEnded,
         onSessionEnded = onSessionEnded,
-        onConsumed = viewModel::onSessionEndedConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeSessionEnded) },
     )
 
     OnboardingFlowFailureHost(
         failure = state.failure,
-        onDismiss = viewModel::onFailureConsumed,
+        onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
         OnboardingStep1Screen(
             state = state.step1.toUiState(isInputEnabled = state.isInputEnabled),
             onEvent = { event ->
-                if (event == OnboardingStep1Event.BackClicked) onBack() else viewModel.onStep1Event(event)
+                if (event == OnboardingStep1Event.BackClicked) onBack() else viewModel.onIntent(OnboardingIntent.Step1(event))
             },
         )
     }
 
     state.schoolPicker?.let { picker ->
-        OnboardingSheetHost(onDismissRequest = { viewModel.onSchoolPickerEvent(SchoolPickerEvent.Dismissed) }) {
-            SchoolPickerSheet(state = picker, onEvent = viewModel::onSchoolPickerEvent)
+        OnboardingSheetHost(onDismissRequest = { viewModel.onIntent(OnboardingIntent.SchoolPicker(SchoolPickerEvent.Dismissed)) }) {
+            SchoolPickerSheet(state = picker, onEvent = { viewModel.onIntent(OnboardingIntent.SchoolPicker(it)) })
         }
     }
     state.graduationPicker?.let { picker ->
-        OnboardingSheetHost(onDismissRequest = { viewModel.onGraduationPickerEvent(GraduationDatePickerEvent.Dismissed) }) {
-            GraduationDatePickerSheet(state = picker, onEvent = viewModel::onGraduationPickerEvent)
+        OnboardingSheetHost(
+            onDismissRequest = { viewModel.onIntent(OnboardingIntent.GraduationPicker(GraduationDatePickerEvent.Dismissed)) },
+        ) {
+            GraduationDatePickerSheet(state = picker, onEvent = { viewModel.onIntent(OnboardingIntent.GraduationPicker(it)) })
         }
     }
 }

@@ -28,23 +28,23 @@ public fun OnboardingStep2Entry(
     ConsumePendingNavigation(
         destination = state.pendingNavigation,
         onNavigate = onNavigate,
-        onConsumed = viewModel::onNavigationConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeNavigation) },
     )
     ConsumeSessionEnd(
         sessionEnded = state.sessionEnded,
         onSessionEnded = onSessionEnded,
-        onConsumed = viewModel::onSessionEndedConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeSessionEnded) },
     )
 
     OnboardingFlowFailureHost(
         failure = state.failure,
-        onDismiss = viewModel::onFailureConsumed,
+        onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
         OnboardingStep2Screen(
             state = state.step2.toUiState(isInputEnabled = state.isInputEnabled),
             onEvent = { event ->
-                if (event == OnboardingStep2Event.BackClicked) onBack() else viewModel.onStep2Event(event)
+                if (event == OnboardingStep2Event.BackClicked) onBack() else viewModel.onIntent(OnboardingIntent.Step2(event))
             },
         )
     }

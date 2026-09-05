@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.careercompass.feature.onboarding.presentation.biometric.BiometricEnrollGate
 import com.careercompass.feature.onboarding.presentation.flow.ConsumePendingNavigation
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingDestination
+import com.careercompass.feature.onboarding.presentation.flow.OnboardingIntent
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingViewModel
 
 /**
@@ -28,12 +29,12 @@ public fun OnboardingCompleteEntry(
     ConsumePendingNavigation(
         destination = pendingNavigation.takeIf { it != OnboardingDestination.Feed },
         onNavigate = onNavigate,
-        onConsumed = viewModel::onNavigationConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeNavigation) },
     )
 
     OnboardingCompleteScreen(
         state = OnboardingCompleteUiState(userName = state.userName),
-        onEvent = viewModel::onCompleteEvent,
+        onEvent = { viewModel.onIntent(OnboardingIntent.Complete(it)) },
         modifier = modifier,
     )
 
@@ -41,7 +42,7 @@ public fun OnboardingCompleteEntry(
         isRequested = pendingNavigation == OnboardingDestination.Feed,
         onProceed = {
             onNavigate(OnboardingDestination.Feed)
-            viewModel.onNavigationConsumed()
+            viewModel.onIntent(OnboardingIntent.ConsumeNavigation)
         },
     )
 }
