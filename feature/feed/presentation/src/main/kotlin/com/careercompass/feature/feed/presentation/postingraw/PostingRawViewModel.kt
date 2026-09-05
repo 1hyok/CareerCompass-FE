@@ -2,6 +2,7 @@ package com.careercompass.feature.feed.presentation.postingraw
 
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
+import com.careercompass.core.common.url.ExternalUrl
 import com.careercompass.core.domain.error.CoreDataFailure
 import com.careercompass.core.model.posting.PostingDetail
 import com.careercompass.core.ui.mvi.MviIntent
@@ -11,6 +12,7 @@ import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.careercompass.feature.feed.presentation.navigation.FeedRoute
 import com.careercompass.feature.feed.presentation.reporting.FeedFailureStage
+import com.careercompass.feature.feed.presentation.reporting.UnsupportedExternalUrlException
 import com.careercompass.feature.feed.presentation.reporting.recordFeedFailure
 import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReason
 import com.careercompass.feature.feed.presentation.shared.model.toFeedFailureReason
@@ -47,6 +49,8 @@ public data class PostingRawViewState(
     val isBackRequested: Boolean = false,
     /** 외부 브라우저로 열 원본 링크. Screen 이 `Intent.ACTION_VIEW` 로 바꾸고 [PostingRawIntent.ConsumeOpenUrl] 로 비운다. */
     val openUrl: String? = null,
+    /** 원본 링크가 웹 주소가 아니어서 열지 않았다. Screen 이 열기 실패와 같은 안내를 띄운다. */
+    val openUrlRejected: Boolean = false,
     val sessionEnded: Boolean = false,
 ) : UiState
 
@@ -62,6 +66,8 @@ public sealed interface PostingRawIntent : MviIntent {
 
     public data object ConsumeOpenUrl : PostingRawIntent
 
+    public data object ConsumeOpenUrlRejected : PostingRawIntent
+
     public data object ConsumeSessionEnded : PostingRawIntent
 }
 
@@ -73,6 +79,8 @@ public sealed interface PostingRawReducerEvent : ReducerEvent {
         val url: String,
     ) : PostingRawReducerEvent
 
+    public data object OpenUrlRejected : PostingRawReducerEvent
+
     public data class LoadStateChanged(
         val loadState: PostingRawLoadState,
     ) : PostingRawReducerEvent
@@ -82,6 +90,8 @@ public sealed interface PostingRawReducerEvent : ReducerEvent {
     public data object BackConsumed : PostingRawReducerEvent
 
     public data object OpenUrlConsumed : PostingRawReducerEvent
+
+    public data object OpenUrlRejectedConsumed : PostingRawReducerEvent
 
     public data object SessionEndedConsumed : PostingRawReducerEvent
 }
@@ -119,6 +129,7 @@ public class PostingRawViewModel
                 PostingRawIntent.Retry -> load()
                 PostingRawIntent.ConsumeBack -> dispatch(PostingRawReducerEvent.BackConsumed)
                 PostingRawIntent.ConsumeOpenUrl -> dispatch(PostingRawReducerEvent.OpenUrlConsumed)
+                PostingRawIntent.ConsumeOpenUrlRejected -> dispatch(PostingRawReducerEvent.OpenUrlRejectedConsumed)
                 PostingRawIntent.ConsumeSessionEnded -> dispatch(PostingRawReducerEvent.SessionEndedConsumed)
             }
         }
@@ -130,10 +141,12 @@ public class PostingRawViewModel
             when (event) {
                 PostingRawReducerEvent.BackRequested -> state.copy(isBackRequested = true)
                 is PostingRawReducerEvent.OpenUrlRequested -> state.copy(openUrl = event.url)
+                PostingRawReducerEvent.OpenUrlRejected -> state.copy(openUrlRejected = true)
                 is PostingRawReducerEvent.LoadStateChanged -> state.copy(loadState = event.loadState)
                 PostingRawReducerEvent.SessionEnded -> state.copy(sessionEnded = true)
                 PostingRawReducerEvent.BackConsumed -> state.copy(isBackRequested = false)
                 PostingRawReducerEvent.OpenUrlConsumed -> state.copy(openUrl = null)
+                PostingRawReducerEvent.OpenUrlRejectedConsumed -> state.copy(openUrlRejected = false)
                 PostingRawReducerEvent.SessionEndedConsumed -> state.copy(sessionEnded = false)
             }
 
@@ -145,7 +158,17 @@ public class PostingRawViewModel
 
                 PostingRawEvent.OpenOriginalClicked -> {
                     val detail = (currentState.loadState as? PostingRawLoadState.Loaded)?.detail ?: return
-                    dispatch(PostingRawReducerEvent.OpenUrlRequested(detail.url))
+                    val openable = ExternalUrl.openableOrNull(detail.url)
+                    if (openable == null) {
+                        // 서버가 준 값이라고 그대로 넘기지 않는다 — 이 주소는 사용자가 등록한 게시판에서 긁혀 온다.
+                        errorReporter.recordFeedFailure(
+                            FeedFailureStage.PostingRaw,
+                            UnsupportedExternalUrlException(ExternalUrl.schemeOrNull(detail.url)),
+                        )
+                        dispatch(PostingRawReducerEvent.OpenUrlRejected)
+                        return
+                    }
+                    dispatch(PostingRawReducerEvent.OpenUrlRequested(openable))
                 }
             }
         }

@@ -78,6 +78,14 @@ public fun PostingRawScreen(
         }
     }
 
+    // 웹 주소가 아닌 원본 링크는 ViewModel 이 걸러 낸다. 사용자에게는 열기 실패와 같은 안내다.
+    val openUrlRejected = state.openUrlRejected
+    LaunchedEffect(openUrlRejected) {
+        if (!openUrlRejected) return@LaunchedEffect
+        viewModel.onIntent(PostingRawIntent.ConsumeOpenUrlRejected)
+        snackbarScope.launch { snackbarHostState.showSnackbar(resources.getString(R.string.feed_open_url_failed)) }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         when (val loadState = state.loadState) {
             PostingRawLoadState.Loading -> {
