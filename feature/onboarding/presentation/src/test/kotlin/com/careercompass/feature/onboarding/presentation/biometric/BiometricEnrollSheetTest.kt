@@ -52,25 +52,26 @@ public class BiometricEnrollSheetTest {
     }
 
     @Test
-    public fun answers_emitDistinctEvents() {
-        val events = mutableListOf<BiometricEnrollEvent>()
-        setSheet(state = BiometricEnrollUiState(), onEvent = events::add)
+    public fun answers_emitDistinctSignals() {
+        val intents = mutableListOf<BiometricEnrollIntent>()
+        var enrollClicks = 0
+        setSheet(state = BiometricEnrollUiState(), onIntent = intents::add, onEnrollClick = { enrollClicks++ })
 
         enrollButton().performClick()
         laterButton().performClick()
 
         composeRule.runOnIdle {
-            assertEquals(
-                listOf(BiometricEnrollEvent.EnrollClicked, BiometricEnrollEvent.LaterClicked),
-                events,
-            )
+            // 프롬프트는 관문이 띄우므로 등록 버튼은 Intent 가 아니라 콜백이다.
+            assertEquals(1, enrollClicks)
+            assertEquals(listOf<BiometricEnrollIntent>(BiometricEnrollIntent.Decline), intents)
         }
     }
 
     @Test
     public fun registeringState_locksBothAnswers() {
-        val events = mutableListOf<BiometricEnrollEvent>()
-        setSheet(state = BiometricEnrollUiState(isRegistering = true), onEvent = events::add)
+        val intents = mutableListOf<BiometricEnrollIntent>()
+        var enrollClicks = 0
+        setSheet(state = BiometricEnrollUiState(isRegistering = true), onIntent = intents::add, onEnrollClick = { enrollClicks++ })
 
         composeRule
             .onNodeWithText("등록하는 중")
@@ -80,15 +81,18 @@ public class BiometricEnrollSheetTest {
         laterButton().assertIsNotEnabled().performClick()
         composeRule.onAllNodesWithText("지문 등록하기").assertCountEquals(0)
 
-        composeRule.runOnIdle { assertTrue(events.isEmpty()) }
+        composeRule.runOnIdle {
+            assertTrue(intents.isEmpty())
+            assertEquals(0, enrollClicks)
+        }
     }
 
     @Test
     public fun errorState_showsDismissibleCardAndKeepsRetry() {
-        val events = mutableListOf<BiometricEnrollEvent>()
+        val intents = mutableListOf<BiometricEnrollIntent>()
         setSheet(
-            state = BiometricEnrollUiState(errorMessage = "지문을 확인하지 못했어요. 다시 시도해 주세요"),
-            onEvent = events::add,
+            state = BiometricEnrollUiState(failure = BiometricEnrollFailureReason.Authentication),
+            onIntent = intents::add,
         )
 
         composeRule.onNodeWithText("지문을 확인하지 못했어요. 다시 시도해 주세요").assertIsDisplayed()
@@ -101,7 +105,7 @@ public class BiometricEnrollSheetTest {
             .assertWidthIsAtLeast(48.dp)
             .performClick()
 
-        composeRule.runOnIdle { assertEquals(listOf(BiometricEnrollEvent.ErrorDismissed), events) }
+        composeRule.runOnIdle { assertEquals(listOf<BiometricEnrollIntent>(BiometricEnrollIntent.ConsumeFailure), intents) }
     }
 
     @Test
@@ -118,7 +122,8 @@ public class BiometricEnrollSheetTest {
 
     private fun setSheet(
         state: BiometricEnrollUiState,
-        onEvent: (BiometricEnrollEvent) -> Unit = {},
+        onIntent: (BiometricEnrollIntent) -> Unit = {},
+        onEnrollClick: () -> Unit = {},
         fontScale: Float = 1f,
     ) {
         composeRule.setContent {
@@ -127,7 +132,7 @@ public class BiometricEnrollSheetTest {
                 LocalDensity provides Density(currentDensity.density, fontScale),
             ) {
                 CareerCompassTheme {
-                    BiometricEnrollSheet(state = state, onEvent = onEvent)
+                    BiometricEnrollSheet(state = state, onIntent = onIntent, onEnrollClick = onEnrollClick)
                 }
             }
         }

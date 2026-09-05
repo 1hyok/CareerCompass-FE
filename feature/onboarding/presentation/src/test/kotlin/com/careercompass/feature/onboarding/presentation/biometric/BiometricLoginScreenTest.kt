@@ -42,29 +42,28 @@ public class BiometricLoginScreenTest {
     public val composeRule = createComposeRule()
 
     @Test
-    public fun defaultState_showsGreetingAccountAndPrompt() {
-        setScreen(state = sampleState)
+    public fun defaultState_showsGreetingAndPrompt() {
+        setContent(state = sampleState)
 
         composeRule.onNodeWithContentDescription("CareerCompass").assertIsDisplayed()
         composeRule.onNodeWithText("일혁님, 안녕하세요").assertIsDisplayed()
-        composeRule.onNodeWithText("1hyok@konkuk.ac.kr").assertIsDisplayed()
         composeRule.onNodeWithText("지문으로 빠른 로그인").assertIsDisplayed()
         composeRule.onNodeWithText("등록된 지문을 사용해 바로 로그인해요").assertIsDisplayed()
         otherMethodButton().assertIsDisplayed().assertIsEnabled()
         composeRule.onAllNodesWithContentDescription("오류 안내 닫기").assertCountEquals(0)
     }
 
+    /** 프로필이 아직 없으면 기본 호칭으로 인사한다 — 빈 이름으로 「님, 안녕하세요」가 되지 않는다. */
     @Test
-    public fun missingAccountLabel_hidesCaption() {
-        setScreen(state = sampleState.copy(accountLabel = null))
+    public fun missingUserName_fallsBackToDefaultGreeting() {
+        setContent(state = sampleState.copy(userName = null))
 
-        composeRule.onNodeWithText("일혁님, 안녕하세요").assertIsDisplayed()
-        composeRule.onAllNodesWithText("1hyok@konkuk.ac.kr").assertCountEquals(0)
+        composeRule.onNodeWithText("회원님, 안녕하세요").assertIsDisplayed()
     }
 
     @Test
     public fun biometricButton_exposesRoleNameAndSize() {
-        setScreen(state = sampleState)
+        setContent(state = sampleState)
 
         biometricButton()
             .assertIsDisplayed()
@@ -76,28 +75,25 @@ public class BiometricLoginScreenTest {
     }
 
     @Test
-    public fun controls_emitDistinctEvents() {
-        val events = mutableListOf<BiometricLoginEvent>()
-        setScreen(state = sampleState, onEvent = events::add)
+    public fun controls_emitDistinctSignals() {
+        val intents = mutableListOf<BiometricLoginIntent>()
+        var biometricClicks = 0
+        setContent(state = sampleState, onIntent = intents::add, onBiometricClick = { biometricClicks++ })
 
         biometricButton().performClick()
         otherMethodButton().performClick()
 
         composeRule.runOnIdle {
-            assertEquals(
-                listOf(
-                    BiometricLoginEvent.BiometricClicked,
-                    BiometricLoginEvent.OtherMethodClicked,
-                ),
-                events,
-            )
+            // 프롬프트는 stateful 층이 띄우므로 지문 버튼은 Intent 가 아니라 콜백이다.
+            assertEquals(1, biometricClicks)
+            assertEquals(listOf<BiometricLoginIntent>(BiometricLoginIntent.ChooseOtherMethod), intents)
         }
     }
 
     @Test
     public fun authenticatingState_disablesOnlyBiometricButton() {
-        val events = mutableListOf<BiometricLoginEvent>()
-        setScreen(state = sampleState.copy(isAuthenticating = true), onEvent = events::add)
+        var biometricClicks = 0
+        setContent(state = sampleState.copy(isAuthenticating = true), onBiometricClick = { biometricClicks++ })
 
         biometricButton()
             .assertIsNotEnabled()
@@ -105,18 +101,15 @@ public class BiometricLoginScreenTest {
             .performClick()
         otherMethodButton().assertIsEnabled()
 
-        composeRule.runOnIdle { assertTrue(events.isEmpty()) }
+        composeRule.runOnIdle { assertEquals(0, biometricClicks) }
     }
 
     @Test
-    public fun errorState_showsDismissibleCard() {
-        val events = mutableListOf<BiometricLoginEvent>()
-        setScreen(
-            state = sampleState.copy(errorMessage = "지문을 인식하지 못했어요"),
-            onEvent = events::add,
-        )
+    public fun failureState_showsReasonAndDismissConsumesFailure() {
+        val intents = mutableListOf<BiometricLoginIntent>()
+        setContent(state = sampleState.copy(failure = BiometricFailureReason.Failed), onIntent = intents::add)
 
-        composeRule.onNodeWithText("지문을 인식하지 못했어요").assertIsDisplayed()
+        composeRule.onNodeWithText("지문을 확인하지 못했어요. 다시 시도해 주세요").assertIsDisplayed()
         composeRule
             .onNodeWithContentDescription("오류 안내 닫기")
             .assertIsDisplayed()
@@ -126,13 +119,13 @@ public class BiometricLoginScreenTest {
             .performClick()
 
         composeRule.runOnIdle {
-            assertEquals(listOf(BiometricLoginEvent.ErrorDismissed), events)
+            assertEquals(listOf<BiometricLoginIntent>(BiometricLoginIntent.ConsumeFailure), intents)
         }
     }
 
     @Test
     public fun largeFontScale_keepsActionsReachable() {
-        setScreen(state = sampleState, fontScale = 2f)
+        setContent(state = sampleState, fontScale = 2f)
 
         biometricButton().performScrollTo().assertIsDisplayed()
         otherMethodButton().performScrollTo().assertIsDisplayed()
@@ -142,9 +135,10 @@ public class BiometricLoginScreenTest {
 
     private fun otherMethodButton() = composeRule.onNode(hasText("다른 방법으로 로그인") and hasClickAction())
 
-    private fun setScreen(
+    private fun setContent(
         state: BiometricLoginUiState,
-        onEvent: (BiometricLoginEvent) -> Unit = {},
+        onIntent: (BiometricLoginIntent) -> Unit = {},
+        onBiometricClick: () -> Unit = {},
         fontScale: Float = 1f,
     ) {
         composeRule.setContent {
@@ -153,17 +147,13 @@ public class BiometricLoginScreenTest {
                 LocalDensity provides Density(currentDensity.density, fontScale),
             ) {
                 CareerCompassTheme {
-                    BiometricLoginScreen(state = state, onEvent = onEvent)
+                    BiometricLoginContent(state = state, onIntent = onIntent, onBiometricClick = onBiometricClick)
                 }
             }
         }
     }
 
     private companion object {
-        val sampleState =
-            BiometricLoginUiState(
-                userName = "일혁",
-                accountLabel = "1hyok@konkuk.ac.kr",
-            )
+        val sampleState = BiometricLoginUiState(userName = "일혁", isBiometricEnabled = true)
     }
 }

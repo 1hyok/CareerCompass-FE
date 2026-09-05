@@ -31,19 +31,24 @@ import com.careercompass.feature.onboarding.presentation.R
 import com.careercompass.feature.onboarding.presentation.shared.component.OnboardingErrorCard
 
 /**
- * 지문 빠른 로그인을 켤지 한 번 묻는 시트의 본문. 시트 컨테이너는 호스트가 감싼다.
+ * 지문 빠른 로그인을 켤지 한 번 묻는 시트의 본문 — stateless 층. 시트 컨테이너는 [BiometricEnrollGate] 가 감싼다.
  *
  * 「나중에」는 취소가 아니라 **다시 묻지 않겠다는 답**이다([BiometricEnrollViewModel]). 그래서 두 버튼 다 결론이고,
  * 둘 중 무엇을 골라도 원래 가던 화면으로 이어진다.
+ *
+ * @param onEnrollClick 프롬프트는 FragmentActivity 에 매여 있어 stateful 층이 띄운다 — Intent 가 아니라 콜백으로 남는
+ *   유일한 상호작용이다(`docs/convention/mvi.md`).
  */
 @Composable
 public fun BiometricEnrollSheet(
     state: BiometricEnrollUiState,
-    onEvent: (BiometricEnrollEvent) -> Unit,
+    onIntent: (BiometricEnrollIntent) -> Unit,
+    onEnrollClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CareerCompassTheme.colors
     val spacing = CareerCompassTheme.spacing
+    val errorMessage = state.failure?.toMessage()
 
     Column(
         modifier =
@@ -69,10 +74,10 @@ public fun BiometricEnrollSheet(
             textAlign = TextAlign.Center,
             style = CareerCompassTheme.typography.bodyMedium,
         )
-        if (state.errorMessage != null) {
+        if (errorMessage != null) {
             OnboardingErrorCard(
-                message = state.errorMessage,
-                onDismissClick = { onEvent(BiometricEnrollEvent.ErrorDismissed) },
+                message = errorMessage,
+                onDismissClick = { onIntent(BiometricEnrollIntent.ConsumeFailure) },
             )
         }
         CareerCompassButton(
@@ -84,7 +89,7 @@ public fun BiometricEnrollSheet(
                         R.string.onboarding_biometric_enroll_confirm
                     },
                 ),
-            onClick = { onEvent(BiometricEnrollEvent.EnrollClicked) },
+            onClick = onEnrollClick,
             modifier = Modifier.fillMaxWidth(),
             variant = CareerCompassButtonVariant.Primary,
             size = CareerCompassButtonSize.Large,
@@ -92,7 +97,7 @@ public fun BiometricEnrollSheet(
         )
         CareerCompassButton(
             text = stringResource(R.string.onboarding_biometric_enroll_later),
-            onClick = { onEvent(BiometricEnrollEvent.LaterClicked) },
+            onClick = { onIntent(BiometricEnrollIntent.Decline) },
             modifier = Modifier.fillMaxWidth(),
             variant = CareerCompassButtonVariant.Ghost,
             size = CareerCompassButtonSize.Large,

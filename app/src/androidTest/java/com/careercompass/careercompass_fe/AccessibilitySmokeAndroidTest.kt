@@ -34,7 +34,7 @@ import com.careercompass.feature.onboarding.presentation.OnboardingStep3Screen
 import com.careercompass.feature.onboarding.presentation.OnboardingStep3UiState
 import com.careercompass.feature.onboarding.presentation.OnboardingStep4Screen
 import com.careercompass.feature.onboarding.presentation.OnboardingStep4UiState
-import com.careercompass.feature.onboarding.presentation.login.LoginScreen
+import com.careercompass.feature.onboarding.presentation.login.LoginContent
 import com.careercompass.feature.onboarding.presentation.login.LoginUiState
 import org.junit.Before
 import org.junit.Rule
@@ -64,7 +64,13 @@ class AccessibilitySmokeAndroidTest {
     @Test
     fun welcomeAndLogin_haveNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            LoginScreen(state = LoginUiState(), onEvent = {})
+            LoginContent(
+                state = LoginUiState(),
+                isSessionExpiryNoticeVisible = false,
+                onIntent = {},
+                onSocialLoginClick = {},
+                onSessionExpiryNoticeDismissed = {},
+            )
         }
     }
 

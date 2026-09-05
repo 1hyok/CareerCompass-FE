@@ -5,7 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.careercompass.core.ui.theme.CareerCompassTheme
-import com.careercompass.feature.onboarding.presentation.biometric.BiometricLoginScreen
+import com.careercompass.feature.onboarding.presentation.biometric.BiometricFailureReason
+import com.careercompass.feature.onboarding.presentation.biometric.BiometricLoginContent
 import com.careercompass.feature.onboarding.presentation.biometric.BiometricLoginUiState
 
 @PreviewTest
@@ -26,22 +27,16 @@ public fun BiometricLoginAuthenticatingPreview() {
 @Preview(name = "Biometric login error", widthDp = 360, heightDp = 800)
 @Composable
 public fun BiometricLoginErrorPreview() {
-    BiometricLoginPreviewHost(
-        state = biometricLoginPreviewState().copy(errorMessage = "지문을 인식하지 못했어요. 다시 시도해 주세요."),
-    )
+    BiometricLoginPreviewHost(state = biometricLoginPreviewState().copy(failure = BiometricFailureReason.Failed))
 }
 
 @Composable
 private fun BiometricLoginPreviewHost(state: BiometricLoginUiState) {
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            BiometricLoginScreen(state = state, onEvent = {})
+            BiometricLoginContent(state = state, onIntent = {}, onBiometricClick = {})
         }
     }
 }
 
-private fun biometricLoginPreviewState(): BiometricLoginUiState =
-    BiometricLoginUiState(
-        userName = "일혁",
-        accountLabel = "1hyok@konkuk.ac.kr",
-    )
+private fun biometricLoginPreviewState(): BiometricLoginUiState = BiometricLoginUiState(userName = "일혁", isBiometricEnabled = true)

@@ -70,8 +70,10 @@ class SocialLoginLauncherTest {
             if (attached) {
                 val launchLogin =
                     rememberSocialLoginLauncher(
-                        onAttempt = viewModel::onSocialLoginRequested,
-                        onHostDetached = viewModel::onLoginHostDetached,
+                        onAttempt = { provider, requestToken ->
+                            viewModel.onIntent(LoginIntent.RequestSocialLogin(provider, requestToken))
+                        },
+                        onHostDetached = { viewModel.onIntent(LoginIntent.DetachLoginHost) },
                         // SDK 화면이 떠 있어 아직 아무 답도 오지 않은 상태.
                         tokenSource = { _, _ -> awaitCancellation() },
                     )

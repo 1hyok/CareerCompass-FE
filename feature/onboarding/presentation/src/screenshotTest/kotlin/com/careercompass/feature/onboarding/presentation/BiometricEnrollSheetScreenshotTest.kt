@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.careercompass.core.ui.theme.CareerCompassTheme
+import com.careercompass.feature.onboarding.presentation.biometric.BiometricEnrollFailureReason
 import com.careercompass.feature.onboarding.presentation.biometric.BiometricEnrollSheet
 import com.careercompass.feature.onboarding.presentation.biometric.BiometricEnrollUiState
 
@@ -27,7 +28,7 @@ public fun BiometricEnrollRegisteringPreview() {
 @Composable
 public fun BiometricEnrollErrorPreview() {
     BiometricEnrollPreviewHost(
-        state = BiometricEnrollUiState(errorMessage = "지금은 지문 로그인을 켜지 못했어요. 다시 시도해 주세요"),
+        state = BiometricEnrollUiState(failure = BiometricEnrollFailureReason.Registration),
     )
 }
 
@@ -35,7 +36,7 @@ public fun BiometricEnrollErrorPreview() {
 private fun BiometricEnrollPreviewHost(state: BiometricEnrollUiState) {
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.surface) {
-            BiometricEnrollSheet(state = state, onEvent = {})
+            BiometricEnrollSheet(state = state, onIntent = {}, onEnrollClick = {})
         }
     }
 }
