@@ -5,83 +5,69 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
-import com.careercompass.feature.onboarding.presentation.navigation.OnboardingGraphRoute
-import com.careercompass.feature.onboarding.presentation.navigation.OnboardingNavActions
-import com.careercompass.feature.onboarding.presentation.navigation.OnboardingRoute
-import com.careercompass.feature.onboarding.presentation.navigation.toRoute
+import com.careercompass.core.ui.navigation.FeatureStackBoundary
+import com.careercompass.feature.onboarding.presentation.navigation.OnboardingExternalActions
 
 /**
- * 온보딩 그래프가 앱 셸에 요청하는 이동의 구현.
+ * 온보딩 로컬 스택이 앱 셸에 남긴 이동의 구현. 그래프 안의 push/pop 은 `OnboardingNavHost` 가 제 백스택으로 처리한다.
  *
- * @param onExitRequest Step 1 에서 뒤로 가기 — 그래프에 더 걷어낼 화면이 없으면 앱을 나간다.
  * @param navigateToMain 인증·온보딩을 끝낸 뒤 메인(피드)로 — 백스택을 전부 비운다.
  * @param navigateToBoardRegister 완료 화면 「게시판 먼저 등록하기」.
  * @param onAuthSessionExpired 지문 뒤 세션 검증이 만료를 알렸다 — 셸이 로그인 화면에 남길 사유를 받는다.
  * @param onSessionEnded Step 1~4 가 401 을 물었다 — 셸이 시작 목적지를 다시 계산해 로그인 화면으로 보낸다(#211).
- *   지문 경로([onAuthSessionExpired])와 갈리는 자리다: 그쪽은 그래프가 스스로 옮기므로 재계산이 없다.
+ *   지문 경로([onAuthSessionExpired])와 갈리는 자리다: 그쪽은 로컬 스택이 스스로 옮기므로 재계산이 없다.
  */
 @Composable
-internal fun rememberOnboardingNavActions(
-    navController: NavHostController,
-    onExitRequest: () -> Unit,
+internal fun rememberOnboardingExternalActions(
     navigateToMain: () -> Unit,
     navigateToBoardRegister: () -> Unit,
     onAuthSessionExpired: () -> Unit,
     onSessionEnded: () -> Unit,
-): OnboardingNavActions {
-    val onExitRequestState by rememberUpdatedState(onExitRequest)
+): OnboardingExternalActions {
     val navigateToMainState by rememberUpdatedState(navigateToMain)
     val navigateToBoardRegisterState by rememberUpdatedState(navigateToBoardRegister)
     val onAuthSessionExpiredState by rememberUpdatedState(onAuthSessionExpired)
     val onSessionEndedState by rememberUpdatedState(onSessionEnded)
-    return remember(navController) {
-        val replaceBiometricWithLogin: () -> Unit = {
-            navController.navigate(OnboardingRoute.Login) {
-                popUpTo<OnboardingRoute.BiometricLogin> { inclusive = true }
-                launchSingleTop = true
-            }
+    return remember {
+        object : OnboardingExternalActions {
+            override fun navigateToMain() = navigateToMainState()
+
+            override fun navigateToBoardRegister() = navigateToBoardRegisterState()
+
+            override fun onAuthSessionExpired() = onAuthSessionExpiredState()
+
+            override fun onSessionEnded() = onSessionEndedState()
         }
-        OnboardingNavActions(
-            replaceLoginWithOnboarding = {
-                // 신규 가입 — 로그인 화면을 걷어내고 Step 1 로. 뒤로가기로 로그인에 돌아가지 않는다.
-                navController.navigate(OnboardingRoute.Step1) {
-                    popUpTo<OnboardingRoute.Login> { inclusive = true }
-                    launchSingleTop = true
-                }
-            },
-            replaceAuthWithFeed = { navigateToMainState() },
-            replaceAuthWithOnboarding = {
-                // 지문 확인 뒤 온보딩 미완료 — 지문 화면을 걷어내고 Step 1 로. 뒤로가기로 지문 화면에 돌아가지 않는다.
-                navController.navigate(OnboardingRoute.Step1) {
-                    popUpTo<OnboardingRoute.BiometricLogin> { inclusive = true }
-                    launchSingleTop = true
-                }
-            },
-            navigateToLoginFromBiometric = replaceBiometricWithLogin,
-            navigateToLoginAfterSessionExpiry = {
-                // 사유를 먼저 싣는다 — 로그인 화면이 그려질 때 안내가 이미 켜져 있어야 한 프레임 늦게 뜨지 않는다.
-                onAuthSessionExpiredState()
-                replaceBiometricWithLogin()
-            },
-            onSessionEnded = { onSessionEndedState() },
-            proceedToStep = { step ->
-                navController.navigate(step.toRoute()) { launchSingleTop = true }
-            },
-            proceedToComplete = {
-                // 완료 화면에서 뒤로가기로 단계 화면에 돌아가지 않도록 Step 1 부터 걷어낸다.
-                navController.navigate(OnboardingRoute.Complete) {
-                    popUpTo<OnboardingRoute.Step1> { inclusive = true }
-                    launchSingleTop = true
-                }
-            },
-            popBack = {
-                if (!navController.popBackStack()) onExitRequestState()
-            },
-            replaceOnboardingWithFeed = { navigateToMainState() },
-            replaceOnboardingWithBoardRegister = { navigateToBoardRegisterState() },
-        )
     }
 }
 
-/** 온보딩 그래프 루트의 back stack entry — Step 1~4·완료 화면이 공유하는 ViewModel 의 소유자. */
-internal fun NavHostController.onboardingGraphEntry() = getBackStackEntry<OnboardingGraphRoute>()
+/**
+ * 로컬 스택 바닥의 back 을 루트 백스택 pop 으로 돌려주는 경계.
+ *
+ * 루트가 Nav2 인 동안은 `NavController.popBackStack()` 이고, 루트가 `NavDisplay` 로 바뀌면 루트 백스택의 pop 이 된다 —
+ * 구현만 갈리고 계약은 그대로다(#260).
+ *
+ * @param onRootEmpty 루트에 더 걷어낼 화면이 없다 — 온보딩 첫 화면에서의 back 처럼 앱을 나가야 하는 자리. 루트 바닥에서 할 일이
+ *   없는 그래프는 null.
+ * @param onAtRootChanged 바텀바 판정에 깊이를 합성해야 하는 그래프만 넘긴다. 바텀바가 없는 그래프는 null.
+ */
+@Composable
+internal fun rememberRootPopBoundary(
+    navController: NavHostController,
+    onRootEmpty: (() -> Unit)?,
+    onAtRootChanged: ((Boolean) -> Unit)?,
+): FeatureStackBoundary {
+    val onRootEmptyState by rememberUpdatedState(onRootEmpty)
+    val onAtRootChangedState by rememberUpdatedState(onAtRootChanged)
+    return remember(navController) {
+        object : FeatureStackBoundary {
+            override fun exit() {
+                if (!navController.popBackStack()) onRootEmptyState?.invoke()
+            }
+
+            override fun onAtRootChanged(isAtRoot: Boolean) {
+                onAtRootChangedState?.invoke(isAtRoot)
+            }
+        }
+    }
+}

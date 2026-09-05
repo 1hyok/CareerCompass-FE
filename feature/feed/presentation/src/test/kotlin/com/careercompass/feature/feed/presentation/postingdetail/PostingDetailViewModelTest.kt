@@ -13,7 +13,7 @@ import com.careercompass.feature.feed.domain.usecase.TogglePostingBookmarkUseCas
 import com.careercompass.feature.feed.presentation.FIXED_CLOCK
 import com.careercompass.feature.feed.presentation.MainDispatcherRule
 import com.careercompass.feature.feed.presentation.RecordingErrorReporter
-import com.careercompass.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
+import com.careercompass.feature.feed.presentation.navigation.FeedRoute
 import com.careercompass.feature.feed.presentation.postingDetail
 import com.careercompass.feature.feed.presentation.profile
 import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReason
@@ -50,7 +50,7 @@ class PostingDetailViewModelTest {
         postingId: Long = POSTING_ID,
     ): PostingDetailViewModel =
         PostingDetailViewModel(
-            savedStateHandle = SavedStateHandle(mapOf(FEED_ARG_POSTING_ID to postingId)),
+            route = FeedRoute.PostingDetail(postingId),
             openPostingDetail = OpenPostingDetailUseCase(repository),
             togglePostingBookmark = TogglePostingBookmarkUseCase(repository),
             userProfileRepository = FakeUserProfileRepository(initialProfile = profile),
@@ -309,7 +309,7 @@ class PostingDetailViewModelTest {
             val profileRepository = FakeUserProfileRepository(initialProfile = null)
             val viewModel =
                 PostingDetailViewModel(
-                    savedStateHandle = SavedStateHandle(mapOf(FEED_ARG_POSTING_ID to POSTING_ID)),
+                    route = FeedRoute.PostingDetail(POSTING_ID),
                     openPostingDetail = OpenPostingDetailUseCase(counting.repository),
                     togglePostingBookmark = TogglePostingBookmarkUseCase(counting.repository),
                     userProfileRepository = profileRepository,

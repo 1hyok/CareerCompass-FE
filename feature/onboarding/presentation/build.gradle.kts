@@ -46,7 +46,6 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test.junit4)
-    testImplementation(libs.androidx.navigation.testing)
     testImplementation(testFixtures(projects.core.domain))
     testImplementation(testFixtures(projects.feature.onboarding.domain))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
