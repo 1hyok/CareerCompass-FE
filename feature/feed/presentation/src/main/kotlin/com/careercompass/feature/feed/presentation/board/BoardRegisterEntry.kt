@@ -32,7 +32,7 @@ public fun BoardRegisterEntry(
     modifier: Modifier = Modifier,
     viewModel: BoardRegisterViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
@@ -40,26 +40,26 @@ public fun BoardRegisterEntry(
     // 제출 중 이탈 차단은 상단 화살표만 막아서는 반쪽이다 — 시스템 뒤로가기와 가장자리 제스처가 그대로
     // 남으면 사용자는 늘 쓰던 손짓으로 나가고 요청은 그대로 끊긴다(#146). 두 길을 같은 이벤트로 모아
     // ViewModel 이 한자리에서 판정하게 한다. 제출 중이 아니면 꺼져 있어 평소 뒤로가기는 그대로 동작한다.
-    BackHandler(enabled = state.isSubmitting) { viewModel.onEvent(BoardRegisterEvent.BackClicked) }
+    BackHandler(enabled = state.isSubmitting) { viewModel.onIntent(BoardRegisterIntent.Screen(BoardRegisterEvent.BackClicked)) }
 
     val isBackRequested = state.isBackRequested
     LaunchedEffect(isBackRequested) {
         if (isBackRequested) {
-            viewModel.onBackConsumed()
+            viewModel.onIntent(BoardRegisterIntent.ConsumeBack)
             onBackClick()
         }
     }
     val sessionEnded = state.sessionEnded
     LaunchedEffect(sessionEnded) {
         if (sessionEnded) {
-            viewModel.onSessionEndedConsumed()
+            viewModel.onIntent(BoardRegisterIntent.ConsumeSessionEnded)
             onSessionEnded()
         }
     }
     val message = state.message
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
-        viewModel.onMessageConsumed()
+        viewModel.onIntent(BoardRegisterIntent.ConsumeMessage)
         snackbarScope.launch {
             // 제출 중 뒤로가기는 조급한 사용자가 연달아 누른다. 그대로 두면 안내가 줄을 서서 등록이 끝난
             // 뒤에도 계속 뜨므로, 새 안내가 앞의 안내를 대신하게 한다.
@@ -73,7 +73,7 @@ public fun BoardRegisterEntry(
     Box(modifier = modifier.fillMaxSize()) {
         BoardRegisterScreen(
             state = uiState,
-            onEvent = viewModel::onEvent,
+            onEvent = { viewModel.onIntent(BoardRegisterIntent.Screen(it)) },
         )
         SnackbarHost(
             hostState = snackbarHostState,

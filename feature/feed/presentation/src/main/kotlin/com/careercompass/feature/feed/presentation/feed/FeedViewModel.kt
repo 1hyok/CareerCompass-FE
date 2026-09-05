@@ -1,12 +1,16 @@
 package com.careercompass.feature.feed.presentation.feed
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
 import com.careercompass.core.domain.error.CoreDataFailure
 import com.careercompass.core.domain.repository.UserProfileRepository
+import com.careercompass.core.model.board.Board
 import com.careercompass.core.model.posting.Posting
+import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.ui.mvi.MviIntent
+import com.careercompass.core.ui.mvi.MviViewModel
+import com.careercompass.core.ui.mvi.ReducerEvent
 import com.careercompass.feature.feed.domain.model.FeedPage
 import com.careercompass.feature.feed.domain.model.FeedQuery
 import com.careercompass.feature.feed.domain.model.FeedSnapshot
@@ -29,20 +33,156 @@ import com.careercompass.feature.feed.presentation.shared.util.toPostingTypes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
 
+/** 화면·필터 시트·정렬 메뉴가 [FeedViewModel] 에 보내는 것. */
+public sealed interface FeedIntent : MviIntent {
+    public data class Screen(
+        val event: FeedUiEvent,
+    ) : FeedIntent
+
+    public data class Filter(
+        val event: FeedFilterEvent,
+    ) : FeedIntent
+
+    public data class Sort(
+        val event: FeedSortMenuEvent,
+    ) : FeedIntent
+
+    /** 이어 읽기 — 목록 끝에 닿았거나(자동) 「더 찾아보기」·「다시 시도」를 눌렀다(수동). */
+    public data object LoadMore : FeedIntent
+
+    /** 당겨서 새로고침 — 목록은 유지한 채 첫 페이지와 오늘 신규 개수를 다시 받는다. */
+    public data object Refresh : FeedIntent
+
+    /** 오류 화면의 「다시 시도」 — **지금 조건 그대로** 처음부터 다시 읽는다. */
+    public data object Retry : FeedIntent
+
+    /** 오류 화면의 「조건 지우고 다시 보기」. */
+    public data object ResetQueryAndRetry : FeedIntent
+
+    /** 화면에 돌아올 때마다 게시판 목록만 다시 읽는다. */
+    public data object RefreshBoards : FeedIntent
+
+    /** 네트워크 오류 화면의 「오프라인 모드로 보기」. */
+    public data object ShowOfflineSnapshot : FeedIntent
+
+    public data object RequestBoardList : FeedIntent
+
+    public data object RequestBoardRegister : FeedIntent
+
+    public data object ConsumeNavigation : FeedIntent
+
+    public data object ConsumeMessage : FeedIntent
+
+    public data object ConsumeSessionEnded : FeedIntent
+}
+
+/** 상태가 겪은 것. [FeedViewModel] 만 만든다. */
+public sealed interface FeedReducerEvent : ReducerEvent {
+    public data class ProfileChanged(
+        val profile: UserProfile?,
+    ) : FeedReducerEvent
+
+    public data class BoardsLoaded(
+        val boards: List<Board>,
+    ) : FeedReducerEvent
+
+    public data class TodayCountLoaded(
+        val count: Int,
+    ) : FeedReducerEvent
+
+    public data class SearchInputChanged(
+        val input: String,
+    ) : FeedReducerEvent
+
+    public data class QueryChanged(
+        val query: FeedQuery,
+    ) : FeedReducerEvent
+
+    /** 검색어·조건·정렬을 기본으로 되돌린다. */
+    public data object QueryReset : FeedReducerEvent
+
+    /** null 이면 시트를 닫는다. */
+    public data class FilterDraftChanged(
+        val draft: FeedFilterDraft?,
+    ) : FeedReducerEvent
+
+    public data class SortMenuVisibilityChanged(
+        val isVisible: Boolean,
+    ) : FeedReducerEvent
+
+    public data class NavigationRequested(
+        val destination: FeedDestination,
+    ) : FeedReducerEvent
+
+    public data class MessageRaised(
+        val message: FeedMessage,
+    ) : FeedReducerEvent
+
+    /** 처음부터 다시 읽는다 — 목록을 비우고 로딩으로 간다. */
+    public data object LoadStarted : FeedReducerEvent
+
+    public data object RefreshStarted : FeedReducerEvent
+
+    public data object LoadMoreStarted : FeedReducerEvent
+
+    /** 첫 페이지(또는 새로고침)가 왔다 — 목록을 갈아 끼우고 온라인으로 돌아온다. */
+    public data class PageLoaded(
+        val postings: List<Posting>,
+        val nextCursor: String?,
+        val loadMore: FeedLoadMoreState,
+    ) : FeedReducerEvent
+
+    /** 이어 읽은 페이지가 왔다 — 목록에 덧붙인다. */
+    public data class MoreLoaded(
+        val postings: List<Posting>,
+        val nextCursor: String?,
+        val loadMore: FeedLoadMoreState,
+    ) : FeedReducerEvent
+
+    public data class LoadFailed(
+        val reason: FeedFailureReason,
+    ) : FeedReducerEvent
+
+    /** 새로고침이 실패했지만 보여 줄 목록이 있다 — 목록은 두고 안내만 낸다. */
+    public data object RefreshFailed : FeedReducerEvent
+
+    public data object LoadMoreFailed : FeedReducerEvent
+
+    public data class PostingsReplaced(
+        val postings: List<Posting>,
+    ) : FeedReducerEvent
+
+    /** null 이면 저장된 스냅샷이 없다 — 「오프라인 모드로 보기」가 열리지 않는다. */
+    public data class OfflineSnapshotLoaded(
+        val snapshot: FeedSnapshot?,
+    ) : FeedReducerEvent
+
+    /** 스냅샷을 목록으로 건다 — 더 불러오기는 잠기고 배너에 저장 시각이 뜬다. */
+    public data class OfflineSnapshotShown(
+        val postings: List<Posting>,
+        val savedAt: Instant,
+    ) : FeedReducerEvent
+
+    public data object SessionEnded : FeedReducerEvent
+
+    public data object NavigationConsumed : FeedReducerEvent
+
+    public data object MessageConsumed : FeedReducerEvent
+
+    public data object SessionEndedConsumed : FeedReducerEvent
+}
+
 /**
- * 피드 홈 — 조회 조건·페이징·북마크를 다루고, 표시 문구는 만들지 않는다.
+ * 피드 홈 — 조회 조건·페이징·북마크를 다루고, 표시 문구는 만들지 않는다. 진입점은 [onIntent] 하나, 전이는
+ * [reduce] 한 곳이다(#246).
  *
  * - 검색어는 입력 즉시 상태에 반영하고 [SEARCH_DEBOUNCE_MS] 뒤에 재조회한다.
  * - 페이지가 비어도 `nextCursor` 가 남아 있으면 끝이 아니다([FeedPage]) — 항목이 나올 때까지 몇 페이지를 이어 읽는다.
@@ -68,12 +208,11 @@ public class FeedViewModel
         /** Entry 가 D-day·신규 판정에 같은 시계를 쓴다. */
         public val clock: Clock,
         savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
+    ) : MviViewModel<FeedIntent, FeedViewState, FeedReducerEvent>(
+            // 복원한 검색어·조건이 시작값이다. 목록은 비어 있고, 아래 init 의 load() 가 그 조건으로 첫 페이지를 읽는다.
+            FeedInputDraft(savedStateHandle).restoredState(),
+        ) {
         private val draft = FeedInputDraft(savedStateHandle)
-
-        // 복원한 검색어·조건이 시작값이다. 목록은 비어 있고, 아래 init 의 load() 가 그 조건으로 첫 페이지를 읽는다.
-        private val _state = MutableStateFlow(draft.restoredState())
-        public val state: StateFlow<FeedViewState> = _state.asStateFlow()
 
         /**
          * 죽기 전 열려 있던 필터 시트의 편집값 — 시트를 **다시 열 때** 한 번 쓰고 버린다.
@@ -93,46 +232,190 @@ public class FeedViewModel
             // 조건을 바꾸는 자리가 여럿(검색·칩·시트·정렬)이라 상태 흐름 한 곳에서 남긴다. 목록이 흔들릴
             // 때마다 다시 쓰지 않도록 저장 대상만 뽑아 비교한다.
             viewModelScope.launch {
-                _state
+                uiState
                     .map { FeedInputDraft.Input(searchInput = it.searchInput, query = it.query, filterDraft = it.filterDraft) }
                     .distinctUntilChanged()
                     .collect(draft::save)
             }
             viewModelScope.launch {
-                userProfileRepository.profile.collect { profile ->
-                    _state.update { it.copy(profile = profile) }
-                }
+                userProfileRepository.profile.collect { profile -> dispatch(FeedReducerEvent.ProfileChanged(profile)) }
             }
             loadBoards()
             loadTodayCount()
             load()
         }
 
-        public fun onEvent(event: FeedUiEvent) {
+        override fun onIntent(intent: FeedIntent) {
+            when (intent) {
+                is FeedIntent.Screen -> onEvent(intent.event)
+                is FeedIntent.Filter -> onFilterEvent(intent.event)
+                is FeedIntent.Sort -> onSortEvent(intent.event)
+                FeedIntent.LoadMore -> loadMore()
+                FeedIntent.Refresh -> refresh()
+                FeedIntent.Retry -> load()
+                FeedIntent.ResetQueryAndRetry -> resetQueryAndRetry()
+                FeedIntent.RefreshBoards -> refreshBoards()
+                FeedIntent.ShowOfflineSnapshot -> showOfflineSnapshot()
+                FeedIntent.RequestBoardList -> dispatch(FeedReducerEvent.NavigationRequested(FeedDestination.BoardList))
+                FeedIntent.RequestBoardRegister -> dispatch(FeedReducerEvent.NavigationRequested(FeedDestination.BoardRegister))
+                FeedIntent.ConsumeNavigation -> dispatch(FeedReducerEvent.NavigationConsumed)
+                FeedIntent.ConsumeMessage -> dispatch(FeedReducerEvent.MessageConsumed)
+                FeedIntent.ConsumeSessionEnded -> dispatch(FeedReducerEvent.SessionEndedConsumed)
+            }
+        }
+
+        override fun reduce(
+            state: FeedViewState,
+            event: FeedReducerEvent,
+        ): FeedViewState =
+            when (event) {
+                is FeedReducerEvent.ProfileChanged -> {
+                    state.copy(profile = event.profile)
+                }
+
+                is FeedReducerEvent.BoardsLoaded -> {
+                    state.copy(boards = event.boards, boardsLoaded = true)
+                }
+
+                is FeedReducerEvent.TodayCountLoaded -> {
+                    state.copy(todayNewCount = event.count)
+                }
+
+                is FeedReducerEvent.SearchInputChanged -> {
+                    state.copy(searchInput = event.input)
+                }
+
+                is FeedReducerEvent.QueryChanged -> {
+                    state.copy(query = event.query)
+                }
+
+                FeedReducerEvent.QueryReset -> {
+                    state.copy(searchInput = "", query = FeedQuery(), filterDraft = null, isSortMenuVisible = false)
+                }
+
+                is FeedReducerEvent.FilterDraftChanged -> {
+                    state.copy(filterDraft = event.draft)
+                }
+
+                is FeedReducerEvent.SortMenuVisibilityChanged -> {
+                    state.copy(isSortMenuVisible = event.isVisible)
+                }
+
+                is FeedReducerEvent.NavigationRequested -> {
+                    state.copy(pendingNavigation = event.destination)
+                }
+
+                is FeedReducerEvent.MessageRaised -> {
+                    state.copy(message = event.message)
+                }
+
+                FeedReducerEvent.LoadStarted -> {
+                    state.copy(
+                        loadState = FeedLoadState.Loading,
+                        postings = emptyList(),
+                        nextCursor = null,
+                        isRefreshing = false,
+                        loadMore = FeedLoadMoreState.Ready,
+                    )
+                }
+
+                FeedReducerEvent.RefreshStarted -> {
+                    state.copy(isRefreshing = true, loadMore = FeedLoadMoreState.Ready)
+                }
+
+                FeedReducerEvent.LoadMoreStarted -> {
+                    state.copy(loadMore = FeedLoadMoreState.Loading)
+                }
+
+                is FeedReducerEvent.PageLoaded -> {
+                    state
+                        .copy(
+                            postings = event.postings,
+                            nextCursor = event.nextCursor,
+                            loadState = FeedLoadState.Loaded,
+                            isRefreshing = false,
+                            loadMore = event.loadMore,
+                        ).online()
+                }
+
+                is FeedReducerEvent.MoreLoaded -> {
+                    state.copy(postings = event.postings, nextCursor = event.nextCursor, loadMore = event.loadMore)
+                }
+
+                is FeedReducerEvent.LoadFailed -> {
+                    state.copy(loadState = FeedLoadState.Failed(event.reason), isRefreshing = false)
+                }
+
+                FeedReducerEvent.RefreshFailed -> {
+                    state.copy(isRefreshing = false, message = FeedMessage.RefreshFailed)
+                }
+
+                FeedReducerEvent.LoadMoreFailed -> {
+                    state.copy(loadMore = FeedLoadMoreState.Failed, message = FeedMessage.LoadMoreFailed)
+                }
+
+                is FeedReducerEvent.PostingsReplaced -> {
+                    state.copy(postings = event.postings)
+                }
+
+                is FeedReducerEvent.OfflineSnapshotLoaded -> {
+                    state.copy(offlineSnapshot = event.snapshot)
+                }
+
+                is FeedReducerEvent.OfflineSnapshotShown -> {
+                    state.copy(
+                        postings = event.postings,
+                        nextCursor = null,
+                        loadState = FeedLoadState.Loaded,
+                        isRefreshing = false,
+                        loadMore = FeedLoadMoreState.Ready,
+                        isOffline = true,
+                        offlineSavedAt = event.savedAt,
+                    )
+                }
+
+                FeedReducerEvent.SessionEnded -> {
+                    state.copy(sessionEnded = true)
+                }
+
+                FeedReducerEvent.NavigationConsumed -> {
+                    state.copy(pendingNavigation = null)
+                }
+
+                FeedReducerEvent.MessageConsumed -> {
+                    state.copy(message = null)
+                }
+
+                FeedReducerEvent.SessionEndedConsumed -> {
+                    state.copy(sessionEnded = false)
+                }
+            }
+
+        private fun onEvent(event: FeedUiEvent) {
             when (event) {
                 is FeedUiEvent.SearchQueryChanged -> {
                     onSearchInput(event.query)
                 }
 
                 is FeedUiEvent.FilterSelected -> {
-                    applyQuery(_state.value.query.copy(types = event.category.toPostingTypes()))
+                    applyQuery(currentState.query.copy(types = event.category.toPostingTypes()))
                 }
 
                 FeedUiEvent.FilterRequested -> {
                     // 프로세스가 죽어 닫힌 시트는 저절로 열리지 않는다 — 대신 다시 열면 고르던 값이 그대로 있다(#137).
                     val restored = restoredFilterDraft
                     restoredFilterDraft = null
-                    _state.update { it.copy(filterDraft = restored ?: FeedFilterDraft.from(it.query)) }
+                    dispatch(FeedReducerEvent.FilterDraftChanged(restored ?: FeedFilterDraft.from(currentState.query)))
                 }
 
                 FeedUiEvent.FilterResetSelected -> {
                     // 시트의 「초기화」와 같은 기본값을 쓴다 — 빈 목록에서 푸는 조건과 시트에서 푸는
                     // 조건이 갈리면, 초기화했는데도 목록이 그대로인 경우가 생긴다.
-                    applyQuery(FeedFilterDraft.Default.applyTo(_state.value.query) ?: return)
+                    applyQuery(FeedFilterDraft.Default.applyTo(currentState.query) ?: return)
                 }
 
                 FeedUiEvent.BoardRegisterSelected -> {
-                    onBoardRegisterRequested()
+                    dispatch(FeedReducerEvent.NavigationRequested(FeedDestination.BoardRegister))
                 }
 
                 FeedUiEvent.MissingBoardsCleared -> {
@@ -143,22 +426,22 @@ public class FeedViewModel
                     // 시트와 달리 **확인된 것만** 뺀다([FeedViewState.hasDeletedBoardFilter]) — 시트의 태그는
                     // 「확인 못 한 게시판」도 사용자가 보고 누르는 것이지만, 여기 버튼은 「지워졌어요」라고
                     // 말한 화면에만 있다. 목록을 못 받은 채로 빼면 화면이 하지 않은 말을 근거로 조건을 지운다.
-                    val current = _state.value
+                    val current = currentState
                     if (!current.hasDeletedBoardFilter) return
                     applyQuery(current.query.copy(boardIds = current.query.boardIds - current.missingBoardIds))
                 }
 
                 FeedUiEvent.LoadMoreSelected -> {
-                    onLoadMore()
+                    loadMore()
                 }
 
                 FeedUiEvent.SortMenuRequested -> {
-                    _state.update { it.copy(isSortMenuVisible = true) }
+                    dispatch(FeedReducerEvent.SortMenuVisibilityChanged(true))
                 }
 
                 is FeedUiEvent.ListingSelected -> {
                     val postingId = event.listingId.toLongOrNull() ?: return
-                    _state.update { it.copy(pendingNavigation = FeedDestination.PostingDetail(postingId)) }
+                    dispatch(FeedReducerEvent.NavigationRequested(FeedDestination.PostingDetail(postingId)))
                 }
 
                 is FeedUiEvent.BookmarkToggled -> {
@@ -166,16 +449,16 @@ public class FeedViewModel
                 }
 
                 FeedUiEvent.NotificationsSelected -> {
-                    _state.update { it.copy(pendingNavigation = FeedDestination.Notifications) }
+                    dispatch(FeedReducerEvent.NavigationRequested(FeedDestination.Notifications))
                 }
 
                 FeedUiEvent.CompleteProfileSelected -> {
-                    _state.update { it.copy(pendingNavigation = FeedDestination.Profile) }
+                    dispatch(FeedReducerEvent.NavigationRequested(FeedDestination.Profile))
                 }
             }
         }
 
-        public fun onFilterEvent(event: FeedFilterEvent) {
+        private fun onFilterEvent(event: FeedFilterEvent) {
             when (event) {
                 is FeedFilterEvent.CategorySelected -> {
                     updateDraft { it.copy(category = event.category) }
@@ -191,7 +474,7 @@ public class FeedViewModel
                 FeedFilterEvent.MissingBoardsCleared -> {
                     // 목록에 없는 id 만 턴다. 사용자의 손짓으로만 지우는 이유 — 목록을 못 받았을 수도 있어
                     // (#155) 앱이 알아서 버리면 잠깐 끊긴 사이 사용자의 조건이 사라진다.
-                    val boards = _state.value.boards
+                    val boards = currentState.boards
                     updateDraft { draft -> draft.copy(boardIds = draft.boardIds - draft.boardIds.missingFrom(boards)) }
                 }
 
@@ -229,26 +512,26 @@ public class FeedViewModel
                 FeedFilterEvent.ApplyClicked -> {
                     // 잘못된 범위는 시트를 닫지 않는다 — 버튼이 이미 잠겨 있지만, 계약을 여기서도 지켜
                     // 도메인이 만들 수 없는 값을 조회 조건에 넣지 않는다.
-                    val applied = _state.value.filterDraft?.applyTo(_state.value.query) ?: return
-                    _state.update { it.copy(filterDraft = null) }
+                    val applied = currentState.filterDraft?.applyTo(currentState.query) ?: return
+                    dispatch(FeedReducerEvent.FilterDraftChanged(null))
                     applyQuery(applied)
                 }
 
                 FeedFilterEvent.DismissClicked -> {
-                    _state.update { it.copy(filterDraft = null) }
+                    dispatch(FeedReducerEvent.FilterDraftChanged(null))
                 }
             }
         }
 
-        public fun onSortEvent(event: FeedSortMenuEvent) {
+        private fun onSortEvent(event: FeedSortMenuEvent) {
             when (event) {
                 is FeedSortMenuEvent.SortSelected -> {
-                    _state.update { it.copy(isSortMenuVisible = false) }
-                    applyQuery(_state.value.query.copy(sort = event.option.toPostingSort()))
+                    dispatch(FeedReducerEvent.SortMenuVisibilityChanged(false))
+                    applyQuery(currentState.query.copy(sort = event.option.toPostingSort()))
                 }
 
                 FeedSortMenuEvent.DismissClicked -> {
-                    _state.update { it.copy(isSortMenuVisible = false) }
+                    dispatch(FeedReducerEvent.SortMenuVisibilityChanged(false))
                 }
             }
         }
@@ -260,78 +543,68 @@ public class FeedViewModel
          * 는 **막지 않는다** — 그 둘은 자동 페이징만 서 있는 자리이고, 여기까지 오는 길은 사용자가 누른
          * 버튼뿐이기 때문이다(자동 트리거는 화면에서 [FeedLoadMoreState.Ready] 일 때만 무장한다).
          */
-        public fun onLoadMore() {
-            val current = _state.value
+        private fun loadMore() {
+            val current = currentState
             if (current.isOffline) return
             val cursor = current.nextCursor ?: return
             if (current.isLoadingMore || current.isRefreshing || current.loadState != FeedLoadState.Loaded) return
             val query = current.query
-            _state.update { it.copy(loadMore = FeedLoadMoreState.Loading) }
+            dispatch(FeedReducerEvent.LoadMoreStarted)
             loadMoreJob =
                 viewModelScope.launch {
                     fetchUntilNonEmpty(query, cursor)
                         .onSuccess { page ->
-                            _state.update {
-                                val merged = (it.postings + page.postings).distinctBy(Posting::id)
-                                it.copy(
+                            val before = currentState.postings
+                            val merged = (before + page.postings).distinctBy(Posting::id)
+                            dispatch(
+                                FeedReducerEvent.MoreLoaded(
                                     postings = merged,
                                     nextCursor = page.nextCursor,
-                                    loadMore = page.loadMoreStateAfter(gained = merged.size > it.postings.size),
-                                )
-                            }
+                                    loadMore = page.loadMoreStateAfter(gained = merged.size > before.size),
+                                ),
+                            )
                         }.onFailure { throwable ->
                             recordFailure(FeedFailureStage.FeedLoadMore, throwable)
-                            _state.update { it.copy(loadMore = FeedLoadMoreState.Failed, message = FeedMessage.LoadMoreFailed) }
+                            dispatch(FeedReducerEvent.LoadMoreFailed)
                         }
                 }
         }
 
-        /** 당겨서 새로고침 — 목록은 유지한 채 첫 페이지와 오늘 신규 개수를 다시 받는다. */
-        public fun refresh() {
-            if (_state.value.loadState == FeedLoadState.Loading) return
+        private fun refresh() {
+            if (currentState.loadState == FeedLoadState.Loading) return
             loadJob?.cancel()
             loadMoreJob?.cancel()
-            val query = _state.value.query
-            _state.update { it.copy(isRefreshing = true, loadMore = FeedLoadMoreState.Ready) }
+            val query = currentState.query
+            dispatch(FeedReducerEvent.RefreshStarted)
             loadTodayCount()
             loadJob =
                 viewModelScope.launch {
                     fetchUntilNonEmpty(query, cursor = null)
                         .onSuccess { page ->
-                            _state.update {
-                                it
-                                    .copy(
-                                        postings = page.postings,
-                                        nextCursor = page.nextCursor,
-                                        loadState = FeedLoadState.Loaded,
-                                        isRefreshing = false,
-                                        loadMore = page.loadMoreStateAfter(gained = page.postings.isNotEmpty()),
-                                    ).online()
-                            }
+                            dispatch(
+                                FeedReducerEvent.PageLoaded(
+                                    postings = page.postings,
+                                    nextCursor = page.nextCursor,
+                                    loadMore = page.loadMoreStateAfter(gained = page.postings.isNotEmpty()),
+                                ),
+                            )
                             saveSnapshotIfDefault(query, page.postings)
                         }.onFailure { throwable ->
                             recordFailure(FeedFailureStage.FeedRefresh, throwable)
-                            _state.update {
-                                if (it.postings.isEmpty()) {
-                                    it.copy(loadState = FeedLoadState.Failed(throwable.toFeedFailureReason()), isRefreshing = false)
-                                } else {
-                                    it.copy(isRefreshing = false, message = FeedMessage.RefreshFailed)
-                                }
+                            if (currentState.postings.isEmpty()) {
+                                dispatch(FeedReducerEvent.LoadFailed(throwable.toFeedFailureReason()))
+                            } else {
+                                dispatch(FeedReducerEvent.RefreshFailed)
                             }
                         }
                 }
-        }
-
-        /** 오류 화면의 「다시 시도」 — **지금 조건 그대로** 처음부터 다시 읽는다. */
-        public fun retry() {
-            load()
         }
 
         /**
          * 오류 화면의 「조건 지우고 다시 보기」 — 조회 조건을 기본값으로 되돌리고 **그 자리에서 다시 읽는다**.
          *
          * 되돌리기와 재조회를 한 번에 하는 이유: 실패 화면에는 목록이 없어 조건이 바뀐 것을 확인할 방법이
-         * 없고, 남은 버튼은 [retry] 뿐인데 그것은 지금 조건을 그대로 다시 보낸다. 조건만 지우고 멈추면
+         * 없고, 남은 버튼은 「다시 시도」뿐인데 그것은 지금 조건을 그대로 다시 보낸다. 조건만 지우고 멈추면
          * 화면은 여전히 옛 조건의 실패를 말한 채 사용자가 한 번 더 누르기를 기다리게 된다 — 반쪽이다.
          *
          * 빈 목록의 [FeedUiEvent.FilterResetSelected] 와 달리 **검색어·정렬까지** 지운다. 저기는 조회
@@ -339,68 +612,44 @@ public class FeedViewModel
          * 모른다. 게다가 #144 의 재현은 정렬(「적합도순」)과 최소 적합도였으므로 정렬을 남겨 두면 같은
          * 실패로 돌아온다. 되돌아갈 곳은 한 곳뿐이다 — 성공한 적이 있는 기본 조회다.
          */
-        public fun resetQueryAndRetry() {
+        private fun resetQueryAndRetry() {
             // 아직 반영 전인 검색어 디바운스를 먼저 끊는다. 살려 두면 [SEARCH_DEBOUNCE_MS] 뒤에
             // applyQuery 가 방금 지운 검색어를 다시 실어 조건이 되살아난다.
             searchJob?.cancel()
             restoredFilterDraft = null
-            _state.update {
-                it.copy(
-                    searchInput = "",
-                    query = FeedQuery(),
-                    filterDraft = null,
-                    isSortMenuVisible = false,
-                )
-            }
+            dispatch(FeedReducerEvent.QueryReset)
             load()
         }
 
         /**
-         * 화면에 돌아올 때마다 게시판 목록만 다시 읽는다.
-         *
          * 빈 피드가 「등록한 게시판이 없어요」라고 말한 뒤 사용자가 등록하고 돌아오는 길이 생겼다. 그때
          * 게시판을 다시 읽지 않으면 방금 등록한 사람에게 같은 안내가 그대로 남는다. 공고는 다시 읽지
          * 않는다 — 첫 수집이 끝나기 전이라 결과가 같고, 목록·스크롤을 흔들 이유가 없다.
          */
-        public fun refreshBoards() {
+        private fun refreshBoards() {
             if (boardsJob?.isActive == true) return
             loadBoards()
         }
 
         /**
-         * 네트워크 오류 화면의 「오프라인 모드로 보기」 — 저장해 둔 스냅샷을 목록으로 건다.
-         *
-         * 스냅샷에는 다음 커서가 없으므로 [onLoadMore] 는 잠기고, 북마크는 [FeedMessage.OfflineReadOnly] 로 막는다.
+         * 스냅샷에는 다음 커서가 없으므로 이어 읽기는 잠기고, 북마크는 [FeedMessage.OfflineReadOnly] 로 막는다.
          * 검색·필터·정렬은 그대로 재조회를 부르고, 성공하면 [online] 으로 온라인 목록으로 돌아온다.
          *
          * 스냅샷은 기본 조회의 사본이라 지금 걸린 마감일·검색어가 반영돼 있지 않다 — 조회와 같은 규칙
          * ([FeedQuery.filterClientSide])을 여기서 한 번 더 적용해, 「마감일 범위」를 걸어 둔 채 오프라인으로
          * 넘어온 사람이 범위 밖 공고를 보지 않게 한다.
          */
-        public fun showOfflineSnapshot() {
-            val snapshot = _state.value.offlineSnapshot ?: return
+        private fun showOfflineSnapshot() {
+            val snapshot = currentState.offlineSnapshot ?: return
             loadJob?.cancel()
             loadMoreJob?.cancel()
-            _state.update {
-                it.copy(
-                    postings = it.query.filterClientSide(snapshot.postings, LocalDate.now(clock)),
-                    nextCursor = null,
-                    loadState = FeedLoadState.Loaded,
-                    isRefreshing = false,
-                    loadMore = FeedLoadMoreState.Ready,
-                    isOffline = true,
-                    offlineSavedAt = snapshot.savedAt,
-                )
-            }
+            dispatch(
+                FeedReducerEvent.OfflineSnapshotShown(
+                    postings = currentState.query.filterClientSide(snapshot.postings, LocalDate.now(clock)),
+                    savedAt = snapshot.savedAt,
+                ),
+            )
         }
-
-        /** 조회가 성공했다 — 오프라인 표시와 그 근거를 모두 버린다. */
-        private fun FeedViewState.online(): FeedViewState =
-            if (!isOffline && offlineSnapshot == null && offlineSavedAt == null) {
-                this
-            } else {
-                copy(isOffline = false, offlineSavedAt = null, offlineSnapshot = null)
-            }
 
         /**
          * 기본 조건의 첫 페이지만 스냅샷으로 남긴다 — 조건이 걸린 결과를 저장하면 오프라인에서 「전체」로 보이는
@@ -424,83 +673,54 @@ public class FeedViewModel
             viewModelScope.launch {
                 feedSnapshotRepository
                     .load()
-                    .onSuccess { snapshot -> _state.update { it.copy(offlineSnapshot = snapshot) } }
+                    .onSuccess { snapshot -> dispatch(FeedReducerEvent.OfflineSnapshotLoaded(snapshot)) }
                     .onFailure { recordFailure(FeedFailureStage.FeedSnapshotLoad, it) }
             }
         }
 
-        public fun onBoardListRequested() {
-            _state.update { it.copy(pendingNavigation = FeedDestination.BoardList) }
-        }
-
-        public fun onBoardRegisterRequested() {
-            _state.update { it.copy(pendingNavigation = FeedDestination.BoardRegister) }
-        }
-
-        public fun onNavigationConsumed() {
-            _state.update { it.copy(pendingNavigation = null) }
-        }
-
-        public fun onMessageConsumed() {
-            _state.update { it.copy(message = null) }
-        }
-
-        public fun onSessionEndedConsumed() {
-            _state.update { it.copy(sessionEnded = false) }
-        }
-
         private fun onSearchInput(input: String) {
-            _state.update { it.copy(searchInput = input) }
+            dispatch(FeedReducerEvent.SearchInputChanged(input))
             searchJob?.cancel()
             searchJob =
                 viewModelScope.launch {
                     delay(SEARCH_DEBOUNCE_MS)
-                    applyQuery(_state.value.query.copy(searchQuery = input))
+                    applyQuery(currentState.query.copy(searchQuery = input))
                 }
         }
 
         private fun updateDraft(transform: (FeedFilterDraft) -> FeedFilterDraft) {
-            _state.update { state -> state.filterDraft?.let { state.copy(filterDraft = transform(it)) } ?: state }
+            val draft = currentState.filterDraft ?: return
+            dispatch(FeedReducerEvent.FilterDraftChanged(transform(draft)))
         }
 
         private fun applyQuery(query: FeedQuery) {
-            if (query == _state.value.query) return
+            if (query == currentState.query) return
             restoredFilterDraft = null
-            _state.update { it.copy(query = query) }
+            dispatch(FeedReducerEvent.QueryChanged(query))
             load()
         }
 
         private fun load() {
             loadJob?.cancel()
             loadMoreJob?.cancel()
-            val query = _state.value.query
-            _state.update {
-                it.copy(
-                    loadState = FeedLoadState.Loading,
-                    postings = emptyList(),
-                    nextCursor = null,
-                    isRefreshing = false,
-                    loadMore = FeedLoadMoreState.Ready,
-                )
-            }
+            val query = currentState.query
+            dispatch(FeedReducerEvent.LoadStarted)
             loadJob =
                 viewModelScope.launch {
                     fetchUntilNonEmpty(query, cursor = null)
                         .onSuccess { page ->
-                            _state.update {
-                                it
-                                    .copy(
-                                        postings = page.postings,
-                                        nextCursor = page.nextCursor,
-                                        loadState = FeedLoadState.Loaded,
-                                        loadMore = page.loadMoreStateAfter(gained = page.postings.isNotEmpty()),
-                                    ).online()
-                            }
+                            dispatch(
+                                FeedReducerEvent.PageLoaded(
+                                    postings = page.postings,
+                                    nextCursor = page.nextCursor,
+                                    loadMore = page.loadMoreStateAfter(gained = page.postings.isNotEmpty()),
+                                ),
+                            )
                             saveSnapshotIfDefault(query, page.postings)
                         }.onFailure { throwable ->
                             recordFailure(FeedFailureStage.FeedLoad, throwable)
                             val reason = throwable.toFeedFailureReason()
-                            _state.update { it.copy(loadState = FeedLoadState.Failed(reason)) }
+                            dispatch(FeedReducerEvent.LoadFailed(reason))
                             // 점검 중에도 스냅샷은 유효하다 — 서버가 살아나기를 기다리는 동안 마지막 목록을 열어 둔다.
                             if (reason != FeedFailureReason.Generic) loadSnapshotForOfflineOffer()
                         }
@@ -544,14 +764,14 @@ public class FeedViewModel
         }
 
         private fun toggleBookmark(postingId: Long) {
-            if (_state.value.isOffline) {
-                _state.update { it.copy(message = FeedMessage.OfflineReadOnly) }
+            if (currentState.isOffline) {
+                dispatch(FeedReducerEvent.MessageRaised(FeedMessage.OfflineReadOnly))
                 return
             }
             // 확정·되돌리기는 북마크 필드만 지금 카드 위에 얹는다 — 요청이 오가는 사이 새로고침이 목록을
             // 갈아 끼웠을 수 있고, 옛 스냅샷으로 덮으면 그 변화(읽음 표시 등)가 지워진다(#235).
             val wasBookmarked =
-                _state.value.postings
+                currentState.postings
                     .firstOrNull { it.id == postingId }
                     ?.isBookmarked ?: return
             updatePosting(postingId) { it.copy(isBookmarked = !wasBookmarked) }
@@ -561,7 +781,7 @@ public class FeedViewModel
                     .onFailure { throwable ->
                         recordFailure(FeedFailureStage.Bookmark, throwable)
                         updatePosting(postingId) { it.copy(isBookmarked = wasBookmarked) }
-                        _state.update { it.copy(message = FeedMessage.BookmarkFailed) }
+                        dispatch(FeedReducerEvent.MessageRaised(FeedMessage.BookmarkFailed))
                     }
             }
         }
@@ -571,9 +791,7 @@ public class FeedViewModel
             postingId: Long,
             transform: (Posting) -> Posting,
         ) {
-            _state.update { state ->
-                state.copy(postings = state.postings.map { if (it.id == postingId) transform(it) else it })
-            }
+            dispatch(FeedReducerEvent.PostingsReplaced(currentState.postings.map { if (it.id == postingId) transform(it) else it }))
         }
 
         /**
@@ -586,7 +804,7 @@ public class FeedViewModel
             boardsJob =
                 viewModelScope.launch {
                     getBoards()
-                        .onSuccess { boards -> _state.update { it.copy(boards = boards, boardsLoaded = true) } }
+                        .onSuccess { boards -> dispatch(FeedReducerEvent.BoardsLoaded(boards)) }
                         .onFailure { recordFailure(FeedFailureStage.FilterBoards, it) }
                 }
         }
@@ -594,7 +812,7 @@ public class FeedViewModel
         private fun loadTodayCount() {
             viewModelScope.launch {
                 countTodayNewPostings()
-                    .onSuccess { count -> _state.update { it.copy(todayNewCount = count) } }
+                    .onSuccess { count -> dispatch(FeedReducerEvent.TodayCountLoaded(count)) }
                     .onFailure { recordFailure(FeedFailureStage.TodayCount, it) }
             }
         }
@@ -605,7 +823,7 @@ public class FeedViewModel
         ) {
             errorReporter.recordFeedFailure(stage, throwable)
             if (throwable is CoreDataFailure.Unauthorized) {
-                _state.update { it.copy(sessionEnded = true) }
+                dispatch(FeedReducerEvent.SessionEnded)
             }
         }
 
@@ -624,4 +842,12 @@ public class FeedViewModel
              */
             public const val MAX_EMPTY_PAGE_FOLLOW_UPS: Int = 5
         }
+    }
+
+/** 조회가 성공했다 — 오프라인 표시와 그 근거를 모두 버린다. [FeedViewModel.reduce] 만 부른다. */
+private fun FeedViewState.online(): FeedViewState =
+    if (!isOffline && offlineSnapshot == null && offlineSavedAt == null) {
+        this
+    } else {
+        copy(isOffline = false, offlineSavedAt = null, offlineSnapshot = null)
     }

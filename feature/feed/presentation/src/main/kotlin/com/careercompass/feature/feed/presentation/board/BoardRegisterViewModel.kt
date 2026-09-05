@@ -1,12 +1,15 @@
 package com.careercompass.feature.feed.presentation.board
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
 import com.careercompass.core.domain.error.CoreDataFailure
 import com.careercompass.core.model.board.BoardRegistration
 import com.careercompass.core.model.board.MAX_BOARDS
+import com.careercompass.core.ui.mvi.MviIntent
+import com.careercompass.core.ui.mvi.MviViewModel
+import com.careercompass.core.ui.mvi.ReducerEvent
+import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.feed.domain.error.FeedFailure
 import com.careercompass.feature.feed.domain.usecase.DetectBoardUseCase
 import com.careercompass.feature.feed.domain.usecase.RegisterBoardUseCase
@@ -18,12 +21,8 @@ import com.careercompass.feature.feed.presentation.shared.util.toDetectionState
 import com.careercompass.feature.feed.presentation.shared.util.toDomainBoardType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -90,7 +89,7 @@ public data class BoardRegisterViewState(
     val message: BoardRegisterMessage? = null,
     val isBackRequested: Boolean = false,
     val sessionEnded: Boolean = false,
-) {
+) : UiState {
     public val isDetectEnabled: Boolean
         get() = url.isNotBlank() && detection != BoardDetectionState.Detecting && !isSubmitting
 
@@ -98,8 +97,79 @@ public data class BoardRegisterViewState(
         get() = detection is BoardDetectionState.Success && name.isNotBlank() && type != null && !isSubmitting
 }
 
+/** 화면이 [BoardRegisterViewModel] 에 보내는 것. */
+public sealed interface BoardRegisterIntent : MviIntent {
+    public data class Screen(
+        val event: BoardRegisterEvent,
+    ) : BoardRegisterIntent
+
+    public data object ConsumeBack : BoardRegisterIntent
+
+    public data object ConsumeMessage : BoardRegisterIntent
+
+    public data object ConsumeSessionEnded : BoardRegisterIntent
+}
+
+/** 상태가 겪은 것. [BoardRegisterViewModel] 만 만든다. */
+public sealed interface BoardRegisterReducerEvent : ReducerEvent {
+    /** URL 이 바뀌면 이전 감지 결과는 무효다. */
+    public data class UrlChanged(
+        val url: String,
+    ) : BoardRegisterReducerEvent
+
+    public data class NameChanged(
+        val name: String,
+    ) : BoardRegisterReducerEvent
+
+    public data class TypeSelected(
+        val type: BoardType,
+    ) : BoardRegisterReducerEvent
+
+    public data class CycleSelected(
+        val cycle: BoardCollectCycle,
+    ) : BoardRegisterReducerEvent
+
+    public data class MessageRaised(
+        val message: BoardRegisterMessage,
+    ) : BoardRegisterReducerEvent
+
+    public data object BackRequested : BoardRegisterReducerEvent
+
+    public data object DetectionStarted : BoardRegisterReducerEvent
+
+    /**
+     * 감지가 끝났다 — 결과·오류·안내를 한 번에 놓는다. [message] 가 null 이면 지금 안내를 지우지 않는다.
+     */
+    public data class DetectionFinished(
+        val detection: BoardDetectionState,
+        val detectedUrl: String? = null,
+        val urlError: BoardUrlError? = null,
+        val message: BoardRegisterMessage? = null,
+        val sessionEnded: Boolean = false,
+    ) : BoardRegisterReducerEvent
+
+    public data object SubmissionStarted : BoardRegisterReducerEvent
+
+    /** 등록됐다 — 목록으로 돌아간다. */
+    public data object Registered : BoardRegisterReducerEvent
+
+    /** 등록이 실패했다 — 폼은 그대로 두고 오류·안내를 놓는다. */
+    public data class RegistrationFailed(
+        val urlError: BoardUrlError? = null,
+        val message: BoardRegisterMessage? = null,
+        val sessionEnded: Boolean = false,
+    ) : BoardRegisterReducerEvent
+
+    public data object BackConsumed : BoardRegisterReducerEvent
+
+    public data object MessageConsumed : BoardRegisterReducerEvent
+
+    public data object SessionEndedConsumed : BoardRegisterReducerEvent
+}
+
 /**
- * 게시판 등록 — URL → 구조 감지 → 이름·유형·주기 → 등록(기능 스펙 F2-1).
+ * 게시판 등록 — URL → 구조 감지 → 이름·유형·주기 → 등록(기능 스펙 F2-1). 진입점은 [onIntent] 하나, 전이는
+ * [reduce] 한 곳이다(#246).
  *
  * URL 이 바뀌면 이전 감지 결과는 무효다. 등록 성공은 [BoardRegisterViewState.isBackRequested] 로 목록에 돌아간다.
  *
@@ -114,11 +184,10 @@ public class BoardRegisterViewModel
         private val registerBoard: RegisterBoardUseCase,
         private val errorReporter: ErrorReporter,
         savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
+    ) : MviViewModel<BoardRegisterIntent, BoardRegisterViewState, BoardRegisterReducerEvent>(
+            BoardRegisterInputDraft(savedStateHandle).restoredState(),
+        ) {
         private val draft = BoardRegisterInputDraft(savedStateHandle)
-
-        private val _state = MutableStateFlow(draft.restoredState())
-        public val state: StateFlow<BoardRegisterViewState> = _state.asStateFlow()
 
         private var detectJob: Job? = null
 
@@ -126,20 +195,100 @@ public class BoardRegisterViewModel
             // 값을 바꾸는 자리마다 저장하지 않고 상태 흐름 한 곳에서 남긴다 — 각자 저장하게 두면 언젠가 한
             // 곳이 빠지고, 빠진 자리는 프로세스가 죽어야 드러난다. 저장 대상이 실제로 바뀔 때만 쓴다.
             viewModelScope.launch {
-                _state
+                uiState
                     .map { BoardRegisterInputDraft.Input(url = it.url, name = it.name, type = it.type, cycle = it.cycle) }
                     .distinctUntilChanged()
                     .collect(draft::save)
             }
         }
 
-        public fun onEvent(event: BoardRegisterEvent) {
+        override fun onIntent(intent: BoardRegisterIntent) {
+            when (intent) {
+                is BoardRegisterIntent.Screen -> onEvent(intent.event)
+                BoardRegisterIntent.ConsumeBack -> dispatch(BoardRegisterReducerEvent.BackConsumed)
+                BoardRegisterIntent.ConsumeMessage -> dispatch(BoardRegisterReducerEvent.MessageConsumed)
+                BoardRegisterIntent.ConsumeSessionEnded -> dispatch(BoardRegisterReducerEvent.SessionEndedConsumed)
+            }
+        }
+
+        override fun reduce(
+            state: BoardRegisterViewState,
+            event: BoardRegisterReducerEvent,
+        ): BoardRegisterViewState =
+            when (event) {
+                is BoardRegisterReducerEvent.UrlChanged -> {
+                    state.copy(url = event.url, urlError = null, detection = BoardDetectionState.Idle, detectedUrl = null)
+                }
+
+                is BoardRegisterReducerEvent.NameChanged -> {
+                    state.copy(name = event.name)
+                }
+
+                is BoardRegisterReducerEvent.TypeSelected -> {
+                    state.copy(type = event.type)
+                }
+
+                is BoardRegisterReducerEvent.CycleSelected -> {
+                    state.copy(cycle = event.cycle)
+                }
+
+                is BoardRegisterReducerEvent.MessageRaised -> {
+                    state.copy(message = event.message)
+                }
+
+                BoardRegisterReducerEvent.BackRequested -> {
+                    state.copy(isBackRequested = true)
+                }
+
+                BoardRegisterReducerEvent.DetectionStarted -> {
+                    state.copy(detection = BoardDetectionState.Detecting, urlError = null, detectedUrl = null)
+                }
+
+                is BoardRegisterReducerEvent.DetectionFinished -> {
+                    state.copy(
+                        detection = event.detection,
+                        detectedUrl = event.detectedUrl,
+                        urlError = event.urlError,
+                        message = event.message ?: state.message,
+                        sessionEnded = state.sessionEnded || event.sessionEnded,
+                    )
+                }
+
+                BoardRegisterReducerEvent.SubmissionStarted -> {
+                    state.copy(isSubmitting = true)
+                }
+
+                BoardRegisterReducerEvent.Registered -> {
+                    state.copy(isSubmitting = false, isBackRequested = true)
+                }
+
+                is BoardRegisterReducerEvent.RegistrationFailed -> {
+                    state.copy(
+                        isSubmitting = false,
+                        urlError = event.urlError ?: state.urlError,
+                        message = event.message ?: state.message,
+                        sessionEnded = state.sessionEnded || event.sessionEnded,
+                    )
+                }
+
+                BoardRegisterReducerEvent.BackConsumed -> {
+                    state.copy(isBackRequested = false)
+                }
+
+                BoardRegisterReducerEvent.MessageConsumed -> {
+                    state.copy(message = null)
+                }
+
+                BoardRegisterReducerEvent.SessionEndedConsumed -> {
+                    state.copy(sessionEnded = false)
+                }
+            }
+
+        private fun onEvent(event: BoardRegisterEvent) {
             when (event) {
                 is BoardRegisterEvent.UrlChanged -> {
                     detectJob?.cancel()
-                    _state.update {
-                        it.copy(url = event.value, urlError = null, detection = BoardDetectionState.Idle, detectedUrl = null)
-                    }
+                    dispatch(BoardRegisterReducerEvent.UrlChanged(event.value))
                 }
 
                 BoardRegisterEvent.DetectClicked -> {
@@ -147,15 +296,15 @@ public class BoardRegisterViewModel
                 }
 
                 is BoardRegisterEvent.NameChanged -> {
-                    _state.update { it.copy(name = event.value) }
+                    dispatch(BoardRegisterReducerEvent.NameChanged(event.value))
                 }
 
                 is BoardRegisterEvent.TypeSelected -> {
-                    _state.update { it.copy(type = event.type) }
+                    dispatch(BoardRegisterReducerEvent.TypeSelected(event.type))
                 }
 
                 is BoardRegisterEvent.CycleSelected -> {
-                    _state.update { it.copy(cycle = event.cycle) }
+                    dispatch(BoardRegisterReducerEvent.CycleSelected(event.cycle))
                 }
 
                 BoardRegisterEvent.RegisterClicked -> {
@@ -183,103 +332,87 @@ public class BoardRegisterViewModel
          * 우리 서버가 자기 DB 에 쓰는 호출이라 이 상한을 늘릴 이유도 없다.
          */
         private fun onBackRequested() {
-            _state.update {
-                if (it.isSubmitting) {
-                    it.copy(message = BoardRegisterMessage.SubmitInProgress)
-                } else {
-                    it.copy(isBackRequested = true)
-                }
+            if (currentState.isSubmitting) {
+                dispatch(BoardRegisterReducerEvent.MessageRaised(BoardRegisterMessage.SubmitInProgress))
+            } else {
+                dispatch(BoardRegisterReducerEvent.BackRequested)
             }
         }
 
-        public fun onBackConsumed() {
-            _state.update { it.copy(isBackRequested = false) }
-        }
-
-        public fun onMessageConsumed() {
-            _state.update { it.copy(message = null) }
-        }
-
-        public fun onSessionEndedConsumed() {
-            _state.update { it.copy(sessionEnded = false) }
-        }
-
         private fun detect() {
-            val current = _state.value
+            val current = currentState
             if (!current.isDetectEnabled) return
             detectJob?.cancel()
-            _state.update { it.copy(detection = BoardDetectionState.Detecting, urlError = null, detectedUrl = null) }
+            dispatch(BoardRegisterReducerEvent.DetectionStarted)
             detectJob =
                 viewModelScope.launch {
                     detectBoard(current.url)
                         .onSuccess { outcome ->
-                            _state.update {
-                                it.copy(
+                            dispatch(
+                                BoardRegisterReducerEvent.DetectionFinished(
                                     detection = outcome.detection.toDetectionState(),
                                     detectedUrl = outcome.url.takeIf { outcome.detection.isRegistrable },
-                                )
-                            }
+                                ),
+                            )
                         }.onFailure { throwable -> onDetectFailed(throwable) }
                 }
         }
 
         private fun onDetectFailed(throwable: Throwable) {
-            when (throwable) {
-                // 사용자 입력 형태 오류 — 요청 없이 끝났으므로 리포팅 대상이 아니다.
-                is FeedFailure.InvalidBoardUrl -> {
-                    _state.update { it.copy(detection = BoardDetectionState.Idle, urlError = BoardUrlError.Invalid) }
-                }
+            val event =
+                when (throwable) {
+                    // 사용자 입력 형태 오류 — 요청 없이 끝났으므로 리포팅 대상이 아니다.
+                    is FeedFailure.InvalidBoardUrl -> {
+                        BoardRegisterReducerEvent.DetectionFinished(BoardDetectionState.Idle, urlError = BoardUrlError.Invalid)
+                    }
 
-                is CoreDataFailure.BoardBlocked -> {
-                    errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
-                    _state.update { it.copy(detection = BoardDetectionState.Failed(BoardDetectionFailure.Blocked)) }
-                }
+                    is CoreDataFailure.BoardBlocked -> {
+                        errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
+                        BoardRegisterReducerEvent.DetectionFinished(BoardDetectionState.Failed(BoardDetectionFailure.Blocked))
+                    }
 
-                // 타임아웃은 화면에 남는 상태로, 연결 단절은 지금처럼 스낵바로 알린다. 서버가 외부 사이트를
-                // 크롤링하는 동안 우리가 먼저 끊은 것을 「연결을 확인해 주세요」로 안내하면 연결이 멀쩡한
-                // 사용자를 헛수고시키고, 감지 실패 문구로 안내하면 사이트가 지원 안 된다는 오해를 부른다.
-                // 둘 다 리포팅은 남긴다 — 일시적 전송 실패라 세션 첫 건만 표본이 되고, 그래야 「감지만
-                // 타임아웃한다」는 신호가 보인다.
-                is CoreDataFailure.NetworkUnavailable -> {
-                    errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
-                    _state.update {
+                    // 타임아웃은 화면에 남는 상태로, 연결 단절은 지금처럼 스낵바로 알린다. 서버가 외부 사이트를
+                    // 크롤링하는 동안 우리가 먼저 끊은 것을 「연결을 확인해 주세요」로 안내하면 연결이 멀쩡한
+                    // 사용자를 헛수고시키고, 감지 실패 문구로 안내하면 사이트가 지원 안 된다는 오해를 부른다.
+                    // 둘 다 리포팅은 남긴다 — 일시적 전송 실패라 세션 첫 건만 표본이 되고, 그래야 「감지만
+                    // 타임아웃한다」는 신호가 보인다.
+                    is CoreDataFailure.NetworkUnavailable -> {
+                        errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
                         if (throwable.isTimeout) {
-                            it.copy(detection = BoardDetectionState.TimedOut)
+                            BoardRegisterReducerEvent.DetectionFinished(BoardDetectionState.TimedOut)
                         } else {
-                            it.copy(
-                                detection = BoardDetectionState.Idle,
+                            BoardRegisterReducerEvent.DetectionFinished(
+                                BoardDetectionState.Idle,
                                 message = BoardRegisterMessage.NetworkUnavailable,
                             )
                         }
                     }
-                }
 
-                // 남은 것은 「요청 자체가 실패했다」이지 「서버가 감지 결과를 알렸다」가 아니다. 서버가 알린
-                // 감지 결과는 성공 경로로 와 BoardDetectionState.Failed 가 되고(`detect_status` — 위의
-                // BoardBlocked 도 그 자리다), 여기 오는 것은 요청이 결과를 만들지 못하고 끝난 경우뿐이다.
-                // 그중 점검(503)만 사유가 분명하므로 갈라 화면에 남기고, 나머지는 사유를 모르는 실패라
-                // 지금처럼 스낵바 한 줄로 접는다.
-                else -> {
-                    errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
-                    _state.update {
+                    // 남은 것은 「요청 자체가 실패했다」이지 「서버가 감지 결과를 알렸다」가 아니다. 서버가 알린
+                    // 감지 결과는 성공 경로로 와 BoardDetectionState.Failed 가 되고(`detect_status` — 위의
+                    // BoardBlocked 도 그 자리다), 여기 오는 것은 요청이 결과를 만들지 못하고 끝난 경우뿐이다.
+                    // 그중 점검(503)만 사유가 분명하므로 갈라 화면에 남기고, 나머지는 사유를 모르는 실패라
+                    // 지금처럼 스낵바 한 줄로 접는다.
+                    else -> {
+                        errorReporter.recordFeedFailure(FeedFailureStage.BoardDetect, throwable)
                         when (throwable.toFeedFailureReason()) {
                             FeedFailureReason.Maintenance -> {
-                                it.copy(detection = BoardDetectionState.Maintenance)
+                                BoardRegisterReducerEvent.DetectionFinished(BoardDetectionState.Maintenance)
                             }
 
                             FeedFailureReason.NetworkUnavailable,
                             FeedFailureReason.Generic,
                             -> {
-                                it.copy(
-                                    detection = BoardDetectionState.Idle,
+                                BoardRegisterReducerEvent.DetectionFinished(
+                                    BoardDetectionState.Idle,
                                     message = BoardRegisterMessage.DetectFailed,
-                                    sessionEnded = it.sessionEnded || throwable is CoreDataFailure.Unauthorized,
+                                    sessionEnded = throwable is CoreDataFailure.Unauthorized,
                                 )
                             }
                         }
                     }
                 }
-            }
+            dispatch(event)
         }
 
         /**
@@ -291,7 +424,7 @@ public class BoardRegisterViewModel
          * 스코프는 `core` 소유라 여기서 새로 만들지 않는다(후속 과제).
          */
         private fun register() {
-            val current = _state.value
+            val current = currentState
             val type = current.type ?: return
             if (!current.isRegisterEnabled) return
             val registration =
@@ -301,10 +434,10 @@ public class BoardRegisterViewModel
                     type = type.toDomainBoardType(),
                     cycleHours = current.cycle.hours,
                 )
-            _state.update { it.copy(isSubmitting = true) }
+            dispatch(BoardRegisterReducerEvent.SubmissionStarted)
             viewModelScope.launch {
                 registerBoard(registration)
-                    .onSuccess { _state.update { it.copy(isSubmitting = false, isBackRequested = true) } }
+                    .onSuccess { dispatch(BoardRegisterReducerEvent.Registered) }
                     .onFailure { throwable -> onRegisterFailed(throwable) }
             }
         }
@@ -313,46 +446,45 @@ public class BoardRegisterViewModel
             if (throwable !is FeedFailure.InvalidBoardUrl) {
                 errorReporter.recordFeedFailure(FeedFailureStage.BoardRegister, throwable)
             }
-            _state.update { state ->
-                val cleared = state.copy(isSubmitting = false)
+            val event =
                 when (throwable) {
                     is FeedFailure.InvalidBoardUrl -> {
-                        cleared.copy(urlError = BoardUrlError.Invalid)
+                        BoardRegisterReducerEvent.RegistrationFailed(urlError = BoardUrlError.Invalid)
                     }
 
                     // 입력란 아래 오류와 스낵바를 함께 남긴다 — 오류는 어느 값이 문제인지 가리키고,
                     // 스낵바는 화면 밖으로 밀려난 그 오류를 사용자 눈앞으로 가져온다.
                     is CoreDataFailure.DuplicateBoard -> {
-                        cleared.copy(
+                        BoardRegisterReducerEvent.RegistrationFailed(
                             urlError = BoardUrlError.Duplicate,
                             message = BoardRegisterMessage.AlreadyRegistered,
                         )
                     }
 
                     is FeedFailure.BoardLimitReached -> {
-                        cleared.copy(message = BoardRegisterMessage.LimitReached(throwable.limit))
+                        BoardRegisterReducerEvent.RegistrationFailed(message = BoardRegisterMessage.LimitReached(throwable.limit))
                     }
 
                     is CoreDataFailure.LimitExceeded -> {
-                        cleared.copy(message = BoardRegisterMessage.LimitReached(MAX_BOARDS))
+                        BoardRegisterReducerEvent.RegistrationFailed(message = BoardRegisterMessage.LimitReached(MAX_BOARDS))
                     }
 
                     is CoreDataFailure.NetworkUnavailable -> {
-                        cleared.copy(message = BoardRegisterMessage.NetworkUnavailable)
+                        BoardRegisterReducerEvent.RegistrationFailed(message = BoardRegisterMessage.NetworkUnavailable)
                     }
 
                     is CoreDataFailure.ServiceUnavailable -> {
-                        cleared.copy(message = BoardRegisterMessage.Maintenance)
+                        BoardRegisterReducerEvent.RegistrationFailed(message = BoardRegisterMessage.Maintenance)
                     }
 
                     is CoreDataFailure.Unauthorized -> {
-                        cleared.copy(sessionEnded = true)
+                        BoardRegisterReducerEvent.RegistrationFailed(sessionEnded = true)
                     }
 
                     else -> {
-                        cleared.copy(message = BoardRegisterMessage.RegisterFailed)
+                        BoardRegisterReducerEvent.RegistrationFailed(message = BoardRegisterMessage.RegisterFailed)
                     }
                 }
-            }
+            dispatch(event)
         }
     }

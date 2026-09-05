@@ -48,7 +48,7 @@ public fun FeedEntry(
     modifier: Modifier = Modifier,
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
@@ -56,13 +56,13 @@ public fun FeedEntry(
     // 게시판 등록에서 돌아온 길을 위해서다 — 빈 피드가 「등록한 게시판이 없어요」라고 보낸 사용자가
     // 등록을 마치고 돌아오면, 게시판을 다시 읽어야 같은 안내가 남지 않는다.
     LifecycleResumeEffect(Unit) {
-        viewModel.refreshBoards()
+        viewModel.onIntent(FeedIntent.RefreshBoards)
         onPauseOrDispose { }
     }
     val pendingNavigation = state.pendingNavigation
     LaunchedEffect(pendingNavigation) {
         if (pendingNavigation == null) return@LaunchedEffect
-        viewModel.onNavigationConsumed()
+        viewModel.onIntent(FeedIntent.ConsumeNavigation)
         when (pendingNavigation) {
             is FeedDestination.PostingDetail -> onPostingClick(pendingNavigation.postingId)
             FeedDestination.Notifications -> onNotificationsClick()
@@ -74,14 +74,14 @@ public fun FeedEntry(
     val sessionEnded = state.sessionEnded
     LaunchedEffect(sessionEnded) {
         if (sessionEnded) {
-            viewModel.onSessionEndedConsumed()
+            viewModel.onIntent(FeedIntent.ConsumeSessionEnded)
             onSessionEnded()
         }
     }
     val message = state.message
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
-        viewModel.onMessageConsumed()
+        viewModel.onIntent(FeedIntent.ConsumeMessage)
         snackbarScope.launch { snackbarHostState.showSnackbar(resources.getString(message.messageRes())) }
     }
 
@@ -97,9 +97,9 @@ public fun FeedEntry(
                 // 유일한 길이다(#144).
                 FeedFailureContent(
                     reason = loadState.reason,
-                    onRetryClick = viewModel::retry,
-                    onOfflineClick = state.offlineSnapshot?.let { { viewModel.showOfflineSnapshot() } },
-                    onResetQueryClick = if (state.canResetFailedQuery) viewModel::resetQueryAndRetry else null,
+                    onRetryClick = { viewModel.onIntent(FeedIntent.Retry) },
+                    onOfflineClick = state.offlineSnapshot?.let { { viewModel.onIntent(FeedIntent.ShowOfflineSnapshot) } },
+                    onResetQueryClick = if (state.canResetFailedQuery) ({ viewModel.onIntent(FeedIntent.ResetQueryAndRetry) }) else null,
                 )
             }
 
@@ -110,15 +110,15 @@ public fun FeedEntry(
                 val listState = rememberLazyListState()
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
-                    onRefresh = viewModel::refresh,
+                    onRefresh = { viewModel.onIntent(FeedIntent.Refresh) },
                 ) {
                     FeedScreen(
                         state = uiState,
-                        onEvent = viewModel::onEvent,
+                        onEvent = { viewModel.onIntent(FeedIntent.Screen(it)) },
                         listState = listState,
                         // 커서가 남았을 때만 자동 페이징을 연다 — 「받은 것이 없다」와 「서버에 없다」를
                         // 가르는 근거가 커서뿐이라, 목록이 비어 있어도 커서가 남았으면 아직 끝이 아니다.
-                        onLoadMore = if (state.hasNext) viewModel::onLoadMore else null,
+                        onLoadMore = if (state.hasNext) ({ viewModel.onIntent(FeedIntent.LoadMore) }) else null,
                         loadMore = state.loadMore,
                     )
                 }
@@ -133,7 +133,7 @@ public fun FeedEntry(
     val filterDraft = state.filterDraft
     if (filterDraft != null) {
         ModalBottomSheet(
-            onDismissRequest = { viewModel.onFilterEvent(FeedFilterEvent.DismissClicked) },
+            onDismissRequest = { viewModel.onIntent(FeedIntent.Filter(FeedFilterEvent.DismissClicked)) },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = CareerCompassTheme.colors.surface,
         ) {
@@ -142,19 +142,19 @@ public fun FeedEntry(
                     remember(filterDraft, state.boards, state.boardsLoaded, resources) {
                         filterDraft.toFilterUiState(resources, state.boards, state.boardsLoaded)
                     },
-                onEvent = viewModel::onFilterEvent,
+                onEvent = { viewModel.onIntent(FeedIntent.Filter(it)) },
             )
         }
     }
     if (state.isSortMenuVisible) {
         ModalBottomSheet(
-            onDismissRequest = { viewModel.onSortEvent(FeedSortMenuEvent.DismissClicked) },
+            onDismissRequest = { viewModel.onIntent(FeedIntent.Sort(FeedSortMenuEvent.DismissClicked)) },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = CareerCompassTheme.colors.surface,
         ) {
             FeedSortMenuContent(
                 state = FeedSortMenuUiState(selected = state.query.sort.toSortOption()),
-                onEvent = viewModel::onSortEvent,
+                onEvent = { viewModel.onIntent(FeedIntent.Sort(it)) },
             )
         }
     }

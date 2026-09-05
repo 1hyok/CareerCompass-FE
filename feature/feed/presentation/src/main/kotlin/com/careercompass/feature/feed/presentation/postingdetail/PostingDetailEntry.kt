@@ -48,7 +48,7 @@ public fun PostingDetailEntry(
     modifier: Modifier = Modifier,
     viewModel: PostingDetailViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -57,7 +57,7 @@ public fun PostingDetailEntry(
     val pendingNavigation = state.pendingNavigation
     LaunchedEffect(pendingNavigation) {
         if (pendingNavigation == null) return@LaunchedEffect
-        viewModel.onNavigationConsumed()
+        viewModel.onIntent(PostingDetailIntent.ConsumeNavigation)
         when (pendingNavigation) {
             PostingDetailDestination.Back -> onBackClick()
             is PostingDetailDestination.Raw -> onRawClick(pendingNavigation.postingId)
@@ -68,14 +68,14 @@ public fun PostingDetailEntry(
     val sessionEnded = state.sessionEnded
     LaunchedEffect(sessionEnded) {
         if (sessionEnded) {
-            viewModel.onSessionEndedConsumed()
+            viewModel.onIntent(PostingDetailIntent.ConsumeSessionEnded)
             onSessionEnded()
         }
     }
     val shareRequest = state.shareRequest
     LaunchedEffect(shareRequest) {
         if (shareRequest == null) return@LaunchedEffect
-        viewModel.onShareConsumed()
+        viewModel.onIntent(PostingDetailIntent.ConsumeShare)
         val sendIntent =
             Intent(Intent.ACTION_SEND).apply {
                 type = SHARE_MIME_TYPE
@@ -90,7 +90,7 @@ public fun PostingDetailEntry(
     val message = state.message
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
-        viewModel.onMessageConsumed()
+        viewModel.onIntent(PostingDetailIntent.ConsumeMessage)
         val messageRes =
             when (message) {
                 PostingDetailMessage.BookmarkFailed -> R.string.feed_bookmark_failed
@@ -107,7 +107,7 @@ public fun PostingDetailEntry(
     Box(modifier = modifier.fillMaxSize()) {
         PostingDetailScreen(
             state = uiState,
-            onEvent = viewModel::onEvent,
+            onEvent = { viewModel.onIntent(PostingDetailIntent.Screen(it)) },
         )
         SnackbarHost(
             hostState = snackbarHostState,

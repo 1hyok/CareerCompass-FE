@@ -1,13 +1,16 @@
 package com.careercompass.feature.feed.presentation.postingdetail
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
 import com.careercompass.core.domain.error.CoreDataFailure
 import com.careercompass.core.domain.repository.UserProfileRepository
 import com.careercompass.core.model.posting.PostingDetail
 import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.ui.mvi.MviIntent
+import com.careercompass.core.ui.mvi.MviViewModel
+import com.careercompass.core.ui.mvi.ReducerEvent
+import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.careercompass.feature.feed.domain.usecase.TogglePostingBookmarkUseCase
 import com.careercompass.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
@@ -20,12 +23,8 @@ import com.careercompass.feature.feed.presentation.shared.model.toFeedFailureRea
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import javax.inject.Inject
@@ -97,15 +96,73 @@ public data class PostingDetailViewState(
     val shareRequest: PostingShareRequest? = null,
     val message: PostingDetailMessage? = null,
     val sessionEnded: Boolean = false,
-) {
+) : UiState {
     public val detail: PostingDetail? get() = (loadState as? PostingDetailLoadState.Loaded)?.detail
 
     public val suitabilityJudgement: SuitabilityJudgement?
         get() = detail?.let { judgeSuitability(hasScore = it.suitability != null, profile = profile) }
 }
 
+/** 화면이 [PostingDetailViewModel] 에 보내는 것. */
+public sealed interface PostingDetailIntent : MviIntent {
+    public data class Screen(
+        val event: PostingDetailEvent,
+    ) : PostingDetailIntent
+
+    public data object ConsumeNavigation : PostingDetailIntent
+
+    public data object ConsumeShare : PostingDetailIntent
+
+    public data object ConsumeMessage : PostingDetailIntent
+
+    public data object ConsumeSessionEnded : PostingDetailIntent
+}
+
+/** 상태가 겪은 것. [PostingDetailViewModel] 만 만든다. */
+public sealed interface PostingDetailReducerEvent : ReducerEvent {
+    public data class ProfileChanged(
+        val profile: UserProfile?,
+    ) : PostingDetailReducerEvent
+
+    public data class NavigationRequested(
+        val destination: PostingDetailDestination,
+    ) : PostingDetailReducerEvent
+
+    public data class ShareRequested(
+        val request: PostingShareRequest,
+    ) : PostingDetailReducerEvent
+
+    public data class MessageRaised(
+        val message: PostingDetailMessage,
+    ) : PostingDetailReducerEvent
+
+    public data class LoadStateChanged(
+        val loadState: PostingDetailLoadState,
+    ) : PostingDetailReducerEvent
+
+    /** 읽은 상세가 있을 때만 그 위를 갈아 끼운다 — 로딩·실패 중이면 아무것도 바꾸지 않는다. */
+    public data class DetailReplaced(
+        val detail: PostingDetail,
+    ) : PostingDetailReducerEvent
+
+    public data class RecheckExhaustedChanged(
+        val isExhausted: Boolean,
+    ) : PostingDetailReducerEvent
+
+    public data object SessionEnded : PostingDetailReducerEvent
+
+    public data object NavigationConsumed : PostingDetailReducerEvent
+
+    public data object ShareConsumed : PostingDetailReducerEvent
+
+    public data object MessageConsumed : PostingDetailReducerEvent
+
+    public data object SessionEndedConsumed : PostingDetailReducerEvent
+}
+
 /**
  * 공고 상세 — 열면서 읽음 처리하고([OpenPostingDetailUseCase]), 북마크는 먼저 뒤집고 실패하면 되돌린다.
+ * 진입점은 [onIntent] 하나, 전이는 [reduce] 한 곳이다(#246).
  *
  * ### 적합도 자동 재조회 (#221)
  * 적합도는 서버가 LLM 으로 계산하므로 공고를 열었을 때 아직 없는 것이 정상 경로다. 판정이 「분석 중」인 동안
@@ -130,22 +187,23 @@ public class PostingDetailViewModel
         private val errorReporter: ErrorReporter,
         /** Entry 가 상대 시각·마감 표기에 같은 시계를 쓴다. */
         public val clock: Clock,
-    ) : ViewModel() {
-        private val postingId: Long =
-            requireNotNull(savedStateHandle.get<Long>(FEED_ARG_POSTING_ID)) { "$FEED_ARG_POSTING_ID is required" }
-
-        private val _state = MutableStateFlow(PostingDetailViewState(postingId = postingId))
-        public val state: StateFlow<PostingDetailViewState> = _state.asStateFlow()
+    ) : MviViewModel<PostingDetailIntent, PostingDetailViewState, PostingDetailReducerEvent>(
+            PostingDetailViewState(
+                postingId =
+                    requireNotNull(savedStateHandle.get<Long>(FEED_ARG_POSTING_ID)) { "$FEED_ARG_POSTING_ID is required" },
+            ),
+        ) {
+        private val postingId: Long get() = currentState.postingId
 
         private var loadJob: Job? = null
         private var recheckJob: Job? = null
 
         init {
             viewModelScope.launch {
-                userProfileRepository.profile.collect { profile -> _state.update { it.copy(profile = profile) } }
+                userProfileRepository.profile.collect { profile -> dispatch(PostingDetailReducerEvent.ProfileChanged(profile)) }
             }
             viewModelScope.launch {
-                _state
+                uiState
                     .map { it.suitabilityJudgement }
                     .distinctUntilChanged()
                     .collect { judgement ->
@@ -155,7 +213,75 @@ public class PostingDetailViewModel
             load()
         }
 
-        public fun onEvent(event: PostingDetailEvent) {
+        override fun onIntent(intent: PostingDetailIntent) {
+            when (intent) {
+                is PostingDetailIntent.Screen -> onEvent(intent.event)
+                PostingDetailIntent.ConsumeNavigation -> dispatch(PostingDetailReducerEvent.NavigationConsumed)
+                PostingDetailIntent.ConsumeShare -> dispatch(PostingDetailReducerEvent.ShareConsumed)
+                PostingDetailIntent.ConsumeMessage -> dispatch(PostingDetailReducerEvent.MessageConsumed)
+                PostingDetailIntent.ConsumeSessionEnded -> dispatch(PostingDetailReducerEvent.SessionEndedConsumed)
+            }
+        }
+
+        override fun reduce(
+            state: PostingDetailViewState,
+            event: PostingDetailReducerEvent,
+        ): PostingDetailViewState =
+            when (event) {
+                is PostingDetailReducerEvent.ProfileChanged -> {
+                    state.copy(profile = event.profile)
+                }
+
+                is PostingDetailReducerEvent.NavigationRequested -> {
+                    state.copy(pendingNavigation = event.destination)
+                }
+
+                is PostingDetailReducerEvent.ShareRequested -> {
+                    state.copy(shareRequest = event.request)
+                }
+
+                is PostingDetailReducerEvent.MessageRaised -> {
+                    state.copy(message = event.message)
+                }
+
+                is PostingDetailReducerEvent.LoadStateChanged -> {
+                    state.copy(loadState = event.loadState)
+                }
+
+                is PostingDetailReducerEvent.DetailReplaced -> {
+                    if (state.loadState is PostingDetailLoadState.Loaded) {
+                        state.copy(loadState = PostingDetailLoadState.Loaded(event.detail))
+                    } else {
+                        state
+                    }
+                }
+
+                is PostingDetailReducerEvent.RecheckExhaustedChanged -> {
+                    state.copy(isSuitabilityRecheckExhausted = event.isExhausted)
+                }
+
+                PostingDetailReducerEvent.SessionEnded -> {
+                    state.copy(sessionEnded = true)
+                }
+
+                PostingDetailReducerEvent.NavigationConsumed -> {
+                    state.copy(pendingNavigation = null)
+                }
+
+                PostingDetailReducerEvent.ShareConsumed -> {
+                    state.copy(shareRequest = null)
+                }
+
+                PostingDetailReducerEvent.MessageConsumed -> {
+                    state.copy(message = null)
+                }
+
+                PostingDetailReducerEvent.SessionEndedConsumed -> {
+                    state.copy(sessionEnded = false)
+                }
+            }
+
+        private fun onEvent(event: PostingDetailEvent) {
             when (event) {
                 PostingDetailEvent.BackClicked -> {
                     navigate(PostingDetailDestination.Back)
@@ -166,8 +292,8 @@ public class PostingDetailViewModel
                 }
 
                 PostingDetailEvent.ShareClicked -> {
-                    val detail = _state.value.detail ?: return
-                    _state.update { it.copy(shareRequest = PostingShareRequest(title = detail.title, url = detail.url)) }
+                    val detail = currentState.detail ?: return
+                    dispatch(PostingDetailReducerEvent.ShareRequested(PostingShareRequest(title = detail.title, url = detail.url)))
                 }
 
                 PostingDetailEvent.ViewOriginalClicked -> {
@@ -175,7 +301,7 @@ public class PostingDetailViewModel
                 }
 
                 PostingDetailEvent.CreateDraftClicked -> {
-                    _state.update { it.copy(message = PostingDetailMessage.DraftComingSoon) }
+                    dispatch(PostingDetailReducerEvent.MessageRaised(PostingDetailMessage.DraftComingSoon))
                 }
 
                 PostingDetailEvent.CompleteProfileClicked -> {
@@ -197,38 +323,24 @@ public class PostingDetailViewModel
             }
         }
 
-        public fun onNavigationConsumed() {
-            _state.update { it.copy(pendingNavigation = null) }
-        }
-
-        public fun onShareConsumed() {
-            _state.update { it.copy(shareRequest = null) }
-        }
-
-        public fun onMessageConsumed() {
-            _state.update { it.copy(message = null) }
-        }
-
-        public fun onSessionEndedConsumed() {
-            _state.update { it.copy(sessionEnded = false) }
-        }
-
         private fun navigate(destination: PostingDetailDestination) {
-            _state.update { it.copy(pendingNavigation = destination) }
+            dispatch(PostingDetailReducerEvent.NavigationRequested(destination))
         }
 
         private fun load() {
             loadJob?.cancel()
-            _state.update { it.copy(loadState = PostingDetailLoadState.Loading) }
+            dispatch(PostingDetailReducerEvent.LoadStateChanged(PostingDetailLoadState.Loading))
             loadJob =
                 viewModelScope.launch {
                     openPostingDetail(postingId)
-                        .onSuccess { detail -> _state.update { it.copy(loadState = PostingDetailLoadState.Loaded(detail)) } }
+                        .onSuccess { detail -> dispatch(PostingDetailReducerEvent.LoadStateChanged(PostingDetailLoadState.Loaded(detail))) }
                         .onFailure { throwable ->
                             recordFailure(FeedFailureStage.PostingDetail, throwable)
-                            _state.update {
-                                it.copy(loadState = PostingDetailLoadState.Failed(throwable.toFeedFailureReason()))
-                            }
+                            dispatch(
+                                PostingDetailReducerEvent.LoadStateChanged(
+                                    PostingDetailLoadState.Failed(throwable.toFeedFailureReason()),
+                                ),
+                            )
                         }
                 }
         }
@@ -243,14 +355,14 @@ public class PostingDetailViewModel
                         if (!isStillAnalyzing()) return@launch
                         recheckSuitability()
                     }
-                    if (isStillAnalyzing()) _state.update { it.copy(isSuitabilityRecheckExhausted = true) }
+                    if (isStillAnalyzing()) dispatch(PostingDetailReducerEvent.RecheckExhaustedChanged(true))
                 }
         }
 
         private fun stopRecheck() {
             recheckJob?.cancel()
             recheckJob = null
-            _state.update { if (it.isSuitabilityRecheckExhausted) it.copy(isSuitabilityRecheckExhausted = false) else it }
+            if (currentState.isSuitabilityRecheckExhausted) dispatch(PostingDetailReducerEvent.RecheckExhaustedChanged(false))
         }
 
         /** 「다시 확인」 — 한 번만 더 묻고, 여전히 분석 중이면 다시 소진 상태로 돌아간다. */
@@ -259,9 +371,9 @@ public class PostingDetailViewModel
             recheckJob?.cancel()
             recheckJob =
                 viewModelScope.launch {
-                    _state.update { it.copy(isSuitabilityRecheckExhausted = false) }
+                    dispatch(PostingDetailReducerEvent.RecheckExhaustedChanged(false))
                     recheckSuitability()
-                    if (isStillAnalyzing()) _state.update { it.copy(isSuitabilityRecheckExhausted = true) }
+                    if (isStillAnalyzing()) dispatch(PostingDetailReducerEvent.RecheckExhaustedChanged(true))
                 }
         }
 
@@ -278,7 +390,7 @@ public class PostingDetailViewModel
                 .onFailure { throwable -> recordFailure(FeedFailureStage.SuitabilityRecheck, throwable) }
         }
 
-        private fun isStillAnalyzing(): Boolean = _state.value.suitabilityJudgement == SuitabilityJudgement.Analyzing
+        private fun isStillAnalyzing(): Boolean = currentState.suitabilityJudgement == SuitabilityJudgement.Analyzing
 
         /**
          * 북마크는 먼저 뒤집고, 응답이 오면 **그 필드만** 지금 상세 위에 확정한다.
@@ -289,7 +401,7 @@ public class PostingDetailViewModel
          * 얹는다.
          */
         private fun toggleBookmark() {
-            val wasBookmarked = _state.value.detail?.isBookmarked ?: return
+            val wasBookmarked = currentState.detail?.isBookmarked ?: return
             updateDetail { it.copy(isBookmarked = !wasBookmarked) }
             viewModelScope.launch {
                 togglePostingBookmark(postingId, currentlyBookmarked = wasBookmarked)
@@ -297,17 +409,15 @@ public class PostingDetailViewModel
                     .onFailure { throwable ->
                         recordFailure(FeedFailureStage.Bookmark, throwable)
                         updateDetail { it.copy(isBookmarked = wasBookmarked) }
-                        _state.update { it.copy(message = PostingDetailMessage.BookmarkFailed) }
+                        dispatch(PostingDetailReducerEvent.MessageRaised(PostingDetailMessage.BookmarkFailed))
                     }
             }
         }
 
         /** 읽은 상세가 있을 때만 그 위에 [transform] 을 적용한다 — 로딩·실패 중에는 아무것도 하지 않는다. */
         private fun updateDetail(transform: (PostingDetail) -> PostingDetail) {
-            _state.update { state ->
-                val loaded = state.loadState as? PostingDetailLoadState.Loaded ?: return@update state
-                state.copy(loadState = PostingDetailLoadState.Loaded(transform(loaded.detail)))
-            }
+            val detail = currentState.detail ?: return
+            dispatch(PostingDetailReducerEvent.DetailReplaced(transform(detail)))
         }
 
         private fun recordFailure(
@@ -316,7 +426,7 @@ public class PostingDetailViewModel
         ) {
             errorReporter.recordFeedFailure(stage, throwable)
             if (throwable is CoreDataFailure.Unauthorized) {
-                _state.update { it.copy(sessionEnded = true) }
+                dispatch(PostingDetailReducerEvent.SessionEnded)
             }
         }
     }

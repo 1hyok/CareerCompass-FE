@@ -54,20 +54,20 @@ public fun BoardListEntry(
     modifier: Modifier = Modifier,
     viewModel: BoardListViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
     val sheetSnackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
 
     LifecycleResumeEffect(Unit) {
-        viewModel.refresh()
+        viewModel.onIntent(BoardListIntent.Refresh)
         onPauseOrDispose { }
     }
     val pendingNavigation = state.pendingNavigation
     LaunchedEffect(pendingNavigation) {
         if (pendingNavigation == null) return@LaunchedEffect
-        viewModel.onNavigationConsumed()
+        viewModel.onIntent(BoardListIntent.ConsumeNavigation)
         when (pendingNavigation) {
             BoardListDestination.Back -> onBackClick()
             BoardListDestination.Register -> onAddBoardClick()
@@ -76,14 +76,14 @@ public fun BoardListEntry(
     val sessionEnded = state.sessionEnded
     LaunchedEffect(sessionEnded) {
         if (sessionEnded) {
-            viewModel.onSessionEndedConsumed()
+            viewModel.onIntent(BoardListIntent.ConsumeSessionEnded)
             onSessionEnded()
         }
     }
     val message = state.message
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
-        viewModel.onMessageConsumed()
+        viewModel.onIntent(BoardListIntent.ConsumeMessage)
         val host = if (state.editDraft != null) sheetSnackbarHostState else snackbarHostState
         snackbarScope.launch { host.showSnackbar(resources.getString(message.messageRes())) }
     }
@@ -91,10 +91,10 @@ public fun BoardListEntry(
     Box(modifier = modifier.fillMaxSize()) {
         when (val loadState = state.loadState) {
             is BoardListLoadState.Failed -> {
-                BoardListErrorChrome(onBackClick = { viewModel.onEvent(BoardListEvent.BackClicked) }) {
+                BoardListErrorChrome(onBackClick = { viewModel.onIntent(BoardListIntent.Screen(BoardListEvent.BackClicked)) }) {
                     BoardListFailureContent(
                         reason = loadState.reason,
-                        onRetryClick = viewModel::retryLoad,
+                        onRetryClick = { viewModel.onIntent(BoardListIntent.RetryLoad) },
                     )
                 }
             }
@@ -105,7 +105,7 @@ public fun BoardListEntry(
                 val uiState = remember(loadState, resources) { loadState.toUiState(resources, viewModel.clock) }
                 BoardListScreen(
                     state = uiState,
-                    onEvent = viewModel::onEvent,
+                    onEvent = { viewModel.onIntent(BoardListIntent.Screen(it)) },
                 )
             }
         }
@@ -118,11 +118,11 @@ public fun BoardListEntry(
     val pendingDeletion = state.pendingDeletion
     if (pendingDeletion != null) {
         AlertDialog(
-            onDismissRequest = viewModel::dismissDelete,
+            onDismissRequest = { viewModel.onIntent(BoardListIntent.DismissDelete) },
             confirmButton = {
                 CareerCompassButton(
                     text = stringResource(R.string.feed_board_delete_dialog_confirm),
-                    onClick = viewModel::confirmDelete,
+                    onClick = { viewModel.onIntent(BoardListIntent.ConfirmDelete) },
                     variant = CareerCompassButtonVariant.Danger,
                     size = CareerCompassButtonSize.Small,
                 )
@@ -130,7 +130,7 @@ public fun BoardListEntry(
             dismissButton = {
                 CareerCompassButton(
                     text = stringResource(R.string.feed_board_delete_dialog_cancel),
-                    onClick = viewModel::dismissDelete,
+                    onClick = { viewModel.onIntent(BoardListIntent.DismissDelete) },
                     variant = CareerCompassButtonVariant.Ghost,
                     size = CareerCompassButtonSize.Small,
                 )
@@ -148,7 +148,7 @@ public fun BoardListEntry(
         // 저장 중에는 스와이프·스크림·뒤로가기로 시트가 숨겨지지 않게 한다 — 숨긴 뒤 닫기를 무시하면 빈 창만 남는다.
         val isSaving by rememberUpdatedState(editDraft.isSaving)
         ModalBottomSheet(
-            onDismissRequest = { viewModel.onEditEvent(BoardEditEvent.DismissClicked) },
+            onDismissRequest = { viewModel.onIntent(BoardListIntent.Edit(BoardEditEvent.DismissClicked)) },
             sheetState =
                 rememberModalBottomSheetState(
                     skipPartiallyExpanded = true,
@@ -159,7 +159,7 @@ public fun BoardListEntry(
             Box {
                 BoardEditSheetContent(
                     state = remember(editDraft, resources) { editDraft.toUiState(resources) },
-                    onEvent = viewModel::onEditEvent,
+                    onEvent = { viewModel.onIntent(BoardListIntent.Edit(it)) },
                 )
                 SnackbarHost(
                     hostState = sheetSnackbarHostState,
