@@ -95,4 +95,4 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 - [`docs/spec/notification-screens.md`](docs/spec/notification-screens.md) — 알림 목록·설정 화면의 글로 된 시안(§8·F2-4). Figma 에 없는 두 화면을 #195·#196 이 이것으로 만든다
 - [`docs/testing/screenshot.md`](docs/testing/screenshot.md) — Compose Preview 스크린샷 테스트
 - [`docs/release/`](docs/release) — 배포·Firebase WIF
-- [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마, [실서버 라운드 대본](docs/qa/server-round-script.md)(로그인부터 원문 보기까지의 순서·판정과 계약 드리프트 기록 양식)
+- [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마, [실서버 라운드 대본](docs/qa/server-round-script.md)(로그인부터 원문 보기까지의 순서·판정과 계약 드리프트 기록 양식), [베타 운영 규칙과 관찰형 태스크 대본](docs/qa/beta-plan.md)
