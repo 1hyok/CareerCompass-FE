@@ -1,6 +1,4 @@
-import org.gradle.api.GradleException
 import org.gradle.api.Project
-import java.util.Properties
 
 /**
  * 소셜 로그인 키를 읽으면서 그 자리에서 release 가드까지 배선한다.
@@ -12,16 +10,7 @@ import java.util.Properties
  * 산출물이 조용히 다시 나온다 — 이 가드가 막으려는 바로 그 사고(07-13 배포본).
  */
 fun Project.socialLoginKey(keyName: String): String {
-    val localPropertiesFile = rootProject.file("local.properties")
-    val fromLocalProperties =
-        if (localPropertiesFile.exists()) {
-            localPropertiesFile.inputStream().use { stream ->
-                Properties().apply { load(stream) }.getProperty(keyName)
-            }
-        } else {
-            null
-        }
-    val value = fromLocalProperties ?: System.getenv(keyName) ?: ""
+    val value = externalBuildValue(keyName) ?: ""
     requireKeyForReleaseBuild(keyName, value)
     return value
 }
@@ -86,8 +75,8 @@ fun Project.requireReleaseSigningForReleaseBuild(missingKeys: List<String>) {
 /**
  * `preReleaseBuild` 에 매달아 release variant 를 실제로 빌드할 때만 도는 검증 태스크를 등록한다.
  *
- * 판정과 메시지를 값으로 받는 이유는 configuration cache 다 — 태스크 상태가 직렬화되므로 액션
- * 람다가 [Project] 를 캡처하면 안 된다.
+ * 등록 자체는 [registerVariantBuildGuard] 가 한다 — debug 주소 가드(BaseUrlGuard.kt)와 같은 배선을
+ * 쓰기 위해서다. 여기 남은 몫은 붙일 자리(`preReleaseBuild`)를 고정하는 것뿐이다.
  */
 private fun Project.registerReleaseBuildGuard(
     taskName: String,
@@ -95,15 +84,11 @@ private fun Project.registerReleaseBuildGuard(
     isMissing: Boolean,
     failureMessage: String,
 ) {
-    val guard =
-        tasks.register(taskName) {
-            group = "verification"
-            description = taskDescription
-            doFirst {
-                if (isMissing) {
-                    throw GradleException(failureMessage)
-                }
-            }
-        }
-    tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(guard) }
+    registerVariantBuildGuard(
+        preBuildTaskName = "preReleaseBuild",
+        taskName = taskName,
+        taskDescription = taskDescription,
+        shouldFail = isMissing,
+        failureMessage = failureMessage,
+    )
 }
