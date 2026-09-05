@@ -27,8 +27,8 @@ import com.careercompass.feature.feed.presentation.postingraw.PostingRawViewMode
  * 자동 채움이 없다). 폼 초안용 `SavedStateHandle` 은 그대로 쓴다 — entry 스코프 owner 가 저장 상태 레지스트리를 물고
  * 있어 프로세스 재생성 성질이 유지된다.
  *
- * 바텀바는 피드 홈에서만 보인다. 이 host 의 Nav2 destination 은 [FeedGraphRoute] 하나뿐이라 destination 만으로는
- * 상세가 쌓였는지 알 수 없으므로, [boundary] 의 `onAtRootChanged` 로 깊이를 셸에 올려 판정에 합성한다.
+ * 바텀바는 피드 홈에서만 보인다. 루트 스택에서 이 host 는 키 하나라 그 키만으로는 상세가 쌓였는지 알 수 없으므로,
+ * [boundary] 의 `onAtRootChanged` 로 깊이를 셸에 올려 판정에 합성한다.
  *
  * @param pendingEntry 셸이 부탁한 진입(딥링크 상세·온보딩 완료의 게시판 등록). 반영한 뒤 [onPendingEntryConsumed] 로 비운다.
  */
