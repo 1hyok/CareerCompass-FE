@@ -35,5 +35,6 @@
 | 로그인·지문·온보딩 | [`feature/onboarding/presentation/src/main/res/values/`](../../feature/onboarding/presentation/src/main/res/values) |
 | 피드·공고·게시판 | [`feature/feed/presentation/src/main/res/values/`](../../feature/feed/presentation/src/main/res/values) |
 | 실패·상태 화면 공통 | [`core/ui/src/main/res/values/`](../../core/ui/src/main/res/values) |
+| 마이 탭 자리표시자 | [`app/src/main/res/values/placeholder_strings.xml`](../../app/src/main/res/values/placeholder_strings.xml) |
 
 화면별 엣지 상태(오프라인·로딩·빈 결과·점검·세션 만료)의 확정표는 [`docs/spec/edge-states.md`](../spec/edge-states.md), 서버 에러 코드의 문구 매핑은 [`docs/spec/error-copy.md`](../spec/error-copy.md) 에 있다.
