@@ -47,24 +47,27 @@ internal fun rememberOnboardingExternalActions(
  * 루트가 Nav2 인 동안은 `NavController.popBackStack()` 이고, 루트가 `NavDisplay` 로 바뀌면 루트 백스택의 pop 이 된다 —
  * 구현만 갈리고 계약은 그대로다(#260).
  *
- * @param onRootEmpty 루트에 더 걷어낼 화면이 없다 — 온보딩 첫 화면에서의 back 처럼 앱을 나가야 하는 자리.
- * @param onAtRootChanged 바텀바 판정에 깊이를 합성해야 하는 그래프만 넘긴다.
+ * @param onRootEmpty 루트에 더 걷어낼 화면이 없다 — 온보딩 첫 화면에서의 back 처럼 앱을 나가야 하는 자리. 루트 바닥에서 할 일이
+ *   없는 그래프는 null.
+ * @param onAtRootChanged 바텀바 판정에 깊이를 합성해야 하는 그래프만 넘긴다. 바텀바가 없는 그래프는 null.
  */
 @Composable
 internal fun rememberRootPopBoundary(
     navController: NavHostController,
-    onRootEmpty: () -> Unit = {},
-    onAtRootChanged: (Boolean) -> Unit = {},
+    onRootEmpty: (() -> Unit)?,
+    onAtRootChanged: ((Boolean) -> Unit)?,
 ): FeatureStackBoundary {
     val onRootEmptyState by rememberUpdatedState(onRootEmpty)
     val onAtRootChangedState by rememberUpdatedState(onAtRootChanged)
     return remember(navController) {
         object : FeatureStackBoundary {
             override fun exit() {
-                if (!navController.popBackStack()) onRootEmptyState()
+                if (!navController.popBackStack()) onRootEmptyState?.invoke()
             }
 
-            override fun onAtRootChanged(isAtRoot: Boolean) = onAtRootChangedState(isAtRoot)
+            override fun onAtRootChanged(isAtRoot: Boolean) {
+                onAtRootChangedState?.invoke(isAtRoot)
+            }
         }
     }
 }
