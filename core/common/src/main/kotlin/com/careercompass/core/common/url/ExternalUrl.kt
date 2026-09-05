@@ -21,7 +21,12 @@ public object ExternalUrl {
         val trimmed = raw.trim()
         if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return null
 
-        val scheme = schemeRegex.find(trimmed)?.groupValues?.get(1)?.lowercase() ?: return null
+        val scheme =
+            schemeRegex
+                .find(trimmed)
+                ?.groupValues
+                ?.get(1)
+                ?.lowercase() ?: return null
         if (scheme !in allowedSchemes) return null
 
         val rest = trimmed.substring(scheme.length + "://".length)
@@ -33,5 +38,10 @@ public object ExternalUrl {
     }
 
     /** 리포팅에 실을 스킴. 주소 전체는 남기지 않는다 — 쿼리에 무엇이 실려 있을지 모른다. */
-    public fun schemeOrNull(raw: String): String? = schemeRegex.find(raw.trim())?.groupValues?.get(1)?.lowercase()
+    public fun schemeOrNull(raw: String): String? =
+        schemeRegex
+            .find(raw.trim())
+            ?.groupValues
+            ?.get(1)
+            ?.lowercase()
 }
