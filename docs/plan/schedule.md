@@ -36,6 +36,8 @@ BE 와 AI 는 [CareerCompass-BE](https://github.com/Team-CareerCompass/CareerCom
 
 ## 실제 진척 (2026-09-06)
 
+숫자로는 약 30% 다. 목표는 85% 이고, 어떻게 셌는지와 갈래별 근거는 [`progress-report.md`](progress-report.md) 에 있다.
+
 | 기간 | 목표 | 실제 | 벌어진 이유 |
 |---|---|---|---|
 | 4월 | 15% | 달성 | |
