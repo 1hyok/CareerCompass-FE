@@ -70,7 +70,7 @@ CareerCompass
 - 카테고리: 교육 또는 비즈니스 중 택일. 공고 수집과 지원서 작성이 중심이므로 비즈니스를 기본안으로 한다
 - 태그: 취업, 채용, 장학금, 공모전, 자기소개서
 - 이메일: 팀 공용 주소를 만들어 넣는다. 개인 메일을 스토어에 공개하지 않는다
-- 웹사이트: GitHub 조직 페이지 또는 개인정보처리방침을 올린 페이지
+- 웹사이트: 개인정보처리방침을 올린 페이지. 게시처와 주소는 [`privacy-policy-hosting.md`](privacy-policy-hosting.md)
 
 ## 앱 콘텐츠 선언
 
@@ -78,7 +78,7 @@ Play Console 의 정책 및 프로그램 → 앱 콘텐츠에서 채운다. 하�
 
 | 선언 | 답 | 근거 |
 |---|---|---|
-| 개인정보처리방침 URL | 게시 후 채운다 | [`privacy-policy.md`](privacy-policy.md) 를 공개 URL 로 올린다 |
+| 개인정보처리방침 URL | 게시 후 채운다 | [`privacy-policy.md`](privacy-policy.md) 를 공개 URL 로 올린다. 게시처와 절차는 [`privacy-policy-hosting.md`](privacy-policy-hosting.md) |
 | 광고 | 없음 | 광고 SDK 를 넣지 않았고 매니페스트가 광고 ID 권한을 제거한다 |
 | 앱 접근 권한 | 전체 기능에 로그인 필요 | 심사용 계정과 절차를 함께 적는다 |
 | 콘텐츠 등급 | 설문 응답 필요 | 사용자 생성 콘텐츠는 본인만 보는 자기소개서다. 공유·소통 기능이 없다 |

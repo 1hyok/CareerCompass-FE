@@ -2,7 +2,7 @@
 
 이 문서는 초안이다. 두 곳이 비어 있고, 그것을 채우기 전에는 공개하지 않는다. 하나는 문의처(팀 공용 이메일)이고 다른 하나는 LLM 전송 범위다. 전송 범위는 [BE #48](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/48) 이 정한다. 선언과 실제가 다르면 스토어 정책 위반이므로, 서버가 실제로 무엇을 보내는지 확정된 뒤에 이 문서를 확정한다.
 
-공개할 때는 `docs/store/privacy-policy.md` 를 GitHub Pages 나 그에 준하는 공개 페이지로 올리고, 그 주소를 Play Console 의 앱 콘텐츠 선언과 앱 안의 설정 화면에 함께 건다.
+게시처와 절차는 [`privacy-policy-hosting.md`](privacy-policy-hosting.md) 에 정해 뒀다. FE 저장소의 GitHub Pages 에 이 파일 한 장을 페이지로 올리고, 그 주소를 Play Console 의 앱 콘텐츠 선언과 앱에 함께 건다.
 
 시행일: 게시일에 맞춰 채운다.
 
