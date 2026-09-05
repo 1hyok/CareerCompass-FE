@@ -93,5 +93,6 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 - [`docs/spec/error-copy.md`](docs/spec/error-copy.md) — 서버 에러 코드 14종의 사용자 문구·행동·재시도 가능 여부
 - [`docs/spec/notification-screens.md`](docs/spec/notification-screens.md) — 알림 목록·설정 화면의 글로 된 시안(§8·F2-4). Figma 에 없는 두 화면을 #195·#196 이 이것으로 만든다
 - [`docs/testing/screenshot.md`](docs/testing/screenshot.md) — Compose Preview 스크린샷 테스트
+- [`docs/api-base-url.md`](docs/api-base-url.md) — 빌드 타입별 API 주소(`BASE_URL_DEV`·`BASE_URL_PROD`)와 debug 가 운영을 가리키지 못하게 막는 가드
 - [`docs/release/`](docs/release) — 배포·Firebase WIF
 - [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마
