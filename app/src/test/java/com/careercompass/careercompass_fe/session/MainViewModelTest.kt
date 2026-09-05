@@ -74,9 +74,9 @@ class MainViewModelTest {
             CoreDataFailure.Unauthorized("AUTH_INVALID", ApiException("AUTH_INVALID", null, "만료", status = 401)),
         )
 
-    private val MainViewModel.destination: AppStartDestination? get() = launch.value?.destination
+    private val MainViewModel.destination: AppStartDestination? get() = launch?.destination
 
-    private val MainViewModel.expiryNotice: Boolean get() = launch.value?.sessionExpiryNotice == true
+    private val MainViewModel.expiryNotice: Boolean get() = launch?.sessionExpiryNotice == true
 
     /** 실제 배선과 같게 — 세션 진입 판정은 두 리포지토리를 받는 use case 가 한다. */
     private fun mainViewModel(
@@ -231,7 +231,7 @@ class MainViewModelTest {
 
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
 
-        assertNull(viewModel.launch.value)
+        assertNull(viewModel.launch)
         gate.complete(Result.success(profile(true)))
         assertEquals(AppStartDestination.Main, viewModel.destination)
     }
@@ -286,11 +286,11 @@ class MainViewModelTest {
     @Test
     fun `다시 계산하면 목적지가 같아도 revision 이 올라 NavHost 가 새로 만들어진다`() {
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
-        val first = requireNotNull(viewModel.launch.value)
+        val first = requireNotNull(viewModel.launch)
 
         viewModel.onSessionEnded(SessionEndCause.LoggedOut)
 
-        val second = requireNotNull(viewModel.launch.value)
+        val second = requireNotNull(viewModel.launch)
         assertEquals(AppStartDestination.Login, second.destination)
         assertNotEquals(first.revision, second.revision)
         assertTrue(second.revision > first.revision)
@@ -311,7 +311,7 @@ class MainViewModelTest {
         val after = mainViewModel(FakeAuthRepository(loggedIn = true), FakeUserProfileRepository(profile(false)), handle)
 
         assertEquals(AppStartDestination.Onboarding, after.destination)
-        assertEquals(requireNotNull(before.launch.value).revision, requireNotNull(after.launch.value).revision)
+        assertEquals(requireNotNull(before.launch).revision, requireNotNull(after.launch).revision)
     }
 
     @Test
@@ -323,7 +323,7 @@ class MainViewModelTest {
         val after = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict(), handle)
 
         assertEquals(AppStartDestination.Login, after.destination)
-        assertNotEquals(requireNotNull(before.launch.value).revision, requireNotNull(after.launch.value).revision)
+        assertNotEquals(requireNotNull(before.launch).revision, requireNotNull(after.launch).revision)
     }
 
     @Test
@@ -339,7 +339,7 @@ class MainViewModelTest {
             )
 
         assertEquals(AppStartDestination.BiometricLogin, after.destination)
-        assertNotEquals(requireNotNull(before.launch.value).revision, requireNotNull(after.launch.value).revision)
+        assertNotEquals(requireNotNull(before.launch).revision, requireNotNull(after.launch).revision)
     }
 
     @Test
@@ -354,7 +354,7 @@ class MainViewModelTest {
                 }
             }
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
-        assertNull(viewModel.launch.value)
+        assertNull(viewModel.launch)
 
         viewModel.onSessionEnded(SessionEndCause.Expired)
         viewModel.onSessionEnded(SessionEndCause.Expired)
@@ -367,12 +367,12 @@ class MainViewModelTest {
     @Test
     fun `딥링크는 소비할 때까지 보관하고, 계약에 맞지 않아 null 인 것은 무시한다`() {
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = false), FakeUserProfileRepository.strict())
-        assertNull(viewModel.pendingDeepLink.value)
+        assertNull(viewModel.pendingDeepLink)
 
         viewModel.onDeepLink(AppDeepLink.PostingDetail(101))
         viewModel.onDeepLink(null)
 
-        assertEquals(AppDeepLink.PostingDetail(101), viewModel.pendingDeepLink.value)
+        assertEquals(AppDeepLink.PostingDetail(101), viewModel.pendingDeepLink)
     }
 
     @Test
@@ -382,7 +382,7 @@ class MainViewModelTest {
 
         viewModel.consumeDeepLink()
 
-        assertNull(viewModel.pendingDeepLink.value)
+        assertNull(viewModel.pendingDeepLink)
     }
 
     @Test
@@ -396,7 +396,7 @@ class MainViewModelTest {
         gate.complete(Result.success(profile(true)))
 
         assertEquals(AppStartDestination.Main, viewModel.destination)
-        assertEquals(AppDeepLink.PostingDetail(101), viewModel.pendingDeepLink.value)
+        assertEquals(AppDeepLink.PostingDetail(101), viewModel.pendingDeepLink)
     }
 
     @Test
@@ -408,7 +408,7 @@ class MainViewModelTest {
         viewModel.onSessionEnded(SessionEndCause.LoggedOut)
 
         assertEquals(AppStartDestination.Login, viewModel.destination)
-        assertNull(viewModel.pendingDeepLink.value)
+        assertNull(viewModel.pendingDeepLink)
     }
 
     // ── 세션 만료 안내 (#128) ─────────────────────────────────────────────────
@@ -445,7 +445,7 @@ class MainViewModelTest {
         val gate = CompletableDeferred<Result<UserProfile>>()
         val profiles = FakeUserProfileRepository().apply { onRefreshProfile = { gate.await() } }
         val viewModel = mainViewModel(FakeAuthRepository(loggedIn = true), profiles)
-        assertNull(viewModel.launch.value)
+        assertNull(viewModel.launch)
 
         viewModel.onSessionEnded(SessionEndCause.LoggedOut)
         viewModel.onSessionEnded(SessionEndCause.Expired)
@@ -461,11 +461,11 @@ class MainViewModelTest {
         val viewModel = mainViewModel(auth, FakeUserProfileRepository(profile(true)))
         auth.loggedIn = false
         viewModel.onSessionEnded(SessionEndCause.Expired)
-        val shown = requireNotNull(viewModel.launch.value)
+        val shown = requireNotNull(viewModel.launch)
 
         viewModel.consumeSessionExpiryNotice()
 
-        val dismissed = requireNotNull(viewModel.launch.value)
+        val dismissed = requireNotNull(viewModel.launch)
         assertFalse(dismissed.sessionExpiryNotice)
         // revision 이 그대로여야 백스택이 살아 있는 채로 안내만 사라진다.
         assertEquals(shown.revision, dismissed.revision)
@@ -490,12 +490,12 @@ class MainViewModelTest {
         // 실패한 기기가 다시 지문 화면으로 돌아가 로그인 화면에 닿지 못한다.
         val viewModel =
             mainViewModel(FakeAuthRepository(loggedIn = true, biometricEnabled = true), FakeUserProfileRepository.strict())
-        val started = requireNotNull(viewModel.launch.value)
+        val started = requireNotNull(viewModel.launch)
         assertEquals(AppStartDestination.BiometricLogin, started.destination)
 
         viewModel.raiseSessionExpiryNotice()
 
-        val notified = requireNotNull(viewModel.launch.value)
+        val notified = requireNotNull(viewModel.launch)
         assertTrue(notified.sessionExpiryNotice)
         assertEquals(started.revision, notified.revision)
         assertEquals(AppStartDestination.BiometricLogin, notified.destination)
@@ -513,7 +513,7 @@ class MainViewModelTest {
                 appSettingsRepository = settings,
             )
 
-        assertEquals(ThemeMode.Dark, viewModel.themeMode.value)
+        assertEquals(ThemeMode.Dark, viewModel.themeMode)
     }
 
     @Test
@@ -528,6 +528,6 @@ class MainViewModelTest {
 
         settings.themeModeState.value = ThemeMode.Light
 
-        assertEquals(ThemeMode.Light, viewModel.themeMode.value)
+        assertEquals(ThemeMode.Light, viewModel.themeMode)
     }
 }

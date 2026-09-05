@@ -13,6 +13,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.careercompass.careercompass_fe.navigation.AppDeepLinkParser
 import com.careercompass.careercompass_fe.navigation.AppNavigation
+import com.careercompass.careercompass_fe.session.MainIntent
 import com.careercompass.careercompass_fe.session.MainViewModel
 import com.careercompass.core.ui.theme.CareerCompassTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -33,19 +34,17 @@ public class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
 
         // 회전 등 재생성에서는 ViewModel 이 같은 intent 의 딥링크를 이미 갖고 있거나 소비했다 — 두 번 싣지 않는다.
-        if (savedInstanceState == null) viewModel.onDeepLink(AppDeepLinkParser.parse(intent?.data))
+        if (savedInstanceState == null) viewModel.onIntent(MainIntent.DeepLinkReceived(AppDeepLinkParser.parse(intent?.data)))
 
         // 시작 목적지가 확정될 때까지(세션·프로필 확인) 시스템 스플래시를 유지한다.
-        splashScreen.setKeepOnScreenCondition { viewModel.launch.value == null }
+        splashScreen.setKeepOnScreenCondition { viewModel.uiState.value.launch == null }
 
         setContent {
             // 테마는 화면 안이 아니라 여기서 정한다 — 로그인 전 화면까지 같은 값을 쓰고, 「시스템 따름」의 뜻은
             // ThemeMode 가 갖는다(#210).
-            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-            CareerCompassTheme(darkTheme = themeMode.resolveDark(isSystemInDarkTheme())) {
-                val launch by viewModel.launch.collectAsStateWithLifecycle()
-                val pendingDeepLink by viewModel.pendingDeepLink.collectAsStateWithLifecycle()
-                launch?.let { current ->
+            val shell by viewModel.uiState.collectAsStateWithLifecycle()
+            CareerCompassTheme(darkTheme = shell.themeMode.resolveDark(isSystemInDarkTheme())) {
+                shell.launch?.let { current ->
                     // 세션 종료(로그아웃·만료)마다 revision 이 올라 NavHost 를 새로 만든다 — 같은 컨트롤러의
                     // startDestination 만 바꾸면 이전 백스택이 남고, 목적지 값만 키로 쓰면 같은 값일 때 아무
                     // 일도 일어나지 않는다. 프로세스 재생성에서는 인증이 다시 필요할 때만 올라간다 — 세션이
@@ -54,11 +53,11 @@ public class MainActivity : FragmentActivity() {
                         AppNavigation(
                             startDestination = current.destination,
                             isSessionExpiryNoticeVisible = current.sessionExpiryNotice,
-                            onSessionExpiryNoticeDismissed = viewModel::consumeSessionExpiryNotice,
-                            pendingDeepLink = pendingDeepLink,
-                            onDeepLinkConsumed = viewModel::consumeDeepLink,
-                            onSessionEnded = viewModel::onSessionEnded,
-                            onAuthSessionExpired = viewModel::raiseSessionExpiryNotice,
+                            onSessionExpiryNoticeDismissed = { viewModel.onIntent(MainIntent.ConsumeSessionExpiryNotice) },
+                            pendingDeepLink = shell.pendingDeepLink,
+                            onDeepLinkConsumed = { viewModel.onIntent(MainIntent.ConsumeDeepLink) },
+                            onSessionEnded = { cause -> viewModel.onIntent(MainIntent.SessionEnded(cause)) },
+                            onAuthSessionExpired = { viewModel.onIntent(MainIntent.RaiseSessionExpiryNotice) },
                             onExitRequest = ::finish,
                         )
                     }
@@ -71,6 +70,6 @@ public class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        viewModel.onDeepLink(AppDeepLinkParser.parse(intent.data))
+        viewModel.onIntent(MainIntent.DeepLinkReceived(AppDeepLinkParser.parse(intent.data)))
     }
 }

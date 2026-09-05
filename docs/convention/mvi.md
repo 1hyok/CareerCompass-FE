@@ -2,7 +2,7 @@
 
 **화면 ViewModel 은 `MviViewModel` 을 상속해 진입점 하나(`onIntent`)와 순수 전이 하나(`reduce`)만 갖는다.**
 
-`feature/*/presentation` 의 ViewModel 에 적용하고, `konsist` 의 `MviContractKonsistTest` 가 강제한다 (#244).
+`feature/*/presentation` 과 `app` 의 ViewModel 에 적용하고, `konsist` 의 `MviContractKonsistTest` 가 강제한다 (#244 · #252).
 베이스와 마커는 `core/ui` 의 `com.careercompass.core.ui.mvi` 에 있다. 애프터노트가 추진 중인 같은 전환(Afternote/Afternote-FE #1811)의 계약을 그대로 들여왔다.
 
 ## 왜인가
@@ -151,10 +151,10 @@ ObserveSignal(
 | 규칙 | 내용 |
 | --- | --- |
 | A | `MviViewModel` 상속체는 `MutableStateFlow`·`MutableSharedFlow`·`Channel` 을 직접 선언하지 않는다 |
-| B | `feature/*/presentation` 의 ViewModel 은 `MviViewModel` 을 상속한다 |
+| B | `feature/*/presentation` 과 `app` 의 ViewModel 은 `MviViewModel` 을 상속한다 |
 | C | `MviIntent`·`ReducerEvent` 를 직접 구현하는 타입은 `sealed interface` 다 |
 
-규칙 B 는 도입 시점(#244)에 전환 전 ViewModel 9개를 `PENDING_MVI_MIGRATION` 예외로 뒀고, onboarding(#249·#245)·feed(#246) 전환이 끝나면서 예외를 지웠다. 이제 `feature/*/presentation` 의 새 ViewModel 은 처음부터 `MviViewModel` 을 상속해야 한다. `app` 의 ViewModel 2개(`MainViewModel`·`MyTabPlaceholderViewModel`)는 규칙 B 의 대상이 아니다. 마무리 이슈가 처리한다.
+규칙 B 는 도입 시점(#244)에 전환 전 ViewModel 9개를 `PENDING_MVI_MIGRATION` 예외로 뒀고, onboarding(#249·#245)·feed(#246) 전환이 끝나면서 예외를 지웠다. `app` 의 ViewModel 2개(`MainViewModel`·`MyTabPlaceholderViewModel`)도 #252 에서 옮기고 규칙 B 의 범위에 넣었다. 이제 `feature/*/presentation` 과 `app` 의 새 ViewModel 은 처음부터 `MviViewModel` 을 상속해야 한다.
 
 세 규칙은 프로덕션 소스만 본다. 테스트 더블이 `MviViewModel` 을 상속하며 보조 상태 홀더를 드는 것은 규칙 A 의 대상이 아니다.
 
