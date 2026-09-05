@@ -35,7 +35,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     // SavedStateHandle — 온보딩 입력 초안이 프로세스 사망을 건너게 한다(#133).
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.kakao.sdk.user)
     implementation(libs.kakao.sdk.auth)
     implementation(libs.androidx.credentials)

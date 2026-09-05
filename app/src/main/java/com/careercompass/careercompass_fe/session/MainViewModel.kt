@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 앱 셸의 상태 — `MainActivity` 가 테마·NavHost·딥링크에 쓰는 값 셋을 한 곳에 둔다.
+ * 앱 셸의 상태 — `MainActivity` 가 테마·루트 백스택·딥링크에 쓰는 값 셋을 한 곳에 둔다.
  *
  * @property launch 초기 진입 시 null(로딩)이며, 세션·프로필 확인 뒤 확정된다. 콜드 스타트의 시스템 스플래시는 이 값이
  *   확정될 때까지 유지된다.
@@ -69,7 +69,7 @@ public sealed interface MainIntent : MviIntent {
     /**
      * 만료 안내를 끈다 — 닫기를 눌렀거나 다시 로그인을 시도했을 때.
      *
-     * [AppShellLaunch.revision] 은 그대로라 NavHost 를 다시 만들지 않는다. 안내는 상태라 회전으로 사라지지도,
+     * [AppShellLaunch.revision] 은 그대로라 루트 백스택을 다시 세우지 않는다. 안내는 상태라 회전으로 사라지지도,
      * 두 번 뜨지도 않고, 여기로 꺼야 비로소 없어진다.
      */
     public data object ConsumeSessionExpiryNotice : MainIntent
@@ -117,8 +117,8 @@ public sealed interface MainReducerEvent : ReducerEvent {
  * 목적이다(#74). 지문 경로는 그렇지 않다 — 지문 성공은 저장된 세션을 그대로 쓰겠다는 확인이라 서버가 그 세션을 아직
  * 받아 주는지 **먼저** 확인해야 피드에 들어갔다가 401 로 튕겨 나오는 두 번 이동이 없다(#81).
  *
- * 결과는 [AppShellState.launch] 로 흘린다 — 세션 종료 뒤 같은 목적지가 나와도 [AppShellLaunch.revision] 이 올라 NavHost 가
- * 새로 만들어진다.
+ * 결과는 [AppShellState.launch] 로 흘린다 — 세션 종료 뒤 같은 목적지가 나와도 [AppShellLaunch.revision] 이 올라 루트 백스택이
+ * 새로 세워진다.
  *
  * 세션이 **왜** 끝났는지도 여기서 정한다(#128). 화면은 사실만 알려 주고([MainIntent.SessionEnded]) 판정과 안내 여부는
  * 셸이 갖는다 — 만료로 로그인 화면에 닿았을 때만 [AppShellLaunch.sessionExpiryNotice] 를 켠다. 셸이 스스로 401 을 만나는
@@ -140,11 +140,11 @@ public class MainViewModel
         private val savedStateHandle: SavedStateHandle,
     ) : MviViewModel<MainIntent, AppShellState, MainReducerEvent>(AppShellState()) {
         /**
-         * NavHost 세대 번호. 액티비티 저장 상태에 실려 프로세스를 건넌다.
+         * 루트 백스택 세대 번호. 액티비티 저장 상태에 실려 프로세스를 건넌다.
          *
-         * 예전에는 `System.nanoTime()` 으로 시작해 프로세스마다 달랐다 — 되살아난 앱이 이전 NavController 저장
-         * 상태를 **영영 못 찾게** 만들어 백스택 복원을 막는 장치였다. 그런데 그 저장 상태에는 백스택뿐 아니라
-         * 거기 매달린 그래프 스코프 `SavedStateHandle` 이 전부 들어 있다. 온보딩 입력 초안을 거기 남겨도
+         * 예전에는 `System.nanoTime()` 으로 시작해 프로세스마다 달랐다 — 되살아난 앱이 이전 셸 세대의 저장
+         * 상태를 **영영 못 찾게** 만들어 백스택 복원을 막는 장치였다. 그런데 그 저장 상태에는 루트·로컬 백스택뿐 아니라
+         * 거기 매달린 entry 의 `SavedStateHandle` 이 전부 들어 있다. 온보딩 입력 초안을 거기 남겨도
          * 프로세스가 죽으면 함께 버려져, 「중단된 단계부터 재개」가 단계만 지키고 입력은 못 지켰다(#133).
          *
          * 그래서 값은 살리고 **버려야 할 때만** 올린다 — [emit] 의 판정이 그것이다.
@@ -223,7 +223,7 @@ public class MainViewModel
             }
 
         /**
-         * 시작 목적지를 다시 계산하고 NavHost 를 새로 만들게 한다.
+         * 시작 목적지를 다시 계산하고 루트 백스택을 새로 세우게 한다.
          *
          * 계산이 진행 중이면 합류한다 — 여러 화면이 같은 세션 종료를 동시에 알려도 초기화는 한 번이고, 계산이
          * 겹치지 않으니 늦게 끝난 옛 결과가 새 결과를 덮어쓰지도 않는다. 같은 이유로 새 계산이 시작되면 이전
@@ -243,14 +243,14 @@ public class MainViewModel
         /**
          * 새 시작 목적지를 흘린다.
          *
-         * [revision] 이 오르면 NavHost 가 새로 만들어지고 이전 백스택이 버려진다. 올리는 경우는 둘이다.
+         * [revision] 이 오르면 루트 백스택이 새로 세워지고 이전 백스택이 버려진다. 올리는 경우는 둘이다.
          * - **다시 계산**([AppShellState.launch] 가 이미 있다): 세션이 끝났다는 뜻이라 언제나 버린다. 목적지가
          *   같아도(로그인 → 만료 → 다시 로그인) 이전 백스택은 남으면 안 되는데, 목적지 값만 키로 쓰면 같은 값이라
          *   아무 일도 없다.
          * - **콜드 스타트인데 인증이 다시 필요하다**([AppStartDestination.requiresAuthentication]): 되살아난
          *   백스택이 로그인·지문 게이트를 건너뛴다.
          *
-         * 그 밖의 콜드 스타트(세션이 그대로인 온보딩·메인)는 **올리지 않는다** — 이전 프로세스가 남긴 NavController
+         * 그 밖의 콜드 스타트(세션이 그대로인 온보딩·메인)는 **올리지 않는다** — 이전 프로세스가 남긴 셸 세대의
          * 저장 상태를 그대로 찾아, 보던 화면과 거기 매달린 입력 초안이 함께 돌아온다(#133).
          *
          * 사유는 여기서 소비한다 — 만료로 끝난 세션이 **실제로 로그인 화면에 닿았을 때만** 안내가 붙는다. 만료를
@@ -370,7 +370,7 @@ public class MainViewModel
             const val KEY_STAGE = "app_stage"
             const val STAGE_START_PROFILE = "start_profile"
 
-            /** 액티비티 저장 상태에 실리는 [revision] 키 — 프로세스를 건너 NavHost 세대를 잇는다. */
+            /** 액티비티 저장 상태에 실리는 [revision] 키 — 프로세스를 건너 셸 세대를 잇는다. */
             const val KEY_REVISION = "app_shell.navHostRevision"
         }
     }

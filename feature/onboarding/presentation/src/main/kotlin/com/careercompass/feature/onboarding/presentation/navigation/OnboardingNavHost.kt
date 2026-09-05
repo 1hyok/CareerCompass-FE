@@ -24,12 +24,12 @@ import com.careercompass.feature.onboarding.presentation.login.LoginScreen
  *
  * ## 공유 ViewModel 수명
  *
- * Nav2 에서 Step 1~4·완료가 공유하는 [OnboardingViewModel] 은 [OnboardingGraphRoute] **그래프 엔트리**의
- * `ViewModelStore` 에 묶여 있었다(`getBackStackEntry<OnboardingGraphRoute>()` + `hiltViewModel(parentEntry)`). Nav3 엔
- * 그래프라는 중간 계층이 없으므로, 같은 수명을 **host 자신의 스코프**로 옮긴다 — 이 컴포저블은 온보딩을 담은 루트
- * 엔트리 안에서 실행되니 여기서 만든 ViewModel 은 그 엔트리가 백스택에서 내려갈 때 정리된다. 즉 단계 사이 재진입에는
- * 살아남고 온보딩을 벗어나면 사라지는, 이관 전과 같은 특성이다. 세션 종료로 셸이 `NavHost` 를 새로 만들면 루트 엔트리와
- * 함께 이 ViewModel 과 입력 초안도 버려진다(#133 의 규칙 그대로).
+ * Nav2 에서 Step 1~4·완료가 공유하는 [OnboardingViewModel] 은 온보딩 **그래프 엔트리**의 `ViewModelStore` 에 묶여
+ * 있었다(`getBackStackEntry<Graph>()` + `hiltViewModel(parentEntry)`). Nav3 엔 그래프라는 중간 계층이 없으므로, 같은 수명을
+ * **host 자신의 스코프**로 옮긴다 — 이 컴포저블은 온보딩을 담은 루트 엔트리 안에서 실행되니 여기서 만든 ViewModel 은
+ * 그 엔트리가 루트 백스택에서 내려갈 때 정리된다. 즉 단계 사이 재진입에는 살아남고 온보딩을 벗어나면 사라지는, 이관
+ * 전과 같은 특성이다. 세션 종료로 셸이 루트 스택을 새로 세우면 루트 엔트리와 함께 이 ViewModel 과 입력 초안도
+ * 버려진다(#133 의 규칙 그대로).
  *
  * 로그인·지문 화면은 각자의 ViewModel 을 `entry { }` 안에서 만든다 — entry 범위(= 그 화면이 스택에서 빠지면 정리)다.
  *

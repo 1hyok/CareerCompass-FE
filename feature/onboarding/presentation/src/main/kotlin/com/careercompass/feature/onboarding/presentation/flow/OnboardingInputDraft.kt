@@ -42,7 +42,7 @@ import com.careercompass.feature.onboarding.presentation.pastapplication.DirectI
  * - **Step 4 업로드 목록**: 진행 중이던 업로드는 프로세스와 함께 끝났고, 끝난 문서는 서버 목록에서 다시 읽는다.
  *
  * ### 세션이 끝나면 초안도 함께 버린다 (#211)
- * 401 로 앱 셸이 NavHost 를 새로 만들면 그래프 스코프 ViewModel 과 이 [SavedStateHandle] 이 함께 사라져 초안도
+ * 401 로 앱 셸이 루트 스택을 새로 세우면 host 스코프 ViewModel 과 이 [SavedStateHandle] 이 함께 사라져 초안도
  * 없어진다. 지키지 않는 쪽이 맞다 — 다음에 로그인하는 계정이 같은 계정이라는 보장이 없고(같은 기기의 다른
  * 카카오·구글 계정), 초안은 계정에 귀속되지 않은 채 저장돼 있어 남기면 앞 계정의 입력이 뒤 계정의 폼에 나타난다
  * (지문 등록 거절 기록이 같은 이유로 계정별로 갈렸다, #98). 서버에 저장된 단계는 재개 시 `resolveEntry()` 가 다시

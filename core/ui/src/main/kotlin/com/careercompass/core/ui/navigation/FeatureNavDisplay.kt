@@ -33,7 +33,7 @@ import androidx.navigation3.ui.NavDisplay
  * `NavDisplay` 는 `isBackEnabled = scene.previousEntries.isNotEmpty()` 로 back 핸들러를 켜는데
  * (`NavDisplay.kt:558`), `SinglePaneScene.previousEntries` 는 `entries.dropLast(1)` 이라
  * (`SinglePaneScene.kt:65`) **스택 크기가 1 이면 핸들러 자체가 꺼진다.** 그래서 제스처·시스템 back 은
- * 이 표시부를 그냥 지나쳐 상위(부모 `NavHost`·액티비티)로 흘러간다.
+ * 이 표시부를 그냥 지나쳐 상위(루트 `NavDisplay`·액티비티)로 흘러간다.
  *
  * `else -> boundary.exit()` 에 실제로 도달하는 것은 **화면 안 back 버튼**(`popOrExit`)뿐이다.
  * `FeatureNavDisplayTest` 의 「back 은 스택만 줄이고 바닥에서는 이 표시부를 지나쳐 위로 흐른다」가
