@@ -39,35 +39,37 @@ public fun OnboardingStep3Entry(
     ConsumePendingNavigation(
         destination = state.pendingNavigation,
         onNavigate = onNavigate,
-        onConsumed = viewModel::onNavigationConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeNavigation) },
     )
     ConsumeSessionEnd(
         sessionEnded = state.sessionEnded,
         onSessionEnded = onSessionEnded,
-        onConsumed = viewModel::onSessionEndedConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeSessionEnded) },
     )
 
     OnboardingFlowFailureHost(
         failure = state.failure,
-        onDismiss = viewModel::onFailureConsumed,
+        onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
         OnboardingStep3Screen(
             state = state.step3.toUiState(isInputEnabled = state.isInputEnabled),
             onEvent = { event ->
-                if (event == OnboardingStep3Event.BackClicked) onBack() else viewModel.onStep3Event(event)
+                if (event == OnboardingStep3Event.BackClicked) onBack() else viewModel.onIntent(OnboardingIntent.Step3(event))
             },
         )
     }
 
     state.experienceEditor?.let { editor ->
-        OnboardingSheetHost(onDismissRequest = { viewModel.onExperienceEditorEvent(ExperienceQuickAddEvent.Dismissed) }) {
-            ExperienceQuickAddSheet(state = editor, onEvent = viewModel::onExperienceEditorEvent)
+        OnboardingSheetHost(
+            onDismissRequest = { viewModel.onIntent(OnboardingIntent.ExperienceEditor(ExperienceQuickAddEvent.Dismissed)) },
+        ) {
+            ExperienceQuickAddSheet(state = editor, onEvent = { viewModel.onIntent(OnboardingIntent.ExperienceEditor(it)) })
         }
     }
 
     state.experienceDelete?.let { pending ->
-        ExperienceDeleteDialog(state = pending, onEvent = viewModel::onExperienceDeleteEvent)
+        ExperienceDeleteDialog(state = pending, onEvent = { viewModel.onIntent(OnboardingIntent.ExperienceDelete(it)) })
     }
 }
 

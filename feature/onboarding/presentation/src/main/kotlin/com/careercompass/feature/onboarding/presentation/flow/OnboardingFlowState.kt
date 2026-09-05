@@ -9,6 +9,7 @@ import com.careercompass.core.model.experience.ExperienceType
 import com.careercompass.core.model.user.MAX_JOB_INTERESTS
 import com.careercompass.core.model.user.MAX_PROFILE_TAGS
 import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.onboarding.domain.model.JobOptionCatalog
 import com.careercompass.feature.onboarding.domain.model.OnboardingStep
 import com.careercompass.feature.onboarding.presentation.basicinfo.GraduationPickerState
@@ -222,7 +223,7 @@ public data class OnboardingFlowState(
     val directInput: DirectInputState? = null,
     val uploadLabel: UploadLabelState? = null,
     val itemCategoryPicker: PastApplicationItemCategoryState? = null,
-) {
+) : UiState {
     init {
         require(userName == null || userName.isNotBlank()) { "userName must be null or non-blank" }
     }

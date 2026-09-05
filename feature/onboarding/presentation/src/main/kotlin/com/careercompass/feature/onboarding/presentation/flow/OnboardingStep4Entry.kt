@@ -62,12 +62,12 @@ public fun OnboardingStep4Entry(
     ConsumePendingNavigation(
         destination = state.pendingNavigation,
         onNavigate = onNavigate,
-        onConsumed = viewModel::onNavigationConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeNavigation) },
     )
     ConsumeSessionEnd(
         sessionEnded = state.sessionEnded,
         onSessionEnded = onSessionEnded,
-        onConsumed = viewModel::onSessionEndedConsumed,
+        onConsumed = { viewModel.onIntent(OnboardingIntent.ConsumeSessionEnded) },
     )
 
     val documentPicker =
@@ -76,28 +76,28 @@ public fun OnboardingStep4Entry(
             readUploadFile(contentResolver, uri)
                 .onSuccess { file ->
                     pendingUploadUri = uri.toString()
-                    viewModel.onFileSelected(file)
+                    viewModel.onIntent(OnboardingIntent.FileSelected(file))
                 }.onFailure { throwable ->
                     val reason = (throwable as? UploadFileSelectionException)?.reason ?: OnboardingFailureReason.Unknown
-                    viewModel.onFileSelectionFailed(reason, throwable)
+                    viewModel.onIntent(OnboardingIntent.FileSelectionFailed(reason, throwable))
                 }
         }
 
     RestorePendingUpload(
         uri = pendingUploadUri.takeIf { state.uploadLabel == null && !state.isResolvingEntry },
         contentResolver = contentResolver,
-        onRestored = viewModel::onFileSelected,
+        onRestored = { viewModel.onIntent(OnboardingIntent.FileSelected(it)) },
         onUnavailable = {
             // 권한이 끊겼거나 문서가 사라졌다 — 조용히 버린다. 사용자가 방금 한 일이 아니라 경고할 사건이 아니고,
             // 취소와 같은 처리라 ViewModel 이 든 라벨 초안도 함께 비운다.
             pendingUploadUri = null
-            viewModel.onUploadLabelEvent(UploadLabelEvent.Dismissed)
+            viewModel.onIntent(OnboardingIntent.UploadLabel(UploadLabelEvent.Dismissed))
         },
     )
 
     OnboardingFlowFailureHost(
         failure = state.failure,
-        onDismiss = viewModel::onFailureConsumed,
+        onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
         OnboardingStep4Screen(
@@ -106,15 +106,15 @@ public fun OnboardingStep4Entry(
                 when (event) {
                     OnboardingStep4Event.BackClicked -> onBack()
                     OnboardingStep4Event.UploadClicked -> documentPicker.launch(SUPPORTED_MIME_TYPES)
-                    else -> viewModel.onStep4Event(event)
+                    else -> viewModel.onIntent(OnboardingIntent.Step4(event))
                 }
             },
         )
     }
 
     state.directInput?.let { input ->
-        OnboardingSheetHost(onDismissRequest = { viewModel.onDirectInputEvent(DirectInputEvent.Dismissed) }) {
-            DirectInputSheet(state = input, onEvent = viewModel::onDirectInputEvent)
+        OnboardingSheetHost(onDismissRequest = { viewModel.onIntent(OnboardingIntent.DirectInput(DirectInputEvent.Dismissed)) }) {
+            DirectInputSheet(state = input, onEvent = { viewModel.onIntent(OnboardingIntent.DirectInput(it)) })
         }
     }
 
@@ -122,7 +122,7 @@ public fun OnboardingStep4Entry(
         // 시트가 닫혔으면(취소·업로드 시작) 보관하던 Uri 도 버린다 — 다음에 고를 파일과 섞이지 않게.
         // 라벨 오류로 시트가 그대로 남았을 때는 지킨다: 아직 그 파일에 이름을 붙이는 중이다.
         val onEvent = { event: UploadLabelEvent ->
-            viewModel.onUploadLabelEvent(event)
+            viewModel.onIntent(OnboardingIntent.UploadLabel(event))
             if (viewModel.uiState.value.uploadLabel == null) pendingUploadUri = null
         }
         OnboardingSheetHost(onDismissRequest = { onEvent(UploadLabelEvent.Dismissed) }) {
@@ -132,9 +132,9 @@ public fun OnboardingStep4Entry(
 
     state.itemCategoryPicker?.let { picker ->
         OnboardingSheetHost(
-            onDismissRequest = { viewModel.onItemCategoryPickerEvent(PastApplicationItemCategoryEvent.Dismissed) },
+            onDismissRequest = { viewModel.onIntent(OnboardingIntent.ItemCategoryPicker(PastApplicationItemCategoryEvent.Dismissed)) },
         ) {
-            PastApplicationItemCategorySheet(state = picker, onEvent = viewModel::onItemCategoryPickerEvent)
+            PastApplicationItemCategorySheet(state = picker, onEvent = { viewModel.onIntent(OnboardingIntent.ItemCategoryPicker(it)) })
         }
     }
 }
@@ -143,7 +143,7 @@ public fun OnboardingStep4Entry(
  * 보관해 둔 [uri] 의 문서를 다시 읽어 업로드 라벨 시트를 세운다 — 프로세스가 죽어 파일 참조를 잃은 뒤에만 할 일이 있다.
  *
  * 호출부가 「지금 복원해야 하는가」를 [uri] 의 null 여부로 넘긴다. 진입 판정이 끝나기를 기다리는 것도 그중
- * 하나다 — [OnboardingViewModel.onFileSelected] 는 입력이 잠긴 동안 시트를 열지 않아, 판정 전에 부르면 복원이
+ * 하나다 — [OnboardingIntent.FileSelected] 는 입력이 잠긴 동안 시트를 열지 않아, 판정 전에 부르면 복원이
  * 조용히 실패한다.
  */
 @Composable

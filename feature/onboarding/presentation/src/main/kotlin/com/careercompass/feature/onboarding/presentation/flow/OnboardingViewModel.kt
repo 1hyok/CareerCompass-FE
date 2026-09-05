@@ -1,7 +1,6 @@
 package com.careercompass.feature.onboarding.presentation.flow
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
 import com.careercompass.core.model.application.MAX_PAST_APPLICATIONS
@@ -26,6 +25,7 @@ import com.careercompass.core.model.user.MAX_PROFILE_TAGS
 import com.careercompass.core.model.user.MIN_GRADUATION_YEAR
 import com.careercompass.core.model.user.UserProfile
 import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.mvi.MviViewModel
 import com.careercompass.feature.onboarding.domain.model.JobOptionCatalog
 import com.careercompass.feature.onboarding.domain.model.OnboardingProgress
 import com.careercompass.feature.onboarding.domain.model.OnboardingStep
@@ -69,10 +69,6 @@ import com.careercompass.feature.onboarding.presentation.reporting.OnboardingFai
 import com.careercompass.feature.onboarding.presentation.reporting.recordOnboardingFailure
 import com.careercompass.feature.onboarding.presentation.shared.model.OnboardingFieldError
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 import java.time.Year
@@ -90,6 +86,8 @@ import javax.inject.Inject
  *   켜기 때문이다(#128): 사용자는 그 화면에서 안내와 「다시 로그인」을 함께 본다.
  * - 입력 초안은 [OnboardingInputDraft] 가 [SavedStateHandle] 에 남긴다 — 프로세스가 죽어도 친 글자가 남는다(#133).
  *   무엇을 남기고 무엇을 버리는지, 서버 값과의 우선순위가 어떻게 되는지는 그 클래스의 KDoc 에 있다.
+ * - 진입점은 [onIntent] 하나이고 전이는 [reduce] 한 곳이다(#245, `docs/convention/mvi.md`). 화면별 이벤트 계약은
+ *   [OnboardingIntent] 가 감싸고, 상태 조각의 다음 값은 처리기가 계산해 [OnboardingReducerEvent] 로 낸다.
  */
 @HiltViewModel
 public class OnboardingViewModel
@@ -110,19 +108,150 @@ public class OnboardingViewModel
         private val completeOnboarding: CompleteOnboardingUseCase,
         private val errorReporter: ErrorReporter,
         savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
+    ) : MviViewModel<OnboardingIntent, OnboardingFlowState, OnboardingReducerEvent>(
+            // 초안이 시작값이고, 서버 프리필이 그 위에 덮인다 — 우선순위는 서버 > 초안 > 빈 값이다.
+            OnboardingInputDraft(savedStateHandle).restoredState(),
+        ) {
         private val draft = OnboardingInputDraft(savedStateHandle)
-
-        // 초안이 시작값이고, 서버 프리필이 그 위에 덮인다 — 우선순위는 서버 > 초안 > 빈 값이다.
-        private val _uiState = MutableStateFlow(draft.restoredState())
-        public val uiState: StateFlow<OnboardingFlowState> = _uiState.asStateFlow()
 
         private var nextLocalDocumentId = 1
 
         init {
-            viewModelScope.launch { _uiState.collect(draft::save) }
+            viewModelScope.launch { uiState.collect(draft::save) }
             viewModelScope.launch { resolveEntry() }
         }
+
+        override fun onIntent(intent: OnboardingIntent) {
+            when (intent) {
+                is OnboardingIntent.Step1 -> onStep1Event(intent.event)
+                is OnboardingIntent.SchoolPicker -> onSchoolPickerEvent(intent.event)
+                is OnboardingIntent.GraduationPicker -> onGraduationPickerEvent(intent.event)
+                is OnboardingIntent.Step2 -> onStep2Event(intent.event)
+                is OnboardingIntent.Step3 -> onStep3Event(intent.event)
+                is OnboardingIntent.ExperienceDelete -> onExperienceDeleteEvent(intent.event)
+                is OnboardingIntent.ExperienceEditor -> onExperienceEditorEvent(intent.event)
+                is OnboardingIntent.Step4 -> onStep4Event(intent.event)
+                is OnboardingIntent.FileSelected -> onFileSelected(intent.file)
+                is OnboardingIntent.FileSelectionFailed -> onFileSelectionFailed(intent.reason, intent.cause)
+                is OnboardingIntent.UploadLabel -> onUploadLabelEvent(intent.event)
+                is OnboardingIntent.ItemCategoryPicker -> onItemCategoryPickerEvent(intent.event)
+                is OnboardingIntent.DirectInput -> onDirectInputEvent(intent.event)
+                is OnboardingIntent.Complete -> onCompleteEvent(intent.event)
+                OnboardingIntent.ConsumeNavigation -> dispatch(OnboardingReducerEvent.NavigationConsumed)
+                OnboardingIntent.ConsumeFailure -> dispatch(OnboardingReducerEvent.FailureConsumed)
+                OnboardingIntent.ConsumeSessionEnded -> dispatch(OnboardingReducerEvent.SessionEndedConsumed)
+            }
+        }
+
+        override fun reduce(
+            state: OnboardingFlowState,
+            event: OnboardingReducerEvent,
+        ): OnboardingFlowState =
+            when (event) {
+                is OnboardingReducerEvent.EntryResolved -> {
+                    state.copy(isResolvingEntry = false, userName = event.userName, step1 = event.step1, step2 = event.step2)
+                }
+
+                is OnboardingReducerEvent.Step1Updated -> {
+                    state.copy(step1 = event.form)
+                }
+
+                is OnboardingReducerEvent.Step2Updated -> {
+                    state.copy(step2 = event.form)
+                }
+
+                is OnboardingReducerEvent.Step3Updated -> {
+                    state.copy(step3 = event.form)
+                }
+
+                is OnboardingReducerEvent.Step4Updated -> {
+                    state.copy(step4 = event.form)
+                }
+
+                is OnboardingReducerEvent.SchoolPickerUpdated -> {
+                    state.copy(schoolPicker = event.picker)
+                }
+
+                is OnboardingReducerEvent.SchoolChosen -> {
+                    state.copy(step1 = event.form, schoolPicker = null)
+                }
+
+                is OnboardingReducerEvent.GraduationPickerUpdated -> {
+                    state.copy(graduationPicker = event.picker)
+                }
+
+                is OnboardingReducerEvent.GraduationChosen -> {
+                    state.copy(step1 = event.form, graduationPicker = null)
+                }
+
+                is OnboardingReducerEvent.ExperienceEditorUpdated -> {
+                    state.copy(experienceEditor = event.editor)
+                }
+
+                is OnboardingReducerEvent.ExperienceSubmissionStarted -> {
+                    state.copy(experienceEditor = event.editor, failure = null)
+                }
+
+                is OnboardingReducerEvent.ExperienceSaved -> {
+                    state.copy(step3 = event.form, experienceEditor = null)
+                }
+
+                is OnboardingReducerEvent.ExperienceSubmissionFailed -> {
+                    state.copy(experienceEditor = state.experienceEditor?.copy(isSubmitting = false), failure = event.reason)
+                }
+
+                is OnboardingReducerEvent.ExperienceDeleteUpdated -> {
+                    state.copy(experienceDelete = event.dialog)
+                }
+
+                is OnboardingReducerEvent.UploadLabelUpdated -> {
+                    state.copy(uploadLabel = event.sheet)
+                }
+
+                is OnboardingReducerEvent.DirectInputUpdated -> {
+                    state.copy(directInput = event.input)
+                }
+
+                is OnboardingReducerEvent.ItemCategoryPickerUpdated -> {
+                    state.copy(itemCategoryPicker = event.picker)
+                }
+
+                is OnboardingReducerEvent.SubmissionStarted -> {
+                    state.copy(step1 = event.step1 ?: state.step1, isSubmitting = true, failure = null)
+                }
+
+                is OnboardingReducerEvent.SubmissionSucceeded -> {
+                    state.copy(isSubmitting = false, userName = event.userName ?: state.userName)
+                }
+
+                is OnboardingReducerEvent.SubmissionFailed -> {
+                    state.copy(isSubmitting = false, failure = event.reason)
+                }
+
+                is OnboardingReducerEvent.Failed -> {
+                    state.copy(failure = event.reason)
+                }
+
+                OnboardingReducerEvent.SessionEnded -> {
+                    state.copy(sessionEnded = true)
+                }
+
+                is OnboardingReducerEvent.NavigationRequested -> {
+                    state.copy(pendingNavigation = event.destination)
+                }
+
+                OnboardingReducerEvent.NavigationConsumed -> {
+                    state.copy(pendingNavigation = null)
+                }
+
+                OnboardingReducerEvent.FailureConsumed -> {
+                    state.copy(failure = null)
+                }
+
+                OnboardingReducerEvent.SessionEndedConsumed -> {
+                    state.copy(sessionEnded = false)
+                }
+            }
 
         // ---- 진입·재개 ----
 
@@ -130,14 +259,13 @@ public class OnboardingViewModel
             val entry = resolveOnboardingEntry()
             entry.profileRefreshFailure?.let { errorReporter.recordOnboardingFailure(OnboardingFailureStage.ResolveEntry, it) }
             val profile = entry.profile
-            _uiState.update {
-                it.copy(
-                    isResolvingEntry = false,
+            dispatch(
+                OnboardingReducerEvent.EntryResolved(
                     userName = profile?.name,
-                    step1 = it.step1.prefill(profile),
-                    step2 = it.step2.prefill(profile),
-                )
-            }
+                    step1 = currentState.step1.prefill(profile),
+                    step2 = currentState.step2.prefill(profile),
+                ),
+            )
             when (val progress = entry.progress) {
                 OnboardingProgress.Completed -> {
                     navigateTo(OnboardingDestination.Feed)
@@ -169,7 +297,7 @@ public class OnboardingViewModel
 
         // ---- Step 1 ----
 
-        public fun onStep1Event(event: OnboardingStep1Event) {
+        private fun onStep1Event(event: OnboardingStep1Event) {
             when (event) {
                 is OnboardingStep1Event.NameChanged -> {
                     updateStep1 {
@@ -226,16 +354,18 @@ public class OnboardingViewModel
             }
         }
 
-        public fun onSchoolPickerEvent(event: SchoolPickerEvent) {
+        private fun onSchoolPickerEvent(event: SchoolPickerEvent) {
             when (event) {
                 is SchoolPickerEvent.QueryChanged -> {
-                    _uiState.update { state ->
-                        state.copy(schoolPicker = SchoolPickerState(query = event.value, results = SchoolCatalog.search(event.value)))
-                    }
+                    dispatch(
+                        OnboardingReducerEvent.SchoolPickerUpdated(
+                            SchoolPickerState(query = event.value, results = SchoolCatalog.search(event.value)),
+                        ),
+                    )
                 }
 
                 is SchoolPickerEvent.SchoolSelected -> {
-                    _uiState.update { state -> state.withSchool(event.school) }
+                    chooseSchool(event.school)
                 }
 
                 SchoolPickerEvent.DirectInputRequested -> {
@@ -263,7 +393,7 @@ public class OnboardingViewModel
                 }
 
                 SchoolPickerEvent.Dismissed -> {
-                    _uiState.update { it.copy(schoolPicker = null) }
+                    dispatch(OnboardingReducerEvent.SchoolPickerUpdated(null))
                 }
             }
         }
@@ -275,32 +405,31 @@ public class OnboardingViewModel
          * 전에 빨간 칸이 된다.
          */
         private fun confirmSchoolDirectInput() {
-            _uiState.update { state ->
-                val input = state.schoolPicker?.directInput ?: return@update state
-                val error = OnboardingStep1Rules.validateSchool(input.value, requireValue = true)
-                if (error != null) {
-                    state.copy(schoolPicker = state.schoolPicker.copy(directInput = input.copy(error = error)))
-                } else {
-                    state.withSchool(input.value)
-                }
+            val picker = currentState.schoolPicker ?: return
+            val input = picker.directInput ?: return
+            val error = OnboardingStep1Rules.validateSchool(input.value, requireValue = true)
+            if (error != null) {
+                dispatch(OnboardingReducerEvent.SchoolPickerUpdated(picker.copy(directInput = input.copy(error = error))))
+            } else {
+                chooseSchool(input.value)
             }
         }
 
         /** 학교를 정하고 시트를 닫는다. 목록 값·직접 입력값 모두 같은 규칙으로 다듬어 담는다. */
-        private fun OnboardingFlowState.withSchool(school: String): OnboardingFlowState =
-            copy(
-                step1 = step1.copy(school = SchoolNameRules.normalize(school), schoolError = null),
-                schoolPicker = null,
+        private fun chooseSchool(school: String) {
+            dispatch(
+                OnboardingReducerEvent.SchoolChosen(
+                    currentState.step1.copy(school = SchoolNameRules.normalize(school), schoolError = null),
+                ),
             )
-
-        private inline fun updateSchoolPicker(transform: SchoolPickerState.() -> SchoolPickerState) {
-            _uiState.update { state ->
-                val picker = state.schoolPicker ?: return@update state
-                state.copy(schoolPicker = picker.transform())
-            }
         }
 
-        public fun onGraduationPickerEvent(event: GraduationDatePickerEvent) {
+        private inline fun updateSchoolPicker(transform: SchoolPickerState.() -> SchoolPickerState) {
+            val picker = currentState.schoolPicker ?: return
+            dispatch(OnboardingReducerEvent.SchoolPickerUpdated(picker.transform()))
+        }
+
+        private fun onGraduationPickerEvent(event: GraduationDatePickerEvent) {
             when (event) {
                 is GraduationDatePickerEvent.YearSelected -> {
                     updateGraduationPicker { copy(selectedYear = event.year) }
@@ -311,44 +440,44 @@ public class OnboardingViewModel
                 }
 
                 GraduationDatePickerEvent.Confirmed -> {
-                    _uiState.update { state ->
-                        val picker = state.graduationPicker ?: return@update state
-                        state.copy(
-                            step1 =
-                                state.step1.copy(
-                                    graduationDate = formatGraduationDate(picker.selectedYear, picker.selectedMonth),
-                                    graduationDateError = null,
-                                ),
-                            graduationPicker = null,
-                        )
-                    }
+                    val picker = currentState.graduationPicker ?: return
+                    dispatch(
+                        OnboardingReducerEvent.GraduationChosen(
+                            currentState.step1.copy(
+                                graduationDate = formatGraduationDate(picker.selectedYear, picker.selectedMonth),
+                                graduationDateError = null,
+                            ),
+                        ),
+                    )
                 }
 
                 GraduationDatePickerEvent.Dismissed -> {
-                    _uiState.update { it.copy(graduationPicker = null) }
+                    dispatch(OnboardingReducerEvent.GraduationPickerUpdated(null))
                 }
             }
         }
 
         private fun openSchoolPicker() {
-            if (!_uiState.value.isInputEnabled) return
-            _uiState.update { it.copy(schoolPicker = SchoolPickerState(query = "", results = SchoolCatalog.search(""))) }
+            if (!currentState.isInputEnabled) return
+            dispatch(OnboardingReducerEvent.SchoolPickerUpdated(SchoolPickerState(query = "", results = SchoolCatalog.search(""))))
         }
 
         private fun openGraduationPicker() {
-            if (!_uiState.value.isInputEnabled) return
+            if (!currentState.isInputEnabled) return
             val currentYear = Year.now().value
             val years = (MIN_GRADUATION_YEAR..currentYear + GRADUATION_YEARS_AHEAD).toList()
-            val typedYear = OnboardingStep1Rules.parseGraduationYear(_uiState.value.step1.graduationDate)
+            val typedYear = OnboardingStep1Rules.parseGraduationYear(currentState.step1.graduationDate)
             val selectedYear = typedYear?.takeIf { it in years } ?: currentYear
-            val selectedMonth = parseGraduationMonth(_uiState.value.step1.graduationDate) ?: DEFAULT_GRADUATION_MONTH
-            _uiState.update {
-                it.copy(graduationPicker = GraduationPickerState(years = years, selectedYear = selectedYear, selectedMonth = selectedMonth))
-            }
+            val selectedMonth = parseGraduationMonth(currentState.step1.graduationDate) ?: DEFAULT_GRADUATION_MONTH
+            dispatch(
+                OnboardingReducerEvent.GraduationPickerUpdated(
+                    GraduationPickerState(years = years, selectedYear = selectedYear, selectedMonth = selectedMonth),
+                ),
+            )
         }
 
         private fun submitStep1() {
-            val state = _uiState.value
+            val state = currentState
             if (!state.isInputEnabled) return
             val form = state.step1
             val validated =
@@ -360,10 +489,10 @@ public class OnboardingViewModel
                     graduationDateError = OnboardingStep1Rules.validateGraduationDate(form.graduationDate),
                 )
             if (validated.hasErrors) {
-                _uiState.update { it.copy(step1 = validated) }
+                dispatch(OnboardingReducerEvent.Step1Updated(validated))
                 return
             }
-            _uiState.update { it.copy(step1 = validated, isSubmitting = true, failure = null) }
+            dispatch(OnboardingReducerEvent.SubmissionStarted(step1 = validated))
             viewModelScope.launch {
                 saveBasicInfo(
                     name = validated.name.trim(),
@@ -372,7 +501,7 @@ public class OnboardingViewModel
                     gpa = OnboardingStep1Rules.parseGradePointAverage(validated.gradePointAverage),
                     gradYear = OnboardingStep1Rules.parseGraduationYear(validated.graduationDate),
                 ).onSuccess {
-                    _uiState.update { it.copy(isSubmitting = false, userName = validated.name.trim()) }
+                    dispatch(OnboardingReducerEvent.SubmissionSucceeded(userName = validated.name.trim()))
                     moveToStep(OnboardingStep.JobPreference)
                 }.onFailure { throwable -> fail(OnboardingFailureStage.SaveBasicInfo, throwable) }
             }
@@ -380,7 +509,7 @@ public class OnboardingViewModel
 
         // ---- Step 2 ----
 
-        public fun onStep2Event(event: OnboardingStep2Event) {
+        private fun onStep2Event(event: OnboardingStep2Event) {
             when (event) {
                 is OnboardingStep2Event.JobSelectionToggled -> toggleJob(event.jobId)
                 is OnboardingStep2Event.InterestInputChanged -> updateStep2 { copy(interestInput = event.value) }
@@ -403,7 +532,7 @@ public class OnboardingViewModel
         }
 
         private fun submitInterestTag() {
-            val form = _uiState.value.step2
+            val form = currentState.step2
             val tag = normalizeInterestTag(form.interestInput)
             if (tag.isEmpty()) return
             if (tag in form.interestTags) {
@@ -412,21 +541,21 @@ public class OnboardingViewModel
             }
             if (form.interestTags.size >= MAX_PROFILE_TAGS) {
                 // 표에 태그 문맥이 없어 개수를 말하지 않는다 — 틀린 숫자보다 안 말하는 쪽이 낫다.
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.Unspecified)) }
+                dispatch(OnboardingReducerEvent.Failed(OnboardingFailureReason.LimitExceeded(FailureSurface.Unspecified)))
                 return
             }
             updateStep2 { copy(interestInput = "", interestTags = interestTags + tag) }
         }
 
         private fun submitStep2() {
-            val state = _uiState.value
+            val state = currentState
             val form = state.step2
             if (!state.isInputEnabled || form.selectedJobCodes.isEmpty() || form.interestTags.isEmpty()) return
-            _uiState.update { it.copy(isSubmitting = true, failure = null) }
+            dispatch(OnboardingReducerEvent.SubmissionStarted())
             viewModelScope.launch {
                 saveJobPreferences(jobCodes = form.selectedJobCodes, tags = form.interestTags)
                     .onSuccess {
-                        _uiState.update { it.copy(isSubmitting = false) }
+                        dispatch(OnboardingReducerEvent.SubmissionSucceeded())
                         moveToStep(OnboardingStep.Experience)
                     }.onFailure { throwable -> fail(OnboardingFailureStage.SaveJobPreferences, throwable) }
             }
@@ -434,7 +563,7 @@ public class OnboardingViewModel
 
         // ---- Step 3 ----
 
-        public fun onStep3Event(event: OnboardingStep3Event) {
+        private fun onStep3Event(event: OnboardingStep3Event) {
             when (event) {
                 is OnboardingStep3Event.ExperienceTypeSelected -> {
                     ExperienceType.fromWireValue(event.typeId)?.let { type -> updateStep3 { copy(selectedType = type) } }
@@ -463,7 +592,7 @@ public class OnboardingViewModel
         }
 
         private fun loadExperiences() {
-            if (_uiState.value.step3.isLoaded) return
+            if (currentState.step3.isLoaded) return
             viewModelScope.launch {
                 getOnboardingExperiences()
                     .onSuccess { experiences -> updateStep3 { copy(experiences = experiences, isLoaded = true) } }
@@ -473,34 +602,38 @@ public class OnboardingViewModel
 
         /** 신규 등록. 상한(F1-3, 30개)에 닿았으면 열지 않고 사유만 알린다 — 하나를 지우면 다시 열린다. */
         private fun openExperienceEditor() {
-            val state = _uiState.value
+            val state = currentState
             if (!state.isInputEnabled) return
             if (state.step3.experiences.size >= MAX_EXPERIENCE_CARDS) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.ExperienceCard)) }
+                dispatch(OnboardingReducerEvent.Failed(OnboardingFailureReason.LimitExceeded(FailureSurface.ExperienceCard)))
                 return
             }
-            _uiState.update { it.copy(experienceEditor = ExperienceEditorState(type = state.step3.selectedType)) }
+            dispatch(OnboardingReducerEvent.ExperienceEditorUpdated(ExperienceEditorState(type = state.step3.selectedType)))
         }
 
         /** 기존 카드 수정. 시트를 그 카드의 값으로 채우고 유형은 잠근다. */
         private fun openExperienceEditor(experienceId: String) {
-            val state = _uiState.value
+            val state = currentState
             if (!state.isInputEnabled) return
             val experience = state.step3.experiences.firstOrNull { it.id.toString() == experienceId } ?: return
-            _uiState.update { it.copy(experienceEditor = experience.toEditorState()) }
+            dispatch(OnboardingReducerEvent.ExperienceEditorUpdated(experience.toEditorState()))
         }
 
         private fun askExperienceDeletion(experienceId: String) {
-            val state = _uiState.value
+            val state = currentState
             if (!state.isInputEnabled) return
             val experience = state.step3.experiences.firstOrNull { it.id.toString() == experienceId } ?: return
-            _uiState.update { it.copy(experienceDelete = ExperienceDeleteState(experienceId = experience.id, title = experience.title)) }
+            dispatch(
+                OnboardingReducerEvent.ExperienceDeleteUpdated(
+                    ExperienceDeleteState(experienceId = experience.id, title = experience.title),
+                ),
+            )
         }
 
-        public fun onExperienceDeleteEvent(event: ExperienceDeleteEvent) {
+        private fun onExperienceDeleteEvent(event: ExperienceDeleteEvent) {
             when (event) {
                 ExperienceDeleteEvent.Confirmed -> confirmExperienceDeletion()
-                ExperienceDeleteEvent.Dismissed -> _uiState.update { it.copy(experienceDelete = null) }
+                ExperienceDeleteEvent.Dismissed -> dispatch(OnboardingReducerEvent.ExperienceDeleteUpdated(null))
             }
         }
 
@@ -511,28 +644,28 @@ public class OnboardingViewModel
          * 맨 뒤에 붙이면 순서가 흐트러지기 때문이다.
          */
         private fun confirmExperienceDeletion() {
-            val pending = _uiState.value.experienceDelete ?: return
+            val pending = currentState.experienceDelete ?: return
             val index =
-                _uiState.value.step3.experiences
+                currentState.step3.experiences
                     .indexOfFirst { it.id == pending.experienceId }
             if (index < 0) {
-                _uiState.update { it.copy(experienceDelete = null) }
+                dispatch(OnboardingReducerEvent.ExperienceDeleteUpdated(null))
                 return
             }
-            val removed = _uiState.value.step3.experiences[index]
-            _uiState.update { it.copy(experienceDelete = null) }
+            val removed = currentState.step3.experiences[index]
+            dispatch(OnboardingReducerEvent.ExperienceDeleteUpdated(null))
             updateStep3 { copy(experiences = experiences.filterNot { it.id == removed.id }) }
             viewModelScope.launch {
                 deleteExperience(removed.id)
                     .onFailure { throwable ->
                         val reason = failed(OnboardingFailureStage.DeleteExperience, throwable)
                         updateStep3 { restore(removed, index) }
-                        _uiState.update { it.copy(failure = reason) }
+                        dispatch(OnboardingReducerEvent.Failed(reason))
                     }
             }
         }
 
-        public fun onExperienceEditorEvent(event: ExperienceQuickAddEvent) {
+        private fun onExperienceEditorEvent(event: ExperienceQuickAddEvent) {
             when (event) {
                 is ExperienceQuickAddEvent.TypeSelected -> {
                     // 수정 중에는 유형을 바꾸지 않는다 — 유형마다 필드 의미가 달라 채운 값이 다른 뜻으로 저장된다.
@@ -607,54 +740,43 @@ public class OnboardingViewModel
                 }
 
                 ExperienceQuickAddEvent.Dismissed -> {
-                    _uiState.update { it.copy(experienceEditor = null) }
+                    dispatch(OnboardingReducerEvent.ExperienceEditorUpdated(null))
                 }
             }
         }
 
         private fun submitExperience() {
-            val editor = _uiState.value.experienceEditor ?: return
+            val editor = currentState.experienceEditor ?: return
             if (editor.isSubmitting) return
             // 입력칸에 남은 기술 이름을 먼저 태그로 확정한다 — 「Kotlin」을 치고 완료 대신 바로 추가하기를 누른
             // 사용자가 그 글자를 조용히 잃지 않게.
             val validated = validateExperienceEditor(editor.withTechTagCommitted())
             if (validated.hasErrors) {
-                _uiState.update { it.copy(experienceEditor = validated) }
+                dispatch(OnboardingReducerEvent.ExperienceEditorUpdated(validated))
                 return
             }
             val editingId = validated.experienceId
             val draft = validated.toDraft()
-            _uiState.update { it.copy(experienceEditor = validated.copy(isSubmitting = true), failure = null) }
+            dispatch(OnboardingReducerEvent.ExperienceSubmissionStarted(validated.copy(isSubmitting = true)))
             val stage = if (editingId == null) OnboardingFailureStage.AddExperience else OnboardingFailureStage.UpdateExperience
             viewModelScope.launch {
                 val result = if (editingId == null) addExperience(draft) else updateExperience(editingId, draft)
                 result
                     .onSuccess { saved ->
-                        _uiState.update { state ->
-                            state.copy(
-                                step3 = state.step3.upsert(saved, isNew = editingId == null),
-                                experienceEditor = null,
-                            )
-                        }
+                        dispatch(OnboardingReducerEvent.ExperienceSaved(currentState.step3.upsert(saved, isNew = editingId == null)))
                     }.onFailure { throwable ->
-                        val reason = failed(stage, throwable)
-                        _uiState.update { state ->
-                            state.copy(
-                                experienceEditor = state.experienceEditor?.copy(isSubmitting = false),
-                                failure = reason,
-                            )
-                        }
+                        dispatch(OnboardingReducerEvent.ExperienceSubmissionFailed(failed(stage, throwable)))
                     }
             }
         }
 
         private fun submitStep3() {
-            if (!_uiState.value.isInputEnabled) return
-            _uiState.update { it.copy(isSubmitting = true, failure = null) }
+            if (!currentState.isInputEnabled) return
+            dispatch(OnboardingReducerEvent.SubmissionStarted())
             viewModelScope.launch {
                 proceedToPastApplication()
                     .onSuccess {
-                        _uiState.update { it.copy(isSubmitting = false) }
+                        dispatch(OnboardingReducerEvent.SubmissionSucceeded())
                         moveToStep(OnboardingStep.PastApplication)
                     }.onFailure { throwable -> fail(OnboardingFailureStage.ProceedToPastApplication, throwable) }
             }
@@ -662,7 +784,7 @@ public class OnboardingViewModel
 
         // ---- Step 4 ----
 
-        public fun onStep4Event(event: OnboardingStep4Event) {
+        private fun onStep4Event(event: OnboardingStep4Event) {
             when (event) {
                 // 파일 선택기는 Entry 가 연다 — 결과는 onFileSelected / onFileSelectionFailed 로 들어온다.
                 OnboardingStep4Event.UploadClicked -> Unit
@@ -686,17 +808,17 @@ public class OnboardingViewModel
         }
 
         private fun loadPastApplications() {
-            if (_uiState.value.step4.isLoaded) return
+            if (currentState.step4.isLoaded) return
             viewModelScope.launch {
                 getOnboardingPastApplications()
                     .onSuccess { applications ->
-                        _uiState.update { state ->
-                            val remote = applications.take(MAX_PAST_APPLICATIONS).map(::toRemoteDocument)
-                            val local = state.step4.documents.filter { it.remoteId == null }
-                            state.copy(
-                                step4 = OnboardingStep4FormState(documents = (remote + local).take(MAX_PAST_APPLICATIONS), isLoaded = true),
-                            )
-                        }
+                        val remote = applications.take(MAX_PAST_APPLICATIONS).map(::toRemoteDocument)
+                        val local = currentState.step4.documents.filter { it.remoteId == null }
+                        dispatch(
+                            OnboardingReducerEvent.Step4Updated(
+                                OnboardingStep4FormState(documents = (remote + local).take(MAX_PAST_APPLICATIONS), isLoaded = true),
+                            ),
+                        )
                     }.onFailure { throwable -> report(OnboardingFailureStage.LoadPastApplications, throwable) }
             }
         }
@@ -708,17 +830,17 @@ public class OnboardingViewModel
          * 정할 수 있는 유일한 시점이다(F1-4). 상한은 시트를 열기 전에 본다: 어차피 못 올릴 파일에 이름을
          * 붙이게 두지 않는다.
          */
-        public fun onFileSelected(file: UploadFile) {
-            if (!_uiState.value.isInputEnabled) return
-            if (_uiState.value.step4.documents.size >= MAX_PAST_APPLICATIONS) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.Application)) }
+        private fun onFileSelected(file: UploadFile) {
+            if (!currentState.isInputEnabled) return
+            if (currentState.step4.documents.size >= MAX_PAST_APPLICATIONS) {
+                dispatch(OnboardingReducerEvent.Failed(OnboardingFailureReason.LimitExceeded(FailureSurface.Application)))
                 return
             }
             val label = draft.restoredUploadLabel(PastApplicationLabelRules.defaultLabelFor(file.fileName))
-            _uiState.update { it.copy(uploadLabel = UploadLabelState(file = file, label = label)) }
+            dispatch(OnboardingReducerEvent.UploadLabelUpdated(UploadLabelState(file = file, label = label)))
         }
 
-        public fun onUploadLabelEvent(event: UploadLabelEvent) {
+        private fun onUploadLabelEvent(event: UploadLabelEvent) {
             when (event) {
                 is UploadLabelEvent.LabelChanged -> {
                     updateUploadLabel { copy(label = event.value, labelError = null) }
@@ -731,39 +853,39 @@ public class OnboardingViewModel
                 // 취소는 고른 파일을 버린다 — 목록에도, 초안에도 흔적을 남기지 않는다.
                 UploadLabelEvent.Dismissed -> {
                     draft.clearUploadLabel()
-                    _uiState.update { it.copy(uploadLabel = null) }
+                    dispatch(OnboardingReducerEvent.UploadLabelUpdated(null))
                 }
             }
         }
 
         private fun submitUploadLabel() {
-            val sheet = _uiState.value.uploadLabel ?: return
+            val sheet = currentState.uploadLabel ?: return
             val labelError = PastApplicationLabelRules.validate(sheet.label)
             if (labelError != null) {
-                _uiState.update { it.copy(uploadLabel = sheet.copy(labelError = labelError)) }
+                dispatch(OnboardingReducerEvent.UploadLabelUpdated(sheet.copy(labelError = labelError)))
                 return
             }
             draft.clearUploadLabel()
-            _uiState.update { it.copy(uploadLabel = null) }
+            dispatch(OnboardingReducerEvent.UploadLabelUpdated(null))
             enqueueUpload(label = PastApplicationLabelRules.normalize(sheet.label), file = sheet.file)
         }
 
         /** 파일을 [UploadFile] 로 만들지 못했다(지원하지 않는 형식·크기 초과·읽기 실패). */
-        public fun onFileSelectionFailed(
+        private fun onFileSelectionFailed(
             reason: OnboardingFailureReason,
             cause: Throwable,
         ) {
             report(OnboardingFailureStage.UploadPastApplication, cause)
-            _uiState.update { it.copy(failure = reason) }
+            dispatch(OnboardingReducerEvent.Failed(reason))
         }
 
         private fun enqueueUpload(
             label: String,
             file: UploadFile,
         ) {
-            val documents = _uiState.value.step4.documents
+            val documents = currentState.step4.documents
             if (documents.size >= MAX_PAST_APPLICATIONS) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.LimitExceeded(FailureSurface.Application)) }
+                dispatch(OnboardingReducerEvent.Failed(OnboardingFailureReason.LimitExceeded(FailureSurface.Application)))
                 return
             }
             val document =
@@ -785,7 +907,7 @@ public class OnboardingViewModel
                 uploadPastApplication(file = file, label = document.label)
                     .onSuccess { application ->
                         val stillListed =
-                            _uiState.value.step4.documents
+                            currentState.step4.documents
                                 .any { it.id == document.id }
                         if (!stillListed) {
                             // 업로드 중 사용자가 지운 문서 — 서버에 남은 사본을 best-effort 로 정리한다.
@@ -806,7 +928,7 @@ public class OnboardingViewModel
 
         private fun retryUpload(documentId: String) {
             val document =
-                _uiState.value.step4.documents
+                currentState.step4.documents
                     .firstOrNull { it.id == documentId } ?: return
             if (document.status !is OnboardingUploadStatus.Failed || document.file == null) return
             replaceDocument(documentId) { copy(status = OnboardingUploadStatus.Processing) }
@@ -815,7 +937,7 @@ public class OnboardingViewModel
 
         private fun deleteDocument(documentId: String) {
             val document =
-                _uiState.value.step4.documents
+                currentState.step4.documents
                     .firstOrNull { it.id == documentId } ?: return
             val remoteId = document.remoteId
             if (remoteId == null) {
@@ -826,8 +948,7 @@ public class OnboardingViewModel
                 deletePastApplication(remoteId)
                     .onSuccess { updateStep4 { removeDocument(documentId) } }
                     .onFailure { throwable ->
-                        val reason = failed(OnboardingFailureStage.DeletePastApplication, throwable)
-                        _uiState.update { it.copy(failure = reason) }
+                        dispatch(OnboardingReducerEvent.Failed(failed(OnboardingFailureStage.DeletePastApplication, throwable)))
                     }
             }
         }
@@ -835,7 +956,7 @@ public class OnboardingViewModel
         /** 분류 항목 목록 펼침/접기. 한 번에 하나만 펼쳐 아래 액션이 멀리 밀리지 않게 한다. */
         private fun toggleDocumentItems(documentId: String) {
             val document =
-                _uiState.value.step4.documents
+                currentState.step4.documents
                     .firstOrNull { it.id == documentId } ?: return
             val items = (document.status as? OnboardingUploadStatus.Completed)?.items.orEmpty()
             if (items.isEmpty()) return
@@ -846,25 +967,24 @@ public class OnboardingViewModel
             documentId: String,
             itemId: Long,
         ) {
-            if (!_uiState.value.isInputEnabled) return
+            if (!currentState.isInputEnabled) return
             val item = findItem(documentId, itemId) ?: return
-            _uiState.update {
-                it.copy(
-                    itemCategoryPicker =
-                        PastApplicationItemCategoryState(
-                            documentId = documentId,
-                            itemId = itemId,
-                            contentPreview = item.content,
-                            selected = item.category,
-                        ),
-                )
-            }
+            dispatch(
+                OnboardingReducerEvent.ItemCategoryPickerUpdated(
+                    PastApplicationItemCategoryState(
+                        documentId = documentId,
+                        itemId = itemId,
+                        contentPreview = item.content,
+                        selected = item.category,
+                    ),
+                ),
+            )
         }
 
-        public fun onItemCategoryPickerEvent(event: PastApplicationItemCategoryEvent) {
+        private fun onItemCategoryPickerEvent(event: PastApplicationItemCategoryEvent) {
             when (event) {
                 is PastApplicationItemCategoryEvent.CategorySelected -> submitItemCategory(event.category)
-                PastApplicationItemCategoryEvent.Dismissed -> _uiState.update { it.copy(itemCategoryPicker = null) }
+                PastApplicationItemCategoryEvent.Dismissed -> dispatch(OnboardingReducerEvent.ItemCategoryPickerUpdated(null))
             }
         }
 
@@ -875,10 +995,10 @@ public class OnboardingViewModel
          * (서버가 `confident` 를 어떻게 판정하는지는 서버 몫이다).
          */
         private fun submitItemCategory(category: PastApplicationCategory) {
-            val picker = _uiState.value.itemCategoryPicker ?: return
-            _uiState.update { it.copy(itemCategoryPicker = null) }
+            val picker = currentState.itemCategoryPicker ?: return
+            dispatch(OnboardingReducerEvent.ItemCategoryPickerUpdated(null))
             val document =
-                _uiState.value.step4.documents
+                currentState.step4.documents
                     .firstOrNull { it.id == picker.documentId } ?: return
             val remoteId = document.remoteId ?: return
             val previous = findItem(picker.documentId, picker.itemId) ?: return
@@ -890,7 +1010,7 @@ public class OnboardingViewModel
                     .onFailure { throwable ->
                         val reason = failed(OnboardingFailureStage.UpdatePastApplicationItemCategory, throwable)
                         replaceItem(picker.documentId, previous)
-                        _uiState.update { it.copy(failure = reason) }
+                        dispatch(OnboardingReducerEvent.Failed(reason))
                     }
             }
         }
@@ -900,7 +1020,7 @@ public class OnboardingViewModel
             itemId: Long,
         ): PastApplicationItem? {
             val status =
-                _uiState.value.step4.documents
+                currentState.step4.documents
                     .firstOrNull { it.id == documentId }
                     ?.status
             return (status as? OnboardingUploadStatus.Completed)?.items?.firstOrNull { it.id == itemId }
@@ -908,11 +1028,11 @@ public class OnboardingViewModel
 
         /** 프로세스가 죽어 닫힌 시트는 저절로 다시 열지 않는다 — 대신 다시 열면 쓰던 글이 그대로 있다(#133). */
         private fun openDirectInput() {
-            if (!_uiState.value.isInputEnabled) return
-            _uiState.update { it.copy(directInput = draft.restoredDirectInput()) }
+            if (!currentState.isInputEnabled) return
+            dispatch(OnboardingReducerEvent.DirectInputUpdated(draft.restoredDirectInput()))
         }
 
-        public fun onDirectInputEvent(event: DirectInputEvent) {
+        private fun onDirectInputEvent(event: DirectInputEvent) {
             when (event) {
                 is DirectInputEvent.LabelChanged -> {
                     updateDirectInput { copy(label = event.value, labelError = null) }
@@ -929,13 +1049,13 @@ public class OnboardingViewModel
                 // 취소는 쓰던 글을 버리겠다는 뜻이다 — 초안도 함께 지워야 다음에 열었을 때 되살아나지 않는다.
                 DirectInputEvent.Dismissed -> {
                     draft.clearDirectInput()
-                    _uiState.update { it.copy(directInput = null) }
+                    dispatch(OnboardingReducerEvent.DirectInputUpdated(null))
                 }
             }
         }
 
         private fun submitDirectInput() {
-            val input = _uiState.value.directInput ?: return
+            val input = currentState.directInput ?: return
             val label = PastApplicationLabelRules.normalize(input.label)
             val validated =
                 input.copy(
@@ -943,12 +1063,12 @@ public class OnboardingViewModel
                     contentError = if (input.content.isBlank()) OnboardingFieldError.Required else null,
                 )
             if (validated.labelError != null || validated.contentError != null) {
-                _uiState.update { it.copy(directInput = validated) }
+                dispatch(OnboardingReducerEvent.DirectInputUpdated(validated))
                 return
             }
             val bytes = input.content.toByteArray(Charsets.UTF_8)
             if (bytes.size > MAX_PAST_APPLICATION_FILE_BYTES) {
-                _uiState.update { it.copy(failure = OnboardingFailureReason.FileTooLarge) }
+                dispatch(OnboardingReducerEvent.Failed(OnboardingFailureReason.FileTooLarge))
                 return
             }
             val file =
@@ -957,17 +1077,17 @@ public class OnboardingViewModel
                     sizeBytes = bytes.size.toLong(),
                 ) { ByteArrayInputStream(bytes) }
             draft.clearDirectInput()
-            _uiState.update { it.copy(directInput = null) }
+            dispatch(OnboardingReducerEvent.DirectInputUpdated(null))
             enqueueUpload(label = label, file = file)
         }
 
         private fun finishOnboarding() {
-            if (!_uiState.value.isInputEnabled) return
-            _uiState.update { it.copy(isSubmitting = true, failure = null) }
+            if (!currentState.isInputEnabled) return
+            dispatch(OnboardingReducerEvent.SubmissionStarted())
             viewModelScope.launch {
                 completeOnboarding()
                     .onSuccess {
-                        _uiState.update { it.copy(isSubmitting = false) }
+                        dispatch(OnboardingReducerEvent.SubmissionSucceeded())
                         navigateTo(OnboardingDestination.Complete)
                     }.onFailure { throwable -> fail(OnboardingFailureStage.Complete, throwable) }
             }
@@ -975,45 +1095,24 @@ public class OnboardingViewModel
 
         // ---- 완료 ----
 
-        public fun onCompleteEvent(event: OnboardingCompleteEvent) {
+        private fun onCompleteEvent(event: OnboardingCompleteEvent) {
             when (event) {
                 OnboardingCompleteEvent.ViewFeedClicked -> navigateTo(OnboardingDestination.Feed)
                 OnboardingCompleteEvent.RegisterBoardClicked -> navigateTo(OnboardingDestination.BoardRegister)
             }
         }
 
-        // ---- 단발 신호 소비 ----
-
-        public fun onNavigationConsumed() {
-            _uiState.update { it.copy(pendingNavigation = null) }
-        }
-
-        public fun onFailureConsumed() {
-            _uiState.update { it.copy(failure = null) }
-        }
-
-        /**
-         * Entry 가 세션 종료를 앱 셸에 넘겼다.
-         *
-         * 넘기기 **전에** 비운다 — 그래프 스코프 상태를 Step 1~4 가 함께 보므로, 전환 중 두 화면이 같은 신호를
-         * 읽고 각자 셸을 부를 수 있다. 셸은 그 겹침을 견디지만(재계산 합류), 신호는 한 번만 살아 있는 편이 옳다.
-         */
-        public fun onSessionEndedConsumed() {
-            _uiState.update { it.copy(sessionEnded = false) }
-        }
-
         // ---- 내부 도우미 ----
 
         private fun navigateTo(destination: OnboardingDestination) {
-            _uiState.update { it.copy(pendingNavigation = destination) }
+            dispatch(OnboardingReducerEvent.NavigationRequested(destination))
         }
 
         private fun fail(
             stage: OnboardingFailureStage,
             throwable: Throwable,
         ) {
-            val reason = failed(stage, throwable)
-            _uiState.update { it.copy(isSubmitting = false, failure = reason) }
+            dispatch(OnboardingReducerEvent.SubmissionFailed(failed(stage, throwable)))
         }
 
         /**
@@ -1029,7 +1128,7 @@ public class OnboardingViewModel
         ): OnboardingFailureReason? {
             report(stage, throwable)
             val reason = throwable.toOnboardingFailureReason(stage)
-            if (reason == null) _uiState.update { it.copy(sessionEnded = true) }
+            if (reason == null) dispatch(OnboardingReducerEvent.SessionEnded)
             return reason
         }
 
@@ -1048,36 +1147,42 @@ public class OnboardingViewModel
             errorReporter.recordOnboardingFailure(stage, throwable)
         }
 
+        // 조각 갱신 도우미 — 다음 값은 여기서 계산하고, 자리에 놓는 일은 reduce 가 한다.
+
         private inline fun updateStep1(transform: OnboardingStep1FormState.() -> OnboardingStep1FormState) {
-            _uiState.update { it.copy(step1 = it.step1.transform()) }
+            dispatch(OnboardingReducerEvent.Step1Updated(currentState.step1.transform()))
         }
 
         private inline fun updateStep2(transform: OnboardingStep2FormState.() -> OnboardingStep2FormState) {
-            _uiState.update { it.copy(step2 = it.step2.transform()) }
+            dispatch(OnboardingReducerEvent.Step2Updated(currentState.step2.transform()))
         }
 
         private inline fun updateStep3(transform: OnboardingStep3FormState.() -> OnboardingStep3FormState) {
-            _uiState.update { it.copy(step3 = it.step3.transform()) }
+            dispatch(OnboardingReducerEvent.Step3Updated(currentState.step3.transform()))
         }
 
         private inline fun updateStep4(transform: OnboardingStep4FormState.() -> OnboardingStep4FormState) {
-            _uiState.update { it.copy(step4 = it.step4.transform()) }
+            dispatch(OnboardingReducerEvent.Step4Updated(currentState.step4.transform()))
         }
 
         private inline fun updateGraduationPicker(transform: GraduationPickerState.() -> GraduationPickerState) {
-            _uiState.update { it.copy(graduationPicker = it.graduationPicker?.transform()) }
+            val picker = currentState.graduationPicker ?: return
+            dispatch(OnboardingReducerEvent.GraduationPickerUpdated(picker.transform()))
         }
 
         private inline fun updateExperienceEditor(transform: ExperienceEditorState.() -> ExperienceEditorState) {
-            _uiState.update { it.copy(experienceEditor = it.experienceEditor?.transform()) }
+            val editor = currentState.experienceEditor ?: return
+            dispatch(OnboardingReducerEvent.ExperienceEditorUpdated(editor.transform()))
         }
 
         private inline fun updateDirectInput(transform: DirectInputState.() -> DirectInputState) {
-            _uiState.update { it.copy(directInput = it.directInput?.transform()) }
+            val input = currentState.directInput ?: return
+            dispatch(OnboardingReducerEvent.DirectInputUpdated(input.transform()))
         }
 
         private inline fun updateUploadLabel(transform: UploadLabelState.() -> UploadLabelState) {
-            _uiState.update { it.copy(uploadLabel = it.uploadLabel?.transform()) }
+            val sheet = currentState.uploadLabel ?: return
+            dispatch(OnboardingReducerEvent.UploadLabelUpdated(sheet.transform()))
         }
 
         private inline fun replaceDocument(
