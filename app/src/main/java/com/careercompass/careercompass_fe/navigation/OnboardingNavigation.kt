@@ -43,24 +43,27 @@ internal fun rememberOnboardingExternalActions(
 /**
  * 로컬 스택 바닥의 back 을 루트 백스택 pop 으로 돌려주는 경계.
  *
- * @param onRootEmpty 루트에 더 걷어낼 화면이 없다 — 온보딩 첫 화면에서의 back 처럼 앱을 나가야 하는 자리.
- * @param onAtRootChanged 바텀바 판정에 깊이를 합성해야 하는 그래프만 넘긴다.
+ * @param onRootEmpty 루트에 더 걷어낼 화면이 없다 — 온보딩 첫 화면에서의 back 처럼 앱을 나가야 하는 자리. 루트 바닥에서 할 일이
+ *   없는 그래프는 null.
+ * @param onAtRootChanged 바텀바 판정에 깊이를 합성해야 하는 그래프만 넘긴다. 바텀바가 없는 그래프는 null.
  */
 @Composable
 internal fun rememberRootPopBoundary(
     appState: AppState,
-    onRootEmpty: () -> Unit = {},
-    onAtRootChanged: (Boolean) -> Unit = {},
+    onRootEmpty: (() -> Unit)?,
+    onAtRootChanged: ((Boolean) -> Unit)?,
 ): FeatureStackBoundary {
     val onRootEmptyState by rememberUpdatedState(onRootEmpty)
     val onAtRootChangedState by rememberUpdatedState(onAtRootChanged)
     return remember(appState) {
         object : FeatureStackBoundary {
             override fun exit() {
-                if (!appState.popBack()) onRootEmptyState()
+                if (!appState.popBack()) onRootEmptyState?.invoke()
             }
 
-            override fun onAtRootChanged(isAtRoot: Boolean) = onAtRootChangedState(isAtRoot)
+            override fun onAtRootChanged(isAtRoot: Boolean) {
+                onAtRootChangedState?.invoke(isAtRoot)
+            }
         }
     }
 }

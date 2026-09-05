@@ -104,8 +104,13 @@ public fun AppNavigation(
         )
 
     // 로컬 스택 바닥에서의 back 은 루트 백스택 pop 으로 돌려준다. 온보딩은 루트에 더 걷어낼 화면이 없으면 앱을 나간다.
-    val onboardingBoundary = rememberRootPopBoundary(appState, onRootEmpty = onExitRequest)
-    val feedBoundary = rememberRootPopBoundary(appState, onAtRootChanged = { isAtRoot -> isFeedStackAtRoot = isAtRoot })
+    val onboardingBoundary = rememberRootPopBoundary(appState, onRootEmpty = onExitRequest, onAtRootChanged = null)
+    val feedBoundary =
+        rememberRootPopBoundary(
+            appState,
+            onRootEmpty = null,
+            onAtRootChanged = { isAtRoot -> isFeedStackAtRoot = isAtRoot },
+        )
 
     // 딥링크는 인증 게이트 뒤에서만 적용한다 — 피드 host 는 루트 스택의 피드 키가 보일 때만 그려지므로 그 안에서만
     // 반영되고, 인증 흐름 중이면 navigateToMain 뒤 host 가 그려질 때 적용된다. 온보딩의 게시판 등록 요청이 먼저다 —
