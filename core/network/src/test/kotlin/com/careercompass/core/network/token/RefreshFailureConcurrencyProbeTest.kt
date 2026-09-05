@@ -194,7 +194,7 @@ class RefreshFailureConcurrencyProbeTest {
         const val REJECTED_BODY = """{"ok":false,"error":{"code":"AUTH_INVALID","message":"만료된 리프레시 토큰"}}"""
         const val SERVER_ERROR_BODY = """{"ok":false,"error":{"code":"INTERNAL_ERROR","message":"일시 장애"}}"""
 
-        /** 대기자가 여럿이라는 사실 자체를 재는 것이라 호스트 동시 한도(5)보다 크게 잡는다. */
+        /** 이슈가 정한 대기자 수. 동기 호출은 Dispatcher 의 호스트 한도에 걸리지 않아 8건이 그대로 나란히 선다. */
         const val CONCURRENT_CALLS = 8
         const val COMPLETION_TIMEOUT_SECONDS = 20L
     }
