@@ -26,7 +26,7 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** [FeedViewState] → [FeedUiState]. 오류 상태는 화면 계약에 없으므로 Entry 가 따로 그린다. */
+/** [FeedViewState] → [FeedUiState]. 오류 상태는 화면 계약에 없으므로 Screen 이 따로 그린다. */
 internal fun FeedViewState.toFeedUiState(
     resources: Resources,
     clock: Clock,

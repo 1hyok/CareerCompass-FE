@@ -271,7 +271,7 @@ private fun FeedPreviewSurface(
 ) {
     CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            FeedScreen(state = state, onEvent = {})
+            FeedContent(state = state, onEvent = {})
         }
     }
 }
@@ -280,7 +280,7 @@ private fun FeedPreviewSurface(
 private fun FeedPagingPreviewSurface(loadMore: FeedLoadMoreState) {
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            FeedScreen(
+            FeedContent(
                 state = feedPreviewState().copy(content = FeedContentState.Loaded(feedPreviewListings().take(2))),
                 onEvent = {},
                 listState = rememberLazyListState(),

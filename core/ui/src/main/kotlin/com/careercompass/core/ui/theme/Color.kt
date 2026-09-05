@@ -32,7 +32,7 @@ private val SemanticError = Color(0xFFEF4444)
 private val SemanticInfo = Color(0xFF3B82F6)
 
 // 라이트 전용 오류색. red/500(#EF4444)은 흰 바탕에서 3.76:1 이라 본문 4.5:1 에 못 미친다 —
-// `error` 는 마감 임박·기간 입력 오류 같은 «작은 글자»로 쓰이므로(PostingDetailScreen.kt:294,
+// `error` 는 마감 임박·기간 입력 오류 같은 «작은 글자»로 쓰이므로(PostingDetailContent.kt:294,
 // FeedDeadlineRangeEditor.kt:84) red/600 으로 한 칸 내린다. 다크는 바탕이 어두워 red/500 이 4.76:1 이라 그대로다.
 private val LightSemanticError = Color(0xFFDC2626)
 

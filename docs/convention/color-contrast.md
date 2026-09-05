@@ -76,14 +76,14 @@
 
 | 조합 (전경 / 배경) | 기준 | 라이트 | 다크 | 판정 | 근거(쓰이는 자리) |
 | --- | --- | --- | --- | --- | --- |
-| `onPrimary / primary` | 4.5:1 | 5.48:1 | 7.80:1 | 통과 | 필터 개수 배지 10sp Bold · FeedScreen.kt:382 |
-| `onPrimaryContainer / primaryContainer` | 4.5:1 | 9.23:1 | 6.38:1 | 통과 | 프로필 배너 본문 · FeedScreen.kt:877 |
+| `onPrimary / primary` | 4.5:1 | 5.48:1 | 7.80:1 | 통과 | 필터 개수 배지 10sp Bold · FeedContent.kt:382 |
+| `onPrimaryContainer / primaryContainer` | 4.5:1 | 9.23:1 | 6.38:1 | 통과 | 프로필 배너 본문 · FeedContent.kt:877 |
 | `onSurface / surface` | 4.5:1 | 19.80:1 | 16.44:1 | 통과 | 카드·시트 본문 |
 | `onSurfaceVariant / surfaceVariant` | 4.5:1 | 7.17:1 | 10.21:1 | 통과 | Neutral 배지·읽음 배지 · FeedReadBadge.kt:63 |
 | `onSuccess / success` | 4.5:1 | 7.80:1 | 7.80:1 | 통과 | 역할 계약(현재 채움 사용처 없음) |
 | `onSuccessContainer / successContainer` | 4.5:1 | 5.21:1 | 6.38:1 | 통과 | Brand 배지 · CareerCompassBadge.kt |
 | `onWarning / warning` | 4.5:1 | 9.22:1 | 9.22:1 | 통과 | 역할 계약(현재 채움 사용처 없음) |
-| `onWarningContainer / warningContainer` | 4.5:1 | 4.51:1 | 6.29:1 | 통과 | 경고 배너 · FeedScreen.kt:834 |
+| `onWarningContainer / warningContainer` | 4.5:1 | 4.51:1 | 6.29:1 | 통과 | 경고 배너 · FeedContent.kt:834 |
 | `onError / error` | 4.5:1 | 4.83:1 | 5.26:1 | 통과 | 역할 계약(현재 채움 사용처 없음) |
 | `onErrorContainer / errorContainer` | 4.5:1 | 5.30:1 | 5.28:1 | 통과 | 오류 카드 · OnboardingErrorCard.kt:68 |
 | `onInfo / info` | 4.5:1 | 5.38:1 | 5.38:1 | 통과 | 역할 계약 |
@@ -95,32 +95,32 @@
 | `onSurface / subtleSurface` | 4.5:1 | 18.97:1 | 18.16:1 | 통과 | 화면 제목·본문 |
 | `onSurface / surfaceVariant` | 4.5:1 | 18.16:1 | 13.88:1 | 통과 | ScoreChip Mid 점수 |
 | `onSurface / primaryContainer` | 4.5:1 | 18.79:1 | 8.91:1 | 통과 | 생체인증 원 안 이모지 · BiometricLoginScreen.kt:180 |
-| `onSurface / successContainer` | 4.5:1 | 18.79:1 | 8.91:1 | 통과 | 강점 코멘트 본문 · PostingDetailScreen.kt:446 |
-| `onSurface / warningContainer` | 4.5:1 | 17.78:1 | 8.32:1 | 통과 | 약점 코멘트 본문 · PostingDetailScreen.kt:446 |
-| `onSurfaceVariant / surface` | 4.5:1 | 7.81:1 | 12.09:1 | 통과 | 읽은 공고 제목 · FeedScreen.kt:678 |
-| `onSurfaceVariant / subtleSurface` | 4.5:1 | 7.49:1 | 13.36:1 | 통과 | 화면 보조 문구 · FeedScreen.kt:200 |
+| `onSurface / successContainer` | 4.5:1 | 18.79:1 | 8.91:1 | 통과 | 강점 코멘트 본문 · PostingDetailContent.kt:446 |
+| `onSurface / warningContainer` | 4.5:1 | 17.78:1 | 8.32:1 | 통과 | 약점 코멘트 본문 · PostingDetailContent.kt:446 |
+| `onSurfaceVariant / surface` | 4.5:1 | 7.81:1 | 12.09:1 | 통과 | 읽은 공고 제목 · FeedContent.kt:678 |
+| `onSurfaceVariant / subtleSurface` | 4.5:1 | 7.49:1 | 13.36:1 | 통과 | 화면 보조 문구 · FeedContent.kt:200 |
 | `onSurfaceVariant / primaryContainer` | 4.5:1 | 7.42:1 | 6.56:1 | 통과 | ScoreChip High 라벨 |
-| `mutedContent / surface` | 4.5:1 | 4.74:1 | 7.11:1 | 통과 | 카드 메타 12sp SemiBold · FeedScreen.kt:738 |
+| `mutedContent / surface` | 4.5:1 | 4.74:1 | 7.11:1 | 통과 | 카드 메타 12sp SemiBold · FeedContent.kt:738 |
 | `mutedContent / subtleSurface` | 4.5:1 | 4.54:1 | 7.85:1 | 통과 | 적합도 자리표시 칩 11sp · FeedSuitabilityChip.kt:81 · 상태 화면 본문(실패 `CareerCompassFailureState` 포함, #222) · CareerCompassStateView.kt |
 | `primaryEmphasis / surface` | 4.5:1 | 5.48:1 | 9.33:1 | 통과 | 정렬 선택 문구·북마크 아이콘 · FeedSortMenuContent.kt:110 |
 | `primaryEmphasis / subtleSurface` | 4.5:1 | 5.25:1 | 10.30:1 | 통과 | 더보기 스피너·진행 세그먼트 |
-| `primaryEmphasis / primaryContainer` | 4.5:1 | 5.21:1 | 5.06:1 | 통과 | 프로필 배너 행동 문구 11sp · FeedScreen.kt:882 |
+| `primaryEmphasis / primaryContainer` | 4.5:1 | 5.21:1 | 5.06:1 | 통과 | 프로필 배너 행동 문구 11sp · FeedContent.kt:882 |
 | `primary / surface` | 4.5:1 | 5.48:1 | 7.07:1 | 통과 | 축 점수 14sp Bold · SuitabilityBreakdownRow.kt:95 |
 | `primary / subtleSurface` | 3.0:1 | 5.25:1 | 7.80:1 | 통과 | 브랜드 마크 원 · OnboardingBrandMark.kt:55 |
 | `actionPrimary / subtleSurface` | 4.5:1 | 5.25:1 | 7.80:1 | 통과 | 스텝 카운터 11sp SemiBold · OnboardingStepScaffold.kt:229 |
-| `actionDanger / surface` | 4.5:1 | 6.47:1 | 4.76:1 | 통과 | 마감 임박 12sp SemiBold · FeedScreen.kt:733 |
-| `error / surface` | 4.5:1 | 4.83:1 | 4.76:1 | 통과 | 상세 마감 12sp SemiBold · PostingDetailScreen.kt:294 |
+| `actionDanger / surface` | 4.5:1 | 6.47:1 | 4.76:1 | 통과 | 마감 임박 12sp SemiBold · FeedContent.kt:733 |
+| `error / surface` | 4.5:1 | 4.83:1 | 4.76:1 | 통과 | 상세 마감 12sp SemiBold · PostingDetailContent.kt:294 |
 | `error / subtleSurface` | 4.5:1 | 4.63:1 | 5.26:1 | 통과 | 기간 입력 오류 문구 · FeedDeadlineRangeEditor.kt:84 |
 | `onSuccessContainer / primaryContainer` | 4.5:1 | 5.21:1 | 6.38:1 | 통과 | ScoreChip High 점수 13sp Bold |
-| `onWarningContainer / surface` | 4.5:1 | 5.02:1 | 12.43:1 | 통과 | 수집 주기 안내 · BoardRegisterScreen.kt:414 |
+| `onWarningContainer / surface` | 4.5:1 | 5.02:1 | 12.43:1 | 통과 | 수집 주기 안내 · BoardRegisterContent.kt:414 |
 | `interactiveOutline / surface` | 3.0:1 | 4.74:1 | 3.78:1 | 통과 | 입력 테두리 · DirectInputSheet.kt:118 |
-| `interactiveOutline / subtleSurface` | 3.0:1 | 4.54:1 | 4.18:1 | 통과 | 검색·필터 버튼 테두리 · FeedScreen.kt:280 |
+| `interactiveOutline / subtleSurface` | 3.0:1 | 4.54:1 | 4.18:1 | 통과 | 검색·필터 버튼 테두리 · FeedContent.kt:280 |
 | `outline / subtleSurface` | 3.0:1 | 4.54:1 | 4.18:1 | 통과 | 진행바 미완료 구간 · OnboardingStepScaffold.kt:202 |
 | `outlineStrong / surface` | 3.0:1 | 7.81:1 | 7.11:1 | 통과 | M3 outlineVariant · Theme.kt:119 |
 | `primary / surfaceVariant` | 3.0:1 | 5.03:1 | 5.97:1 | 통과 | 적합도 게이지 채움 vs 트랙 · SuitabilityGauge.kt:84 |
 | `primary / subtleOutline` | 3.0:1 | 4.35:1 | 4.09:1 | 통과 | 분석 진행 표시 vs 트랙 · CareerCompassStateView.kt:103 |
 | `inverseSurface / surfaceVariant` | 3.0:1 | 18.16:1 | 13.88:1 | 통과 | 미충족 막대 vs 트랙 · SuitabilityBreakdownRow.kt:120 |
-| `inverseSurface / subtleSurface` | 3.0:1 | 18.97:1 | 18.16:1 | 통과 | 선택된 경험 유형 pill · OnboardingStep3Screen.kt:155 |
+| `inverseSurface / subtleSurface` | 3.0:1 | 18.97:1 | 18.16:1 | 통과 | 선택된 경험 유형 pill · OnboardingStep3Content.kt:155 |
 
 ## 기준을 적용하지 않는 조합 (면제)
 
@@ -132,13 +132,13 @@
 | `disabledContent / surface` | 2.52:1 | 3.78:1 | 비활성 컴포넌트 — 카드가 surface 인 채 내용만 흐려진다 |
 | `subtleOutline / surface` | 1.26:1 | 1.73:1 | 장식 구분선·카드 테두리 — 정보를 지지 않는다 |
 | `subtleOutline / subtleSurface` | 1.21:1 | 1.91:1 | 장식 구분선 |
-| `surfaceVariant / surface` | 1.09:1 | 1.18:1 | 장식 테두리 · FeedScreen.kt:633 |
+| `surfaceVariant / surface` | 1.09:1 | 1.18:1 | 장식 테두리 · FeedContent.kt:633 |
 | `success / surface` | 2.54:1 | 7.07:1 | 「오늘 수집」 6dp 장식 점 — 같은 뜻을 문구가 진다 |
 | `success / subtleSurface` | 2.43:1 | 7.80:1 | 같은 점이 화면 바탕 위에 설 때 |
 
 - **비활성(disabled)** — 1.4.3 은 "비활성 사용자 인터페이스 구성 요소의 일부인 텍스트"를, 1.4.11 은 "비활성 구성 요소"를 명시적으로 제외한다. 다만 다크는 바탕이 어두워 비활성 글자가 아예 묻히기 쉬워 `darkPalette_keepsDisabledPairReadable` 로 3:1 만은 따로 지킨다(3.19:1).
 - **장식 구분선·테두리** — `subtleOutline`·`surfaceVariant` 테두리는 정보를 지지 않는다. 카드의 경계가 사라져도 카드 안의 글자·간격이 그룹을 말한다. 여기서 3:1 을 요구하면 모든 실선이 진한 회색이 되어 시안이 무너진다.
-- **「오늘 수집」 점** — `FeedScreen` 의 6dp 점은 `clearAndSetSemantics {}` 로 접근성 트리에서 빠져 있고, 같은 줄의 수집일 문구가 같은 사실을 말한다. 색을 못 보아도 잃는 정보가 없다.
+- **「오늘 수집」 점** — `FeedContent` 의 6dp 점은 `clearAndSetSemantics {}` 로 접근성 트리에서 빠져 있고, 같은 줄의 수집일 문구가 같은 사실을 말한다. 색을 못 보아도 잃는 정보가 없다.
 
 ## 색만으로 뜻을 나르는 자리 (1.4.1)
 

@@ -205,7 +205,7 @@ public class FeedViewModel
         private val userProfileRepository: UserProfileRepository,
         private val feedSnapshotRepository: FeedSnapshotRepository,
         private val errorReporter: ErrorReporter,
-        /** Entry 가 D-day·신규 판정에 같은 시계를 쓴다. */
+        /** Screen 이 D-day·신규 판정에 같은 시계를 쓴다. */
         public val clock: Clock,
         savedStateHandle: SavedStateHandle,
     ) : MviViewModel<FeedIntent, FeedViewState, FeedReducerEvent>(

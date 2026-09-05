@@ -1,6 +1,6 @@
 package com.careercompass.feature.feed.presentation.postingraw
 
-/** Display-ready state for [PostingRawScreen]. [originalUrl] is `null` when the source link is unknown. */
+/** Display-ready state for [PostingRawContent]. [originalUrl] is `null` when the source link is unknown. */
 public data class PostingRawUiState(
     val title: String,
     val sourceLabel: String,

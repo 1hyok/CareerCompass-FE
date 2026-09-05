@@ -24,19 +24,19 @@ no-op 디폴트는 **배선을 빠뜨려도 컴파일이 통과**하게 만든�
 
 ```kotlin
 // Before
-fun PostingDetailScreen(
+fun PostingDetailContent(
     onBackClick: () -> Unit,
     onEditClick: () -> Unit = {},      // 배선 누락이 조용히 no-op
 )
 
 // After
-fun PostingDetailScreen(
+fun PostingDetailContent(
     onBackClick: () -> Unit,
     onEditClick: () -> Unit,           // 누락 = 컴파일 에러
 )
 
 // Preview / screenshotTest
-PostingDetailScreen(onBackClick = {}, onEditClick = {})
+PostingDetailContent(onBackClick = {}, onEditClick = {})
 ```
 
 `{}` 명시는 디폴트와 렌더링이 동일하므로 스크린샷 baseline 이 유지된다. reference PNG 재생성이 필요한 처분이라면 그 처분이 틀린 것이다(골든 정본은 CI 컨테이너 — `docs/testing` 참고).

@@ -21,7 +21,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.careercompass.core.ui.theme.CareerCompassTheme
-import com.careercompass.feature.feed.presentation.FeedScreen
+import com.careercompass.feature.feed.presentation.FeedContent
 import com.careercompass.feature.feed.presentation.feedfilter.FeedFilterEvent
 import com.careercompass.feature.feed.presentation.feedfilter.FeedFilterSheetContent
 import com.careercompass.feature.feed.presentation.feedfilter.FeedSortMenuContent
@@ -31,14 +31,14 @@ import com.careercompass.feature.feed.presentation.shared.util.toSortOption
 import kotlinx.coroutines.launch
 
 /**
- * 피드 홈 진입점 — [FeedViewModel] 상태를 [FeedScreen] 계약으로 옮기고 단발 신호를 소비한다.
+ * 피드 홈 진입점 — [FeedViewModel] 상태를 [FeedContent] 계약으로 옮기고 단발 신호를 소비한다.
  *
  * 실패는 사유별로 [FeedFailureContent] 가 그린다. 필터·정렬은 `ModalBottomSheet` 로 띄운다. 프로필 입력
  * 안내는 [onProfileClick] 으로 앱 셸(마이 탭)에 맡긴다 — 공고 상세의 같은 안내와 목적지를 맞춘다.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-public fun FeedEntry(
+public fun FeedScreen(
     onPostingClick: (Long) -> Unit,
     onNotificationsClick: () -> Unit,
     onBoardRegisterClick: () -> Unit,
@@ -93,7 +93,7 @@ public fun FeedEntry(
                 //
                 // 「조건 지우고 다시 보기」도 같은 규칙이다 — 되돌릴 조건이 실제로 걸려 있고 그 실패가
                 // 조건 탓일 여지가 있을 때만 연다(FeedViewState.canResetFailedQuery). 이 화면이
-                // FeedScreen 을 통째로 대신해 헤더의 조작이 전부 사라지므로, 이것이 조건에서 빠져나갈
+                // FeedContent 을 통째로 대신해 헤더의 조작이 전부 사라지므로, 이것이 조건에서 빠져나갈
                 // 유일한 길이다(#144).
                 FeedFailureContent(
                     reason = loadState.reason,
@@ -112,7 +112,7 @@ public fun FeedEntry(
                     isRefreshing = state.isRefreshing,
                     onRefresh = { viewModel.onIntent(FeedIntent.Refresh) },
                 ) {
-                    FeedScreen(
+                    FeedContent(
                         state = uiState,
                         onEvent = { viewModel.onIntent(FeedIntent.Screen(it)) },
                         listState = listState,

@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class PostingRawScreenTest {
+class PostingRawContentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -68,7 +68,7 @@ private fun ComposeContentTestRule.setRawContent(
 ) {
     setContent {
         CareerCompassTheme {
-            PostingRawScreen(state = state, onEvent = onEvent)
+            PostingRawContent(state = state, onEvent = onEvent)
         }
     }
 }

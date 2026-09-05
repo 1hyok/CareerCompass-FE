@@ -36,7 +36,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class PostingDetailScreenTest {
+class PostingDetailContentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -489,7 +489,7 @@ private fun ComposeContentTestRule.setDetailContent(
             LocalDensity provides Density(currentDensity.density, fontScale),
         ) {
             CareerCompassTheme {
-                PostingDetailScreen(state = state, onEvent = onEvent)
+                PostingDetailContent(state = state, onEvent = onEvent)
             }
         }
     }

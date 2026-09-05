@@ -10,7 +10,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
 @Composable
 public fun OnboardingStep4UploadedPreview() {
     CareerCompassTheme {
-        OnboardingStep4Screen(
+        OnboardingStep4Content(
             state =
                 OnboardingStep4UiState(
                     uploadedDocuments = listOf(sampleApplicationDocument),
@@ -25,7 +25,7 @@ public fun OnboardingStep4UploadedPreview() {
 @Composable
 public fun OnboardingStep4EmptyPreview() {
     CareerCompassTheme {
-        OnboardingStep4Screen(
+        OnboardingStep4Content(
             state = OnboardingStep4UiState(),
             onEvent = {},
         )
@@ -37,7 +37,7 @@ public fun OnboardingStep4EmptyPreview() {
 @Composable
 public fun OnboardingStep4DisabledPreview() {
     CareerCompassTheme {
-        OnboardingStep4Screen(
+        OnboardingStep4Content(
             state =
                 OnboardingStep4UiState(
                     uploadedDocuments = listOf(sampleApplicationDocument),
@@ -53,7 +53,7 @@ public fun OnboardingStep4DisabledPreview() {
 @Composable
 public fun OnboardingStep4ProcessingPreview() {
     CareerCompassTheme {
-        OnboardingStep4Screen(
+        OnboardingStep4Content(
             state =
                 OnboardingStep4UiState(
                     uploadedDocuments =
@@ -73,7 +73,7 @@ public fun OnboardingStep4ProcessingPreview() {
 @Composable
 public fun OnboardingStep4FailurePreview() {
     CareerCompassTheme {
-        OnboardingStep4Screen(
+        OnboardingStep4Content(
             state =
                 OnboardingStep4UiState(
                     uploadedDocuments =
@@ -96,7 +96,7 @@ public fun OnboardingStep4FailurePreview() {
 @Composable
 public fun OnboardingStep4ExpandedItemsPreview() {
     CareerCompassTheme {
-        OnboardingStep4Screen(
+        OnboardingStep4Content(
             state =
                 OnboardingStep4UiState(
                     uploadedDocuments = listOf(sampleClassifiedDocument),

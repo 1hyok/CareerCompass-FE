@@ -79,7 +79,7 @@ import javax.inject.Inject
  *
  * - 재개: `init` 에서 [ResolveOnboardingEntryUseCase] 로 시작 단계를 정하고 프로필 값을 프리필한다(F1-1).
  * - 단계 저장은 각 use case 가 서버 저장과 진행 기록을 함께 처리하고, 성공하면 [OnboardingDestination.Step] 을 낸다.
- * - 실패 사유는 [OnboardingFailureReason] 으로 두고 계측은 [ErrorReporter] 로 남긴다. 문구·플랫폼 의존은 Entry 몫이다.
+ * - 실패 사유는 [OnboardingFailureReason] 으로 두고 계측은 [ErrorReporter] 로 남긴다. 문구·플랫폼 의존은 Screen 몫이다.
  * - **401 만 사유가 아니다.** 세션이 끝나면 온보딩이 할 수 있는 일이 없으므로 배너 대신
  *   [OnboardingFlowState.sessionEnded] 를 올려 앱 셸이 로그인 화면으로 보내게 한다 — 피드·게시판이 쓰는 것과
  *   같은 길이다(#211). 온보딩에서 만료 문구를 한 번 더 그리지 않는 이유는 로그인 화면이 같은 문구를 스스로
@@ -786,7 +786,7 @@ public class OnboardingViewModel
 
         private fun onStep4Event(event: OnboardingStep4Event) {
             when (event) {
-                // 파일 선택기는 Entry 가 연다 — 결과는 onFileSelected / onFileSelectionFailed 로 들어온다.
+                // 파일 선택기는 Screen 이 연다 — 결과는 onFileSelected / onFileSelectionFailed 로 들어온다.
                 OnboardingStep4Event.UploadClicked -> Unit
 
                 OnboardingStep4Event.DirectInputClicked -> openDirectInput()
@@ -824,7 +824,7 @@ public class OnboardingViewModel
         }
 
         /**
-         * Entry 가 파일 선택기에서 읽어 만든 [UploadFile].
+         * Screen 이 파일 선택기에서 읽어 만든 [UploadFile].
          *
          * 바로 올리지 않고 라벨 시트를 먼저 연다 — 서버에 라벨 수정 엔드포인트가 없어 이때가 사용자가 이름을
          * 정할 수 있는 유일한 시점이다(F1-4). 상한은 시트를 열기 전에 본다: 어차피 못 올릴 파일에 이름을

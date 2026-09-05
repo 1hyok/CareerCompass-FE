@@ -251,12 +251,12 @@ public class CareerCompassColorsTest {
         val CONTRAST_PAIRS =
             listOf(
                 // ---- 이름 규칙 그대로의 on*/* 짝 ----
-                ContrastPair("onPrimary", "primary", TEXT_MINIMUM_RATIO, "필터 개수 배지 10sp Bold · FeedScreen"),
+                ContrastPair("onPrimary", "primary", TEXT_MINIMUM_RATIO, "필터 개수 배지 10sp Bold · FeedContent"),
                 ContrastPair(
                     "onPrimaryContainer",
                     "primaryContainer",
                     TEXT_MINIMUM_RATIO,
-                    "프로필 배너 본문 · FeedScreen",
+                    "프로필 배너 본문 · FeedContent",
                 ),
                 ContrastPair("onSurface", "surface", TEXT_MINIMUM_RATIO, "카드·시트 본문"),
                 ContrastPair(
@@ -277,14 +277,14 @@ public class CareerCompassColorsTest {
                     "onWarningContainer",
                     "warningContainer",
                     TEXT_MINIMUM_RATIO,
-                    "오프라인 배너·검토 필요 배지 · FeedScreen, OnboardingStep4Screen",
+                    "오프라인 배너·검토 필요 배지 · FeedContent, OnboardingStep4Content",
                 ),
                 ContrastPair("onError", "error", TEXT_MINIMUM_RATIO, "역할 계약 — 현재 채움 사용처 없음"),
                 ContrastPair(
                     "onErrorContainer",
                     "errorContainer",
                     TEXT_MINIMUM_RATIO,
-                    "오류 카드 · OnboardingErrorCard, BoardListScreen",
+                    "오류 카드 · OnboardingErrorCard, BoardListContent",
                 ),
                 ContrastPair("onInfo", "info", TEXT_MINIMUM_RATIO, "역할 계약 — 현재 채움 사용처 없음"),
                 ContrastPair("onInfoContainer", "infoContainer", TEXT_MINIMUM_RATIO, "Info 배지 · CareerCompassBadge"),
@@ -301,7 +301,7 @@ public class CareerCompassColorsTest {
                     "onAction",
                     "primary",
                     TEXT_MINIMUM_RATIO,
-                    "브랜드 마크 글리프·완료 체크 · OnboardingBrandMark, OnboardingCompleteScreen",
+                    "브랜드 마크 글리프·완료 체크 · OnboardingBrandMark, OnboardingCompleteContent",
                 ),
                 // ---- 화면 바탕·카드 위의 전경 ----
                 ContrastPair("onSurface", "subtleSurface", TEXT_MINIMUM_RATIO, "화면 제목·본문 · 모든 화면 루트 · 상태 화면 제목 · CareerCompassStateView"),
@@ -316,23 +316,23 @@ public class CareerCompassColorsTest {
                     "onSurface",
                     "successContainer",
                     TEXT_MINIMUM_RATIO,
-                    "강점 코멘트 본문 · PostingDetailScreen",
+                    "강점 코멘트 본문 · PostingDetailContent",
                 ),
                 ContrastPair(
                     "onSurface",
                     "warningContainer",
                     TEXT_MINIMUM_RATIO,
-                    "약점 코멘트 본문 · PostingDetailScreen",
+                    "약점 코멘트 본문 · PostingDetailContent",
                 ),
-                ContrastPair("onSurfaceVariant", "surface", TEXT_MINIMUM_RATIO, "읽은 공고 제목 · FeedScreen"),
-                ContrastPair("onSurfaceVariant", "subtleSurface", TEXT_MINIMUM_RATIO, "화면 보조 문구 · FeedScreen"),
+                ContrastPair("onSurfaceVariant", "surface", TEXT_MINIMUM_RATIO, "읽은 공고 제목 · FeedContent"),
+                ContrastPair("onSurfaceVariant", "subtleSurface", TEXT_MINIMUM_RATIO, "화면 보조 문구 · FeedContent"),
                 ContrastPair(
                     "onSurfaceVariant",
                     "primaryContainer",
                     TEXT_MINIMUM_RATIO,
                     "적합도 칩 High 라벨 · CareerCompassScoreChip",
                 ),
-                ContrastPair("mutedContent", "surface", TEXT_MINIMUM_RATIO, "카드 메타 12sp SemiBold · FeedScreen"),
+                ContrastPair("mutedContent", "surface", TEXT_MINIMUM_RATIO, "카드 메타 12sp SemiBold · FeedContent"),
                 ContrastPair(
                     "mutedContent",
                     "subtleSurface",
@@ -343,19 +343,19 @@ public class CareerCompassColorsTest {
                     "primaryEmphasis",
                     "surface",
                     TEXT_MINIMUM_RATIO,
-                    "정렬 선택 문구·북마크 아이콘 · FeedSortMenuContent, FeedScreen",
+                    "정렬 선택 문구·북마크 아이콘 · FeedSortMenuContent, FeedContent",
                 ),
                 ContrastPair(
                     "primaryEmphasis",
                     "subtleSurface",
                     TEXT_MINIMUM_RATIO,
-                    "더보기 스피너·온보딩 진행 세그먼트 · FeedScreen, OnboardingStepScaffold",
+                    "더보기 스피너·온보딩 진행 세그먼트 · FeedContent, OnboardingStepScaffold",
                 ),
                 ContrastPair(
                     "primaryEmphasis",
                     "primaryContainer",
                     TEXT_MINIMUM_RATIO,
-                    "프로필 배너 행동 문구 11sp · FeedScreen",
+                    "프로필 배너 행동 문구 11sp · FeedContent",
                 ),
                 ContrastPair("primary", "surface", TEXT_MINIMUM_RATIO, "분석 축 점수 14sp Bold · SuitabilityBreakdownRow"),
                 ContrastPair(
@@ -370,8 +370,8 @@ public class CareerCompassColorsTest {
                     TEXT_MINIMUM_RATIO,
                     "스텝 카운터 11sp SemiBold · OnboardingStepScaffold",
                 ),
-                ContrastPair("actionDanger", "surface", TEXT_MINIMUM_RATIO, "마감 임박 12sp SemiBold · FeedScreen"),
-                ContrastPair("error", "surface", TEXT_MINIMUM_RATIO, "상세 마감 12sp SemiBold · PostingDetailScreen"),
+                ContrastPair("actionDanger", "surface", TEXT_MINIMUM_RATIO, "마감 임박 12sp SemiBold · FeedContent"),
+                ContrastPair("error", "surface", TEXT_MINIMUM_RATIO, "상세 마감 12sp SemiBold · PostingDetailContent"),
                 ContrastPair("error", "subtleSurface", TEXT_MINIMUM_RATIO, "기간 입력 오류 문구 · FeedDeadlineRangeEditor"),
                 ContrastPair(
                     "onSuccessContainer",
@@ -379,7 +379,7 @@ public class CareerCompassColorsTest {
                     TEXT_MINIMUM_RATIO,
                     "적합도 칩 High 점수 13sp Bold · CareerCompassScoreChip",
                 ),
-                ContrastPair("onWarningContainer", "surface", TEXT_MINIMUM_RATIO, "수집 주기 안내 · BoardRegisterScreen"),
+                ContrastPair("onWarningContainer", "surface", TEXT_MINIMUM_RATIO, "수집 주기 안내 · BoardRegisterContent"),
                 // ---- 비텍스트(경계·그래픽) 3:1 ----
                 ContrastPair(
                     "interactiveOutline",
@@ -391,7 +391,7 @@ public class CareerCompassColorsTest {
                     "interactiveOutline",
                     "subtleSurface",
                     NON_TEXT_MINIMUM_RATIO,
-                    "검색·필터 버튼 테두리 · FeedScreen",
+                    "검색·필터 버튼 테두리 · FeedContent",
                 ),
                 ContrastPair(
                     "outline",
@@ -422,7 +422,7 @@ public class CareerCompassColorsTest {
                     "inverseSurface",
                     "subtleSurface",
                     NON_TEXT_MINIMUM_RATIO,
-                    "선택된 경험 유형 pill · OnboardingStep3Screen",
+                    "선택된 경험 유형 pill · OnboardingStep3Content",
                 ),
             )
 

@@ -44,7 +44,7 @@ public data class PostingRawViewState(
     val postingId: Long,
     val loadState: PostingRawLoadState = PostingRawLoadState.Loading,
     val isBackRequested: Boolean = false,
-    /** 외부 브라우저로 열 원본 링크. Entry 가 `Intent.ACTION_VIEW` 로 바꾸고 [PostingRawIntent.ConsumeOpenUrl] 로 비운다. */
+    /** 외부 브라우저로 열 원본 링크. Screen 이 `Intent.ACTION_VIEW` 로 바꾸고 [PostingRawIntent.ConsumeOpenUrl] 로 비운다. */
     val openUrl: String? = null,
     val sessionEnded: Boolean = false,
 ) : UiState
@@ -93,7 +93,7 @@ public class PostingRawViewModel
         savedStateHandle: SavedStateHandle,
         private val openPostingDetail: OpenPostingDetailUseCase,
         private val errorReporter: ErrorReporter,
-        /** Entry 가 수집 시각 표기에 같은 시계를 쓴다. */
+        /** Screen 이 수집 시각 표기에 같은 시계를 쓴다. */
         public val clock: Clock,
     ) : MviViewModel<PostingRawIntent, PostingRawViewState, PostingRawReducerEvent>(
             PostingRawViewState(

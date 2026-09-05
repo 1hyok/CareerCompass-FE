@@ -51,7 +51,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless past-application step from the onboarding flow. */
 @Composable
-public fun OnboardingStep4Screen(
+public fun OnboardingStep4Content(
     state: OnboardingStep4UiState,
     onEvent: (OnboardingStep4Event) -> Unit,
     modifier: Modifier = Modifier,
@@ -76,12 +76,12 @@ public fun OnboardingStep4Screen(
             )
         },
     ) {
-        OnboardingStep4Content(state = state, onEvent = onEvent)
+        OnboardingStep4Body(state = state, onEvent = onEvent)
     }
 }
 
 @Composable
-private fun OnboardingStep4Content(
+private fun OnboardingStep4Body(
     state: OnboardingStep4UiState,
     onEvent: (OnboardingStep4Event) -> Unit,
 ) {

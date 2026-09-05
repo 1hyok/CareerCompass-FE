@@ -39,7 +39,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless experience-list step from the onboarding flow. */
 @Composable
-public fun OnboardingStep3Screen(
+public fun OnboardingStep3Content(
     state: OnboardingStep3UiState,
     onEvent: (OnboardingStep3Event) -> Unit,
     modifier: Modifier = Modifier,

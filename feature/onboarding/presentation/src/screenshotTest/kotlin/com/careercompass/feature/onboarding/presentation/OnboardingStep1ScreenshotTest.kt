@@ -11,7 +11,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
 @Composable
 public fun OnboardingStep1FilledPreview() {
     CareerCompassTheme {
-        OnboardingStep1Screen(
+        OnboardingStep1Content(
             state = onboardingStep1FilledState(),
             onEvent = {},
         )
@@ -23,7 +23,7 @@ public fun OnboardingStep1FilledPreview() {
 @Composable
 public fun OnboardingStep1FilledDarkPreview() {
     CareerCompassTheme(darkTheme = true) {
-        OnboardingStep1Screen(
+        OnboardingStep1Content(
             state = onboardingStep1FilledState(),
             onEvent = {},
         )
@@ -36,7 +36,7 @@ public fun OnboardingStep1FilledDarkPreview() {
 @Composable
 public fun OnboardingStep1FilledLargeFontPreview() {
     CareerCompassTheme {
-        OnboardingStep1Screen(
+        OnboardingStep1Content(
             state = onboardingStep1FilledState(),
             onEvent = {},
         )
@@ -48,7 +48,7 @@ public fun OnboardingStep1FilledLargeFontPreview() {
 @Composable
 public fun OnboardingStep1ErrorPreview() {
     CareerCompassTheme {
-        OnboardingStep1Screen(
+        OnboardingStep1Content(
             state =
                 OnboardingStep1UiState(
                     name = "",
@@ -69,7 +69,7 @@ public fun OnboardingStep1ErrorPreview() {
 @Composable
 public fun OnboardingStep1DisabledPreview() {
     CareerCompassTheme {
-        OnboardingStep1Screen(
+        OnboardingStep1Content(
             state =
                 OnboardingStep1UiState(
                     name = "정일혁",

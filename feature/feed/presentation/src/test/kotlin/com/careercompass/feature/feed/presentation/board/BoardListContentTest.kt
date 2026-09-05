@@ -28,7 +28,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class BoardListScreenTest {
+class BoardListContentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -174,7 +174,7 @@ private fun ComposeContentTestRule.setListContent(
 ) {
     setContent {
         CareerCompassTheme {
-            BoardListScreen(state = state, onEvent = onEvent)
+            BoardListContent(state = state, onEvent = onEvent)
         }
     }
 }

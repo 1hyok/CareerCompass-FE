@@ -11,7 +11,7 @@ public const val MAX_EXPERIENCE_CARDS: Int = 30
  *
  * 관심 분야 태그(`MAX_PROFILE_TAGS` = 5)보다 넉넉하다 — 그쪽은 프로필 전체의 관심사라 5개면 충분하지만,
  * 프로젝트 하나의 스택은 언어·프레임워크·DI·네트워크·테스트로 쉽게 대여섯을 넘는다. 반면 Step 3 카드 목록이
- * 태그를 한 줄 흐름으로 그리므로(`OnboardingStep3Screen`) 카드가 태그 벽이 되지 않을 선이 필요하다.
+ * 태그를 한 줄 흐름으로 그리므로(`OnboardingStep3Content`) 카드가 태그 벽이 되지 않을 선이 필요하다.
  */
 public const val MAX_EXPERIENCE_TECH_TAGS: Int = 10
 

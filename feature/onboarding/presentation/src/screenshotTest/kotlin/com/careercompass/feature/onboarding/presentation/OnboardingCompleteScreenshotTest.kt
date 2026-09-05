@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.careercompass.core.ui.theme.CareerCompassTheme
-import com.careercompass.feature.onboarding.presentation.complete.OnboardingCompleteScreen
+import com.careercompass.feature.onboarding.presentation.complete.OnboardingCompleteContent
 import com.careercompass.feature.onboarding.presentation.complete.OnboardingCompleteUiState
 
 @PreviewTest
@@ -26,7 +26,7 @@ public fun OnboardingCompleteAnonymousPreview() {
 private fun OnboardingCompletePreviewHost(state: OnboardingCompleteUiState) {
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            OnboardingCompleteScreen(state = state, onEvent = {})
+            OnboardingCompleteContent(state = state, onEvent = {})
         }
     }
 }

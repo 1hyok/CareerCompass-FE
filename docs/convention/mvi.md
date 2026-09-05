@@ -93,18 +93,18 @@ internal fun LoginContent(state: LoginUiState, onIntent: (LoginIntent) -> Unit, 
 ```
 
 - `Screen` 은 stateful 이고 ViewModel 을 주입받는다.
-- `Content` 는 `internal` stateless 이고, 프리뷰 · screenshotTest · Robolectric 의 진입점이다. 화면을 그리려고 ViewModel 을 조립하지 않는다.
+- `Content` 는 stateless 이고, 프리뷰 · screenshotTest · Robolectric 의 진입점이다. 화면을 그리려고 ViewModel 을 조립하지 않는다. 기본은 `internal` 이고, 다른 모듈의 androidTest 가 합성하는 것(`FeedContent` · `LoginContent` 의 접근성 스모크)만 public 이다.
 
-### 지금 이름과의 대응
+### 옛 이름과의 대응
 
-이 저장소는 stateful 층을 `XxxEntry`, stateless 층을 `XxxScreen` 이라 부르고 `XxxEntry` 가 `XxxViewState` 를 `XxxUiState` 로 옮겨 그려 왔다. 전환하는 화면은 이름을 이렇게 옮긴다.
+이 저장소는 stateful 층을 `XxxEntry`, stateless 층을 `XxxScreen` 이라 불러 왔다. #255 에서 전부 옮겼고 옛 이름은 이 표로만 남는다. 로그인·생체인증은 #249 에서 처음부터 새 이름으로 썼다.
 
-| 지금 | 전환 후 | 비고 |
+| 옛 이름 | 지금 | 비고 |
 | --- | --- | --- |
 | `XxxEntry` (stateful) | `XxxScreen` | ViewModel 주입, 신호 소비, 네비게이션 콜백 |
-| `XxxScreen(state, onEvent)` (stateless) | `XxxContent(state, onIntent)` | `internal`, 골든 스크린샷과 Robolectric 이 그린다 |
-| `XxxViewState` → `XxxUiState` 변환 | 없음 | ViewModel 이 화면이 그릴 `UiState` 를 직접 낸다. 파생값은 `UiState` 의 계산 프로퍼티다 |
-| `XxxEvent` (화면 → Entry) | `XxxIntent` | 네비게이션 갈래는 Intent 가 아니라 `Screen` 의 콜백으로 남는다 |
+| `XxxScreen(state, onEvent)` (stateless) | `XxxContent(state, onEvent)` | 프리뷰 · screenshotTest · Robolectric 의 진입점. 골든 스크린샷 경로는 프리뷰 함수와 screenshotTest 파일 이름으로 정해지므로 둘은 옛 이름을 유지한다(`FeedScreenScreenshotTest`) |
+| `XxxViewState` → `XxxUiState` 변환 | `Screen` 이 그대로 한다 | ViewModel 은 리소스를 모르므로 라벨 · D-day · 상대 시각 같은 표시 문구는 `Screen` 이 리소스로 만든다. 리소스가 필요 없는 파생 판정(`canResetFailedQuery` 같은 것)은 ViewModel 이 내는 `UiState` 의 계산 프로퍼티다 |
+| `XxxEvent` (`Content` → `Screen`) | 그대로 두고 `Screen` 이 `XxxIntent.Screen(event)` 로 감싼다 | `Content` 의 계약은 화면 하나에 닫혀 있고 ViewModel 을 모른다. 네비게이션 갈래는 Intent 가 아니라 `Screen` 의 콜백으로 남는다 |
 
 - ViewModel 을 화면이 만들지 않는 경우가 있다. 온보딩은 그래프 스코프로 여러 화면이 `OnboardingViewModel` 하나를 공유하므로, `Screen` 이 `hiltViewModel()` 을 부르지 않고 VM 을 파라미터로 받는다. 공유가 없는 화면은 `viewModel: XxxViewModel = hiltViewModel()` 로 둔다.
 - 한 파일에 둘 다 둔다. 커지면 가른다. `Screen` + `Content` 를 한 파일에 두는 것이 기본이고, stateful 층이 커지면 파일을 가른다.

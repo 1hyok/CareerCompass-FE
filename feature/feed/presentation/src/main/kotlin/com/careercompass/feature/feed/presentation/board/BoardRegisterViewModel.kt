@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** URL 입력란 아래 오류. 문구는 Entry 가 만든다. */
+/** URL 입력란 아래 오류. 문구는 Screen 이 만든다. */
 public enum class BoardUrlError {
     Invalid,
     Duplicate,

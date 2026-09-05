@@ -96,7 +96,7 @@ public sealed interface BoardDetectionState {
     ) : BoardDetectionState
 }
 
-/** Complete, display-ready state for [BoardRegisterScreen]. */
+/** Complete, display-ready state for [BoardRegisterContent]. */
 public data class BoardRegisterUiState(
     val url: String,
     val urlError: String?,
@@ -208,7 +208,7 @@ public sealed interface BoardListContentState {
     }
 }
 
-/** Complete, display-ready state for [BoardListScreen]. */
+/** Complete, display-ready state for [BoardListContent]. */
 public data class BoardListUiState(
     val content: BoardListContentState,
     val maxBoardCount: Int = BOARD_DEFAULT_MAX_COUNT,

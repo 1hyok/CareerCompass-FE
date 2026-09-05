@@ -21,8 +21,8 @@ import com.careercompass.feature.onboarding.presentation.OnboardingApplicationDo
 import com.careercompass.feature.onboarding.presentation.OnboardingApplicationDocumentFormat
 import com.careercompass.feature.onboarding.presentation.OnboardingApplicationDocumentStatus
 import com.careercompass.feature.onboarding.presentation.OnboardingApplicationItem
+import com.careercompass.feature.onboarding.presentation.OnboardingStep4Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep4Event
-import com.careercompass.feature.onboarding.presentation.OnboardingStep4Screen
 import com.careercompass.feature.onboarding.presentation.OnboardingStep4UiState
 import com.careercompass.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
 import com.careercompass.feature.onboarding.presentation.flow.util.UploadFileSelectionException
@@ -49,7 +49,7 @@ import com.careercompass.feature.onboarding.presentation.shared.component.Onboar
  * @param onSessionEnded 401 로 세션이 끝났다 — 앱 셸이 사유를 만료로 갈라 로그인 화면으로 보낸다(#211).
  */
 @Composable
-public fun OnboardingStep4Entry(
+public fun OnboardingStep4Screen(
     viewModel: OnboardingViewModel,
     onNavigate: (OnboardingDestination) -> Unit,
     onBack: () -> Unit,
@@ -100,7 +100,7 @@ public fun OnboardingStep4Entry(
         onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
-        OnboardingStep4Screen(
+        OnboardingStep4Content(
             state = state.step4.toUiState(isInputEnabled = state.isInputEnabled),
             onEvent = { event ->
                 when (event) {

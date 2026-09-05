@@ -27,7 +27,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
 
 /** Stateless job-preference and interest-tag form for onboarding step two. */
 @Composable
-public fun OnboardingStep2Screen(
+public fun OnboardingStep2Content(
     state: OnboardingStep2UiState,
     onEvent: (OnboardingStep2Event) -> Unit,
     modifier: Modifier = Modifier,

@@ -415,11 +415,11 @@ class AppNavigationAndroidTest {
         /** `OnboardingErrorCard` 의 닫기 버튼 — 라벨이 아니라 접근성 이름으로 찾는다. */
         const val DISMISS_NOTICE_DESCRIPTION = "오류 안내 닫기"
 
-        /** `MyTabPlaceholderScreen` 의 `MY_TAB_BIOMETRIC_SWITCH_TAG` — 라벨은 스위치의 토글 상태를 병합하지 않는다. */
+        /** `MyTabPlaceholderContent` 의 `MY_TAB_BIOMETRIC_SWITCH_TAG` — 라벨은 스위치의 토글 상태를 병합하지 않는다. */
         const val BIOMETRIC_SWITCH_TAG = "my_tab_biometric_switch"
         const val BIOMETRIC_UNAVAILABLE_TEXT = "이 기기에서는 지문 로그인을 켤 수 없어요"
 
-        /** `MyTabPlaceholderScreen` 의 `MY_TAB_THEME_ROW_TAG` — 라벨과 현재 값이 한 줄에 병합돼 문구만으로는 집기 어렵다. */
+        /** `MyTabPlaceholderContent` 의 `MY_TAB_THEME_ROW_TAG` — 라벨과 현재 값이 한 줄에 병합돼 문구만으로는 집기 어렵다. */
         const val THEME_ROW_TAG = "my_tab_theme_row"
     }
 }

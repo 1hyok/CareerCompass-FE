@@ -1,685 +1,199 @@
 package com.careercompass.feature.feed.presentation.postingdetail
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import android.content.Intent
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.careercompass.core.ui.component.CareerCompassAnalyzingState
-import com.careercompass.core.ui.component.CareerCompassBadge
-import com.careercompass.core.ui.component.CareerCompassBadgeTone
-import com.careercompass.core.ui.component.CareerCompassButton
-import com.careercompass.core.ui.component.CareerCompassButtonSize
-import com.careercompass.core.ui.component.CareerCompassButtonVariant
-import com.careercompass.core.ui.component.CareerCompassFailureState
-import com.careercompass.core.ui.component.CareerCompassNetworkErrorState
-import com.careercompass.core.ui.component.CareerCompassStatePresentation
-import com.careercompass.core.ui.icon.CareerCompassIcons
-import com.careercompass.core.ui.theme.CareerCompassTheme
-import com.careercompass.feature.feed.presentation.FeedListingUiModel
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.careercompass.core.model.posting.Suitability
+import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.failure.description
+import com.careercompass.core.ui.failure.display
+import com.careercompass.core.ui.failure.title
 import com.careercompass.feature.feed.presentation.R
-import com.careercompass.feature.feed.presentation.postingdetail.component.SimilarPostingCard
-import com.careercompass.feature.feed.presentation.postingdetail.component.SuitabilityBreakdownRow
-import com.careercompass.feature.feed.presentation.postingdetail.component.SuitabilityGauge
-import com.careercompass.feature.feed.presentation.postingdetail.component.badgeTone
-import com.careercompass.feature.feed.presentation.shared.component.FEED_ICON_SIZE
-import com.careercompass.feature.feed.presentation.shared.component.FEED_INLINE_ICON_SIZE
-import com.careercompass.feature.feed.presentation.shared.component.FeedCard
-import com.careercompass.feature.feed.presentation.shared.component.FeedIconButton
-import com.careercompass.feature.feed.presentation.shared.component.FeedLoadingContent
-import com.careercompass.feature.feed.presentation.shared.component.FeedMaintenanceState
-import com.careercompass.feature.feed.presentation.shared.component.FeedSectionTitle
-import com.careercompass.feature.feed.presentation.shared.component.FeedTopBar
+import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReason
+import com.careercompass.feature.feed.presentation.shared.model.SuitabilityJudgement
+import com.careercompass.feature.feed.presentation.shared.model.failureKind
+import com.careercompass.feature.feed.presentation.shared.model.judgeSuitability
+import com.careercompass.feature.feed.presentation.shared.util.toDetailUiModel
+import com.careercompass.feature.feed.presentation.shared.util.toSuitabilityUiModel
+import kotlinx.coroutines.launch
+import java.time.Clock
 
-/** Stateless posting detail screen matching the CareerCompass "공고 상세" design (spec F3-3). */
+/**
+ * 공고 상세 진입점 — 도메인 상세를 [PostingDetailContent] 계약으로 옮기고 공유·이동·스낵바 신호를 소비한다.
+ *
+ * 유사 공고 선택은 [onPostingClick] 으로 상세를 하나 더 쌓고, 프로필 입력 안내는 [onProfileClick] 으로 앱 셸에 맡긴다.
+ * 서버 점검은 한 줄 오류 문구가 아니라 [PostingDetailContentState.Maintenance] 로 옮겨 전용 안내 화면이 그려진다.
+ */
 @Composable
 public fun PostingDetailScreen(
-    state: PostingDetailUiState,
-    onEvent: (PostingDetailEvent) -> Unit,
+    onBackClick: () -> Unit,
+    onPostingClick: (Long) -> Unit,
+    onRawClick: (Long) -> Unit,
+    onProfileClick: () -> Unit,
+    onSessionEnded: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: PostingDetailViewModel = hiltViewModel(),
 ) {
-    val loadedPosting = (state.content as? PostingDetailContentState.Loaded)?.posting
-    val topBarActions: (@Composable RowScope.() -> Unit)? =
-        if (loadedPosting == null) {
-            null
-        } else {
-            {
-                PostingDetailTopActions(
-                    isBookmarked = loadedPosting.isBookmarked,
-                    onEvent = onEvent,
-                )
-            }
-        }
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val resources = LocalResources.current
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(CareerCompassTheme.colors.subtleSurface)
-                .windowInsetsPadding(WindowInsets.safeDrawing),
-    ) {
-        FeedTopBar(
-            title = stringResource(R.string.feed_posting_detail_title),
-            onBackClick = { onEvent(PostingDetailEvent.BackClicked) },
-            actions = topBarActions,
-        )
-        when (val content = state.content) {
-            PostingDetailContentState.Loading -> {
-                FeedLoadingContent(
-                    message = stringResource(R.string.feed_posting_detail_loading),
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            PostingDetailContentState.NetworkUnavailable -> {
-                // 상세는 스냅샷을 저장하지 않아 오프라인 경로가 없다.
-                CareerCompassNetworkErrorState(
-                    onRetryClick = { onEvent(PostingDetailEvent.RetryClicked) },
-                    onOfflineClick = null,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            is PostingDetailContentState.Error -> {
-                // 실패 전용 부품(#222). 재시도 버튼은 표의 판정(isRetryable)을 따른다 — 눌러도 같은 답이 오는
-                // 실패에 버튼을 주면 사용자는 누르고 같은 실패를 다시 만난다.
-                val onRetry: (() -> Unit)? =
-                    if (content.isRetryable) ({ onEvent(PostingDetailEvent.RetryClicked) }) else null
-                CareerCompassFailureState(
-                    title = content.title,
-                    description = content.description,
-                    actionText = stringResource(R.string.feed_posting_detail_retry).takeIf { content.isRetryable },
-                    onActionClick = onRetry,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            PostingDetailContentState.Maintenance -> {
-                // 상세는 스냅샷을 저장하지 않아 오프라인 경로가 없다.
-                FeedMaintenanceState(
-                    onRetryClick = { onEvent(PostingDetailEvent.RetryClicked) },
-                    onOfflineClick = null,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            is PostingDetailContentState.Loaded -> {
-                PostingDetailBody(
-                    posting = content.posting,
-                    onEvent = onEvent,
-                    modifier = Modifier.weight(1f),
-                )
-                PostingDetailBottomBar(
-                    canCreateDraft = content.posting.canCreateDraft,
-                    onEvent = onEvent,
-                )
-            }
+    val pendingNavigation = state.pendingNavigation
+    LaunchedEffect(pendingNavigation) {
+        if (pendingNavigation == null) return@LaunchedEffect
+        viewModel.onIntent(PostingDetailIntent.ConsumeNavigation)
+        when (pendingNavigation) {
+            PostingDetailDestination.Back -> onBackClick()
+            is PostingDetailDestination.Raw -> onRawClick(pendingNavigation.postingId)
+            is PostingDetailDestination.Posting -> onPostingClick(pendingNavigation.postingId)
+            PostingDetailDestination.Profile -> onProfileClick()
         }
     }
-}
+    val sessionEnded = state.sessionEnded
+    LaunchedEffect(sessionEnded) {
+        if (sessionEnded) {
+            viewModel.onIntent(PostingDetailIntent.ConsumeSessionEnded)
+            onSessionEnded()
+        }
+    }
+    val shareRequest = state.shareRequest
+    LaunchedEffect(shareRequest) {
+        if (shareRequest == null) return@LaunchedEffect
+        viewModel.onIntent(PostingDetailIntent.ConsumeShare)
+        val sendIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = SHARE_MIME_TYPE
+                putExtra(Intent.EXTRA_SUBJECT, shareRequest.title)
+                putExtra(
+                    Intent.EXTRA_TEXT,
+                    resources.getString(R.string.feed_posting_detail_share_text, shareRequest.title, shareRequest.url),
+                )
+            }
+        context.startActivity(Intent.createChooser(sendIntent, resources.getString(R.string.feed_posting_detail_share_chooser)))
+    }
+    val message = state.message
+    LaunchedEffect(message) {
+        if (message == null) return@LaunchedEffect
+        viewModel.onIntent(PostingDetailIntent.ConsumeMessage)
+        val messageRes =
+            when (message) {
+                PostingDetailMessage.BookmarkFailed -> R.string.feed_bookmark_failed
+                PostingDetailMessage.DraftComingSoon -> R.string.feed_posting_detail_draft_coming_soon
+            }
+        snackbarScope.launch { snackbarHostState.showSnackbar(resources.getString(messageRes)) }
+    }
 
-@Composable
-private fun PostingDetailTopActions(
-    isBookmarked: Boolean,
-    onEvent: (PostingDetailEvent) -> Unit,
-) {
-    PostingBookmarkToggle(
-        bookmarked = isBookmarked,
-        onClick = { onEvent(PostingDetailEvent.BookmarkToggled) },
-    )
-    FeedIconButton(
-        icon = CareerCompassIcons.Share,
-        contentDescription = stringResource(R.string.feed_posting_detail_share),
-        onClick = { onEvent(PostingDetailEvent.ShareClicked) },
-    )
-}
+    val uiState =
+        remember(state.loadState, state.profile, state.isSuitabilityRecheckExhausted, resources) {
+            state.toUiState(resources, viewModel.clock)
+        }
 
-@Composable
-private fun PostingBookmarkToggle(
-    bookmarked: Boolean,
-    onClick: () -> Unit,
-) {
-    val colors = CareerCompassTheme.colors
-    val bookmarkDescription = stringResource(R.string.feed_posting_detail_bookmark_content_description)
-    val bookmarkStateDescription =
-        stringResource(
-            if (bookmarked) {
-                R.string.feed_bookmark_saved_state
-            } else {
-                R.string.feed_bookmark_not_saved_state
-            },
+    Box(modifier = modifier.fillMaxSize()) {
+        PostingDetailContent(
+            state = uiState,
+            onEvent = { viewModel.onIntent(PostingDetailIntent.Screen(it)) },
         )
-
-    Box(
-        modifier =
-            Modifier
-                .size(48.dp)
-                .semantics {
-                    contentDescription = bookmarkDescription
-                    stateDescription = bookmarkStateDescription
-                }.toggleable(
-                    value = bookmarked,
-                    role = Role.Checkbox,
-                    onValueChange = { onClick() },
-                ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = if (bookmarked) CareerCompassIcons.Bookmark else CareerCompassIcons.BookmarkBorder,
-            contentDescription = null,
-            modifier = Modifier.size(FEED_ICON_SIZE),
-            tint = if (bookmarked) colors.primaryEmphasis else colors.onSurface,
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
 }
 
-@Composable
-private fun PostingDetailBody(
-    posting: PostingDetailUiModel,
-    onEvent: (PostingDetailEvent) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val spacing = CareerCompassTheme.spacing
-
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = spacing.large, vertical = spacing.small),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium),
-    ) {
-        PostingHeaderCard(posting = posting)
-        PostingSuitabilityCard(
-            suitability = posting.suitability,
-            onCompleteProfileClick = { onEvent(PostingDetailEvent.CompleteProfileClicked) },
-            onRecheckClick = { onEvent(PostingDetailEvent.SuitabilityRecheckClicked) },
-        )
-        if (posting.keywords.isNotEmpty()) {
-            PostingKeywordsCard(keywords = posting.keywords)
-        }
-        if (posting.qualifications.isNotEmpty()) {
-            PostingBulletCard(
-                title = stringResource(R.string.feed_posting_detail_qualifications_title),
-                items = posting.qualifications,
-            )
-        }
-        if (posting.preferences.isNotEmpty()) {
-            PostingBulletCard(
-                title = stringResource(R.string.feed_posting_detail_preferences_title),
-                items = posting.preferences,
-            )
-        }
-        PostingFormQuestionsCard(questions = posting.formQuestions)
-        if (posting.similarPostings.isNotEmpty()) {
-            PostingSimilarSection(
-                similarPostings = posting.similarPostings,
-                onEvent = onEvent,
-            )
-        }
-        Spacer(modifier = Modifier.height(spacing.small))
-    }
-}
-
-@Composable
-private fun PostingHeaderCard(posting: PostingDetailUiModel) {
-    val colors = CareerCompassTheme.colors
-
-    FeedCard(onClick = null) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(CareerCompassTheme.spacing.xSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CareerCompassBadge(
-                label = posting.categoryLabel,
-                tone = posting.category.badgeTone(),
-            )
-            CareerCompassBadge(
-                label = posting.sourceLabel,
-                tone = CareerCompassBadgeTone.Neutral,
-            )
-        }
-        Text(
-            text = posting.title,
-            modifier = Modifier.semantics { heading() },
-            color = colors.onSurface,
-            style = CareerCompassTheme.typography.headline2,
-        )
-        Text(
-            // 마감 임박을 색으로만 말하지 않는다. 피드 카드는 「D-2」라는 숫자가 임박을 지지만 상세는
-            // 절대 날짜라, 색을 못 보면 임박했다는 사실 자체가 사라진다(이슈 #205) — 문구로 한 번 더 적는다.
-            text =
-                stringResource(
-                    if (posting.isDeadlineUrgent) {
-                        R.string.feed_posting_detail_collected_and_deadline_urgent
-                    } else {
-                        R.string.feed_posting_detail_collected_and_deadline
-                    },
-                    posting.collectedAtLabel,
-                    posting.deadlineLabel,
-                ),
-            color = if (posting.isDeadlineUrgent) colors.error else colors.mutedContent,
-            style =
-                CareerCompassTheme.typography.caption.copy(
-                    fontSize = 12.sp,
-                    lineHeight = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                ),
-        )
-    }
-}
-
-/**
- * 적합도 카드 — 세 판정([PostingSuitabilityState])이 세 모양이다. 「분석 중」과 「프로필 미입력」을 섞지 않는다:
- * 뒤쪽은 사용자가 할 일이 있고 앞쪽은 기다리는 수밖에 없다(#100·#221).
- *
- * 이 카드는 사용자가 아무것도 누르지 않아도 스스로 바뀐다 — 자동 재조회가 점수를 실어 오거나 소진되면(#221).
- * 그래서 제목이 **live region** 이다: 상태 요약을 `stateDescription` 으로 들고 있다가 바뀌면 스크린 리더가
- * 알린다(#239). 카드 전체를 합쳐 live region 으로 만들지 않는 이유는 「준비됨」의 게이지와 축 4개가 각각
- * 따로 읽혀야 해서다 — 합치면 한 덩어리로 읽힌다.
- */
-@Composable
-private fun PostingSuitabilityCard(
-    suitability: PostingSuitabilityState,
-    onCompleteProfileClick: () -> Unit,
-    onRecheckClick: () -> Unit,
-) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-    val summary = suitability.summary()
-
-    FeedCard(onClick = null) {
-        FeedSectionTitle(
-            text = stringResource(R.string.feed_posting_detail_suitability_title),
-            modifier =
-                Modifier.semantics {
-                    liveRegion = LiveRegionMode.Polite
-                    stateDescription = summary
-                },
-        )
-        when (suitability) {
-            PostingSuitabilityState.ProfileIncomplete -> {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(spacing.medium),
-                ) {
-                    Text(
-                        text = stringResource(R.string.feed_posting_detail_profile_incomplete),
-                        color = colors.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        style = CareerCompassTheme.typography.bodyMedium,
-                    )
-                    CareerCompassButton(
-                        text = stringResource(R.string.feed_posting_detail_complete_profile),
-                        onClick = onCompleteProfileClick,
-                    )
+internal fun PostingDetailViewState.toUiState(
+    resources: Resources,
+    clock: Clock,
+): PostingDetailUiState =
+    PostingDetailUiState(
+        content =
+            when (val loadState = loadState) {
+                PostingDetailLoadState.Loading -> {
+                    PostingDetailContentState.Loading
                 }
-            }
 
-            is PostingSuitabilityState.Analyzing -> {
-                if (suitability.isAutoRecheckExhausted) {
-                    PostingSuitabilityPending(onRecheckClick = onRecheckClick)
-                } else {
-                    // Figma 09 「분석 중」을 카드 안에 끼운다 — 화면을 통째로 덮으면 제목·원문 보기가 사라진다.
-                    // 기다리는 상태라 행동 버튼이 없다(엣지 상태 §3) — 화면이 스스로 다시 묻는다.
-                    CareerCompassAnalyzingState(
-                        title = stringResource(R.string.feed_posting_detail_analyzing),
-                        description = stringResource(R.string.feed_posting_detail_analyzing_description),
-                        progress = null,
-                        progressLabel = null,
-                        presentation = CareerCompassStatePresentation.Inline,
-                    )
-                }
-            }
+                is PostingDetailLoadState.Failed -> {
+                    when (loadState.reason) {
+                        FeedFailureReason.Maintenance -> {
+                            PostingDetailContentState.Maintenance
+                        }
 
-            is PostingSuitabilityState.Ready -> {
-                PostingSuitabilityReady(suitability = suitability.suitability)
-            }
-        }
-    }
-}
+                        FeedFailureReason.NetworkUnavailable -> {
+                            PostingDetailContentState.NetworkUnavailable
+                        }
 
-/**
- * 제목의 `stateDescription` 에 실을 한 줄 요약 — 카드가 스스로 바뀔 때 스크린 리더가 읽는 문장이다(#239).
- * 「준비됨」은 게이지의 접근성 이름과 같은 문장을 쓴다 — 같은 사실을 두 문장으로 말하지 않는다.
- */
-@Composable
-private fun PostingSuitabilityState.summary(): String =
-    when (this) {
-        PostingSuitabilityState.ProfileIncomplete -> {
-            stringResource(R.string.feed_posting_detail_profile_incomplete)
-        }
-
-        is PostingSuitabilityState.Analyzing -> {
-            if (isAutoRecheckExhausted) {
-                stringResource(R.string.feed_posting_detail_analysis_pending_title)
-            } else {
-                stringResource(R.string.feed_posting_detail_analyzing)
-            }
-        }
-
-        is PostingSuitabilityState.Ready -> {
-            stringResource(
-                R.string.feed_posting_detail_suitability_content_description,
-                suitability.score,
-                suitability.levelLabel,
-            )
-        }
-    }
-
-/**
- * 자동 재조회를 다 쓴 뒤 — 진행 표시를 거둔다. 도는 인디케이터는 「무언가 하고 있다」는 뜻인데 이제 아무것도
- * 하지 않는다.
- *
- * 「다시 확인」은 실제로 상태를 바꾸는 버튼이다(누르면 한 번 더 묻는다). 영구 실패를 나타낼 계약이 없으므로
- * (#200) 문구는 실패도 성공도 약속하지 않고, 하단 바에 늘 있는 「원문 보기」를 대안으로 가리킨다.
- */
-@Composable
-private fun PostingSuitabilityPending(onRecheckClick: () -> Unit) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.medium),
-    ) {
-        Text(
-            text = stringResource(R.string.feed_posting_detail_analysis_pending_title),
-            color = colors.onSurface,
-            textAlign = TextAlign.Center,
-            style = CareerCompassTheme.typography.headline4,
-        )
-        Text(
-            text = stringResource(R.string.feed_posting_detail_analysis_pending_description),
-            color = colors.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            style = CareerCompassTheme.typography.bodyMedium,
-        )
-        CareerCompassButton(
-            text = stringResource(R.string.feed_posting_detail_analysis_recheck),
-            onClick = onRecheckClick,
-            variant = CareerCompassButtonVariant.Secondary,
-        )
-    }
-}
-
-@Composable
-private fun PostingSuitabilityReady(suitability: SuitabilityUiModel) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    SuitabilityGauge(
-        score = suitability.score,
-        levelLabel = suitability.levelLabel,
-        level = suitability.level,
-    )
-    if (suitability.breakdown.isEmpty()) {
-        // 총점은 나왔는데 축 분해가 비어 온 경우. 「모름」 이지 「미충족」 이 아니므로 0점짜리 축 4개를
-        // 그려서는 안 된다 — 없는 것은 없다고만 적는다. 축이 일부만 오면 온 축만 그리고 나머지는
-        // 자리 자체를 만들지 않는 것도 같은 이유다.
-        Text(
-            text = stringResource(R.string.feed_posting_detail_breakdown_unavailable),
-            color = colors.mutedContent,
-            style = CareerCompassTheme.typography.caption,
-        )
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
-            suitability.breakdown.forEach { axis ->
-                SuitabilityBreakdownRow(axis = axis)
-            }
-        }
-    }
-    suitability.strengthComment?.let { comment ->
-        PostingCommentBox(
-            icon = stringResource(R.string.feed_icon_strength),
-            title = stringResource(R.string.feed_posting_detail_strength_title),
-            comment = comment,
-            containerColor = colors.successContainer,
-            titleColor = colors.onSuccessContainer,
-        )
-    }
-    suitability.weaknessComment?.let { comment ->
-        PostingCommentBox(
-            icon = stringResource(R.string.feed_icon_weakness),
-            title = stringResource(R.string.feed_posting_detail_weakness_title),
-            comment = comment,
-            containerColor = colors.warningContainer,
-            titleColor = colors.onWarningContainer,
-        )
-    }
-}
-
-@Composable
-private fun PostingCommentBox(
-    icon: String,
-    title: String,
-    comment: String,
-    containerColor: Color,
-    titleColor: Color,
-) {
-    val spacing = CareerCompassTheme.spacing
-
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(containerColor, CareerCompassTheme.shapes.largeControl)
-                .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.xxSmall),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(spacing.xxSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = icon,
-                modifier = Modifier.clearAndSetSemantics {},
-                style = CareerCompassTheme.typography.caption,
-            )
-            Text(
-                text = title,
-                color = titleColor,
-                style =
-                    CareerCompassTheme.typography.caption.copy(
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-            )
-        }
-        Text(
-            text = comment,
-            color = CareerCompassTheme.colors.onSurface,
-            style = CareerCompassTheme.typography.bodyMedium,
-        )
-    }
-}
-
-@Composable
-private fun PostingKeywordsCard(keywords: List<String>) {
-    val spacing = CareerCompassTheme.spacing
-
-    FeedCard(onClick = null) {
-        FeedSectionTitle(text = stringResource(R.string.feed_posting_detail_keywords_title))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
-            verticalArrangement = Arrangement.spacedBy(spacing.xSmall),
-        ) {
-            keywords.forEach { keyword ->
-                CareerCompassBadge(
-                    label = keyword,
-                    tone = CareerCompassBadgeTone.Neutral,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PostingBulletCard(
-    title: String,
-    items: List<String>,
-) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    FeedCard(onClick = null) {
-        FeedSectionTitle(text = title)
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.xSmall)) {
-            items.forEach { item ->
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    Icon(
-                        imageVector = CareerCompassIcons.Bullet,
-                        contentDescription = null,
-                        modifier = Modifier.size(FEED_INLINE_ICON_SIZE),
-                        tint = colors.mutedContent,
-                    )
-                    Text(
-                        text = item,
-                        color = colors.onSurface,
-                        style = CareerCompassTheme.typography.bodyMedium,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PostingFormQuestionsCard(questions: List<PostingFormQuestionUiModel>) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    FeedCard(onClick = null) {
-        FeedSectionTitle(text = stringResource(R.string.feed_posting_detail_form_questions_title))
-        if (questions.isEmpty()) {
-            Text(
-                text = stringResource(R.string.feed_posting_detail_form_questions_empty),
-                color = colors.mutedContent,
-                style = CareerCompassTheme.typography.caption,
-            )
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-                questions.forEach { question ->
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text =
-                                stringResource(
-                                    R.string.feed_posting_detail_form_question,
-                                    question.order,
-                                    question.question,
-                                ),
-                            color = colors.onSurface,
-                            style = CareerCompassTheme.typography.bodyMedium,
-                        )
-                        question.maxCharsLabel?.let { maxCharsLabel ->
-                            Text(
-                                text = maxCharsLabel,
-                                color = colors.mutedContent,
-                                style = CareerCompassTheme.typography.caption,
+                        // 문구는 실패 표에서 읽는다(#204). 제목·본문을 따로 들어 실패 부품이 두 줄로 그리고,
+                        // 재시도 유무도 표의 판정을 그대로 싣는다(#222).
+                        FeedFailureReason.Generic -> {
+                            val display = loadState.reason.failureKind.display(FailureSurface.Posting)
+                            PostingDetailContentState.Error(
+                                title = display.title(resources),
+                                description = display.description(resources),
+                                isRetryable = display.isRetryable,
                             )
                         }
                     }
                 }
-            }
+
+                is PostingDetailLoadState.Loaded -> {
+                    PostingDetailContentState.Loaded(
+                        loadState.detail.toDetailUiModel(
+                            resources = resources,
+                            clock = clock,
+                            suitability =
+                                toSuitabilityState(
+                                    judgement = judgeSuitability(hasScore = loadState.detail.suitability != null, profile = profile),
+                                    suitability = loadState.detail.suitability,
+                                    isAutoRecheckExhausted = isSuitabilityRecheckExhausted,
+                                    resources = resources,
+                                ),
+                            profile = profile,
+                        ),
+                    )
+                }
+            },
+    )
+
+/**
+ * 판정 → 카드 상태. 「준비됨」인데 점수가 없는 모순은 「분석 중」으로 접는다.
+ *
+ * 판정은 새로 하지 않는다 — [judgeSuitability] 하나를 목록 카드와 나눠 쓴다(#100). 여기서 더하는 것은
+ * 「분석 중」이 기다리는 중인지, 기다리기를 그만뒀는지([isAutoRecheckExhausted])뿐이다(#221).
+ */
+internal fun toSuitabilityState(
+    judgement: SuitabilityJudgement,
+    suitability: Suitability?,
+    isAutoRecheckExhausted: Boolean,
+    resources: Resources,
+): PostingSuitabilityState =
+    when (judgement) {
+        SuitabilityJudgement.ProfileIncomplete -> {
+            PostingSuitabilityState.ProfileIncomplete
+        }
+
+        SuitabilityJudgement.Analyzing -> {
+            PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = isAutoRecheckExhausted)
+        }
+
+        SuitabilityJudgement.Ready -> {
+            suitability?.let { PostingSuitabilityState.Ready(it.toSuitabilityUiModel(resources)) }
+                ?: PostingSuitabilityState.Analyzing(isAutoRecheckExhausted = isAutoRecheckExhausted)
         }
     }
-}
 
-@Composable
-private fun PostingSimilarSection(
-    similarPostings: List<FeedListingUiModel>,
-    onEvent: (PostingDetailEvent) -> Unit,
-) {
-    val spacing = CareerCompassTheme.spacing
-
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-        FeedSectionTitle(
-            text = stringResource(R.string.feed_posting_detail_similar_title),
-            modifier = Modifier.padding(top = spacing.xxSmall),
-        )
-        similarPostings.forEach { listing ->
-            SimilarPostingCard(
-                listing = listing,
-                onClick = { onEvent(PostingDetailEvent.SimilarPostingSelected(listing.id)) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun PostingDetailBottomBar(
-    canCreateDraft: Boolean,
-    onEvent: (PostingDetailEvent) -> Unit,
-) {
-    val spacing = CareerCompassTheme.spacing
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(CareerCompassTheme.colors.subtleSurface)
-                .padding(
-                    start = spacing.large,
-                    top = spacing.medium,
-                    end = spacing.large,
-                    bottom = spacing.large,
-                ),
-        horizontalArrangement = Arrangement.spacedBy(spacing.small),
-    ) {
-        CareerCompassButton(
-            text = stringResource(R.string.feed_posting_detail_view_original),
-            onClick = { onEvent(PostingDetailEvent.ViewOriginalClicked) },
-            modifier = Modifier.weight(VIEW_ORIGINAL_WEIGHT),
-            variant = CareerCompassButtonVariant.Secondary,
-            size = CareerCompassButtonSize.Large,
-        )
-        if (canCreateDraft) {
-            CareerCompassButton(
-                text = stringResource(R.string.feed_posting_detail_create_draft),
-                onClick = { onEvent(PostingDetailEvent.CreateDraftClicked) },
-                modifier = Modifier.weight(CREATE_DRAFT_WEIGHT),
-                variant = CareerCompassButtonVariant.Primary,
-                size = CareerCompassButtonSize.Large,
-            )
-        }
-    }
-}
-
-private const val VIEW_ORIGINAL_WEIGHT = 1f
-private const val CREATE_DRAFT_WEIGHT = 1.4f
+private const val SHARE_MIME_TYPE = "text/plain"

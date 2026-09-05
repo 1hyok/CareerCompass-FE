@@ -214,7 +214,7 @@ public sealed interface PostingDetailContentState {
     ) : PostingDetailContentState
 }
 
-/** Complete, display-ready state for [PostingDetailScreen]. */
+/** Complete, display-ready state for [PostingDetailContent]. */
 public data class PostingDetailUiState(
     val content: PostingDetailContentState,
 )

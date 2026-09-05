@@ -9,7 +9,7 @@ import com.careercompass.feature.feed.presentation.board.BoardCollectCycle
 import com.careercompass.feature.feed.presentation.board.BoardDetectionFailure
 import com.careercompass.feature.feed.presentation.board.BoardDetectionState
 import com.careercompass.feature.feed.presentation.board.BoardPreviewItemUiModel
-import com.careercompass.feature.feed.presentation.board.BoardRegisterScreen
+import com.careercompass.feature.feed.presentation.board.BoardRegisterContent
 import com.careercompass.feature.feed.presentation.board.BoardRegisterUiState
 import com.careercompass.feature.feed.presentation.board.BoardType
 
@@ -88,7 +88,7 @@ public fun BoardRegisterMaintenancePreview() {
 private fun BoardRegisterPreviewSurface(state: BoardRegisterUiState) {
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            BoardRegisterScreen(state = state, onEvent = {})
+            BoardRegisterContent(state = state, onEvent = {})
         }
     }
 }

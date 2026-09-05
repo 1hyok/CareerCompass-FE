@@ -10,7 +10,7 @@ import com.careercompass.feature.feed.presentation.shared.component.FeedMaintena
 import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReason
 
 /**
- * 원문을 못 받았을 때 사유별로 갈리는 화면 — [PostingRawEntry] 가 상태 없이 그리는 부분만 떼어 냈다
+ * 원문을 못 받았을 때 사유별로 갈리는 화면 — [PostingRawScreen] 가 상태 없이 그리는 부분만 떼어 냈다
  * (게시판 목록의 `BoardListFailureContent` 와 같은 모양이다).
  *
  * 원문은 스냅샷을 저장하지 않으므로 「오프라인 모드로 보기」는 어느 사유에서도 열지 않는다.
@@ -21,7 +21,7 @@ import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReaso
  *   실패라 「다시 시도」로 재시도를 권하지 않는다. 바로 앞 화면(공고 상세)과 같은 부품·같은 문구다.
  * - [FeedFailureReason.Generic] — 「다시 시도」. 원인을 특정하지 못했으니 한 번 더 해 보는 것이 최선이다.
  *
- * 어느 사유든 상단 바는 [PostingRawEntry] 가 남기므로 뒤로가기는 살아 있다.
+ * 어느 사유든 상단 바는 [PostingRawScreen] 가 남기므로 뒤로가기는 살아 있다.
  */
 @Composable
 internal fun PostingRawFailureContent(

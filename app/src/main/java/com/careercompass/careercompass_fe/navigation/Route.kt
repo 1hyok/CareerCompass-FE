@@ -19,7 +19,7 @@ public sealed interface Route {
     /**
      * 하단 탭 「마이」(프로필·경험 카드·과거 자소서·알림 설정) — profile 모듈 몫.
      *
-     * 인수 전까지 셸이 세션 카드와 로그아웃만 그린다([MyTabPlaceholderEntry]) — 그것 말고는 세션을 끝낼 방법이 없다.
+     * 인수 전까지 셸이 세션 카드와 로그아웃만 그린다([MyTabPlaceholderScreen]) — 그것 말고는 세션을 끝낼 방법이 없다.
      */
     @Serializable
     public data object MyTab : Route

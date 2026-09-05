@@ -76,12 +76,12 @@ import kotlinx.coroutines.flow.filter
 
 /** Stateless main feed matching the CareerCompass feed design. */
 @Composable
-public fun FeedScreen(
+public fun FeedContent(
     state: FeedUiState,
     onEvent: (FeedUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FeedScreen(
+    FeedContent(
         state = state,
         onEvent = onEvent,
         listState = rememberLazyListState(),
@@ -102,7 +102,7 @@ public fun FeedScreen(
  * 가지 않는 자리를 비워 두면 목록이 끝난 것처럼 보인다.
  */
 @Composable
-public fun FeedScreen(
+public fun FeedContent(
     state: FeedUiState,
     onEvent: (FeedUiEvent) -> Unit,
     listState: LazyListState,

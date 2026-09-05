@@ -6,8 +6,8 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.careercompass.feature.onboarding.domain.model.JobOptionCatalog
 import com.careercompass.feature.onboarding.presentation.OnboardingJobOption
+import com.careercompass.feature.onboarding.presentation.OnboardingStep2Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep2Event
-import com.careercompass.feature.onboarding.presentation.OnboardingStep2Screen
 import com.careercompass.feature.onboarding.presentation.OnboardingStep2UiState
 import com.careercompass.feature.onboarding.presentation.flow.component.OnboardingFlowFailureHost
 
@@ -17,7 +17,7 @@ import com.careercompass.feature.onboarding.presentation.flow.component.Onboardi
  * @param onSessionEnded 401 로 세션이 끝났다 — 앱 셸이 사유를 만료로 갈라 로그인 화면으로 보낸다(#211).
  */
 @Composable
-public fun OnboardingStep2Entry(
+public fun OnboardingStep2Screen(
     viewModel: OnboardingViewModel,
     onNavigate: (OnboardingDestination) -> Unit,
     onBack: () -> Unit,
@@ -41,7 +41,7 @@ public fun OnboardingStep2Entry(
         onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
-        OnboardingStep2Screen(
+        OnboardingStep2Content(
             state = state.step2.toUiState(isInputEnabled = state.isInputEnabled),
             onEvent = { event ->
                 if (event == OnboardingStep2Event.BackClicked) onBack() else viewModel.onIntent(OnboardingIntent.Step2(event))

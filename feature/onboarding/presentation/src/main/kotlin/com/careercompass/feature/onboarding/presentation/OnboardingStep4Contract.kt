@@ -150,7 +150,7 @@ public data class OnboardingStep4UiState(
                 }
 }
 
-/** User intentions emitted by [OnboardingStep4Screen]. */
+/** User intentions emitted by [OnboardingStep4Content]. */
 public sealed interface OnboardingStep4Event {
     public data object UploadClicked : OnboardingStep4Event
 

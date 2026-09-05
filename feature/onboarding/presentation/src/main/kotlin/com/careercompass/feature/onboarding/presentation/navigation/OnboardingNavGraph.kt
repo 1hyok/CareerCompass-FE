@@ -8,11 +8,11 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.careercompass.feature.onboarding.presentation.biometric.BiometricLoginScreen
-import com.careercompass.feature.onboarding.presentation.complete.OnboardingCompleteEntry
-import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep1Entry
-import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep2Entry
-import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep3Entry
-import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep4Entry
+import com.careercompass.feature.onboarding.presentation.complete.OnboardingCompleteScreen
+import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep1Screen
+import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep2Screen
+import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep3Screen
+import com.careercompass.feature.onboarding.presentation.flow.OnboardingStep4Screen
 import com.careercompass.feature.onboarding.presentation.flow.OnboardingViewModel
 import com.careercompass.feature.onboarding.presentation.login.LoginScreen
 
@@ -52,7 +52,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
             )
         }
         composable<OnboardingRoute.Step1> { entry ->
-            OnboardingStep1Entry(
+            OnboardingStep1Screen(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
@@ -60,7 +60,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
             )
         }
         composable<OnboardingRoute.Step2> { entry ->
-            OnboardingStep2Entry(
+            OnboardingStep2Screen(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
@@ -68,7 +68,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
             )
         }
         composable<OnboardingRoute.Step3> { entry ->
-            OnboardingStep3Entry(
+            OnboardingStep3Screen(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
@@ -76,7 +76,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
             )
         }
         composable<OnboardingRoute.Step4> { entry ->
-            OnboardingStep4Entry(
+            OnboardingStep4Screen(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
                 onBack = actions.popBack,
@@ -84,7 +84,7 @@ public fun NavGraphBuilder.onboardingNavGraph(
             )
         }
         composable<OnboardingRoute.Complete> { entry ->
-            OnboardingCompleteEntry(
+            OnboardingCompleteScreen(
                 viewModel = entry.onboardingViewModel(graphScopedParentEntry),
                 onNavigate = actions::navigate,
             )

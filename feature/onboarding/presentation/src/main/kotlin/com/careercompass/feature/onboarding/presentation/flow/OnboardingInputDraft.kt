@@ -17,7 +17,7 @@ import com.careercompass.feature.onboarding.presentation.pastapplication.DirectI
  * 온보딩의 입력 상태는 전부 그래프 스코프 [OnboardingViewModel] 로 끌어올려져 있다(Step 1~4 가 한 인스턴스를
  * 공유한다). 상태의 주인이 ViewModel 이므로 저장도 ViewModel 의 저장소인 [SavedStateHandle] 이 맡는다 —
  * 화면 쪽에 `rememberSaveable` 을 흩뿌리면 같은 값이 두 곳에 살면서 어느 쪽이 정본인지 흐려진다.
- * 예외는 Step 4 가 고른 파일의 `Uri` 하나뿐이다(`OnboardingStep4Entry` 참고) — 그건 플랫폼 타입이라
+ * 예외는 Step 4 가 고른 파일의 `Uri` 하나뿐이다(`OnboardingStep4Screen` 참고) — 그건 플랫폼 타입이라
  * ViewModel 에 들이지 않는다.
  *
  * ### 서버 값과의 우선순위

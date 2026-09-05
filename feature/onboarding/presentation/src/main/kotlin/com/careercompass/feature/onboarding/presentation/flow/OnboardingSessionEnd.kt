@@ -10,7 +10,7 @@ import androidx.compose.runtime.rememberUpdatedState
  * 모양이다(#211).
  *
  * 소비를 먼저, 넘기기를 나중에 하는 순서는 [ConsumePendingNavigation] 과 같은 이유다 — Step 1~4 가 그래프 스코프
- * ViewModel 하나를 공유하므로, 화면 전환 중 두 Entry 가 같은 신호를 읽고 셸을 두 번 부르지 않게 한다.
+ * ViewModel 하나를 공유하므로, 화면 전환 중 두 Screen 이 같은 신호를 읽고 셸을 두 번 부르지 않게 한다.
  *
  * 이 컴포저블을 Step 화면마다 두는 이유는 신호가 뜨는 자리가 화면마다 다르기 때문이다(저장·업로드·삭제).
  * 넘긴 뒤 무엇을 할지는 셸이 정한다 — 온보딩은 「끝났다」까지만 안다.

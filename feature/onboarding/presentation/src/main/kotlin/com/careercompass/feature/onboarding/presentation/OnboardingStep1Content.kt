@@ -31,7 +31,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
  * intentions through [onEvent].
  */
 @Composable
-public fun OnboardingStep1Screen(
+public fun OnboardingStep1Content(
     state: OnboardingStep1UiState,
     onEvent: (OnboardingStep1Event) -> Unit,
     modifier: Modifier = Modifier,

@@ -40,7 +40,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w360dp-h800dp")
-public class OnboardingStep3ScreenTest {
+public class OnboardingStep3ContentTest {
     @get:Rule
     public val composeRule = createComposeRule()
 
@@ -296,7 +296,7 @@ public class OnboardingStep3ScreenTest {
                 LocalDensity provides Density(currentDensity.density, fontScale),
             ) {
                 CareerCompassTheme {
-                    OnboardingStep3Screen(state = state, onEvent = onEvent)
+                    OnboardingStep3Content(state = state, onEvent = onEvent)
                 }
             }
         }
