@@ -323,7 +323,7 @@ function verifyFailClosedPolicy(workflowSource, smokeSource) {
   const smokeCommand = foldedStepRun(smokeStep, 'Run Retrofit wire contract smoke');
   if (
     smokeCommand !==
-    "./gradlew :core:network:testDebugUnitTest --tests '*ApiWireContractSmokeTest' --stacktrace"
+    "./gradlew :core:network:testDebugUnitTest --tests '*ApiWireContractSmokeTest' --stacktrace --init-script .github/ci-expected-failures.init.gradle"
   ) {
     throw new Error('API wire contract smoke 명령은 정확한 Gradle 테스트 선택자로 고정해야 합니다.');
   }

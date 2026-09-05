@@ -17,7 +17,7 @@ import {
     reconcileIssue,
 } from "./reconcile-issue-metadata.mjs";
 
-const repository = "1hyok/CareerCompass-FE";
+const repository = "Team-CareerCompass/CareerCompass-FE";
 
 function formBody(type = "bug", module = "careercompass") {
     return [

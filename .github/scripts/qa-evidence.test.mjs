@@ -14,7 +14,7 @@ import {
 function rawFixture() {
     return {
         schema: 1,
-        repository: "1hyok/CareerCompass-FE",
+        repository: "Team-CareerCompass/CareerCompass-FE",
         head_ref: "fix/fixture",
         head_sha: "05b5a49170952a4c6f9dea6e1aa4145ba097ad54",
         base_ref: "develop",
@@ -42,7 +42,7 @@ function rawFixture() {
             api_level: 35,
             screen: { physical: "1080x2400", density: 420 },
         },
-        reviews: ["https://github.com/1hyok/CareerCompass-FE/pull/1098#discussion_r1"],
+        reviews: ["https://github.com/Team-CareerCompass/CareerCompass-FE/pull/1098#discussion_r1"],
         screenshots: ["https://github.com/user-attachments/assets/2db6a7cf-70b5-4b70-99f6-4b6046f424af"],
     };
 }
@@ -80,7 +80,7 @@ test("sanitizes account, endpoint, device, session, and screenshot identifiers",
     assert.doesNotMatch(record.scenario, /홍길동/);
     assert.match(record.scenario, /빈 수신자 \"—\"/);
     assert.equal(record.details.purpose, "로그인 실패 경로와 복구 동작을 함께 확인");
-    assert.match(text, /github\.com\/1hyok\/CareerCompass-FE\/pull\/1098/);
+    assert.match(text, /github\.com\/Team-CareerCompass\/CareerCompass-FE\/pull\/1098/);
     for (const secret of [
         "user@example.com",
         "QA123",
