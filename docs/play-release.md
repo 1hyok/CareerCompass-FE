@@ -48,7 +48,7 @@ Firebase App Distribution 경로([`release-distribution.yml`](../.github/workflo
 
 1. 개발자 계정 생성(1회 등록비). 조직 계정은 D-U-N-S 번호가 필요하다.
 2. **모든 앱 → 앱 만들기**: 앱 이름 `CareerCompass`, 기본 언어 한국어, 유형 `앱`, 무료.
-3. **정책 및 프로그램 → 앱 콘텐츠**의 필수 선언(개인정보처리방침 URL, 광고, 콘텐츠 등급, 타겟층, 데이터 보안)을 모두 채운다. 내부 테스트도 이게 비면 릴리스를 만들 수 없다. 채울 내용과 자산은 [`store/listing.md`](store/listing.md) 에 있다.
+3. **정책 및 프로그램 → 앱 콘텐츠**의 필수 선언(개인정보처리방침 URL, 광고, 콘텐츠 등급, 타겟층, 데이터 보안)을 모두 채운다. 내부 테스트도 이게 비면 릴리스를 만들 수 없다. 채울 내용과 자산은 [`store/listing.md`](store/listing.md) 에 있고, 개인정보처리방침 URL 의 게시처와 절차는 [`store/privacy-policy-hosting.md`](store/privacy-policy-hosting.md) 에 있다.
 4. **테스트 및 출시 → 테스트 → 내부 테스트 → 테스터**에서 테스터 이메일 목록을 만든다.
 
 **2. Play Console — 첫 AAB 수동 업로드**

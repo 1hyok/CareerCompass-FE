@@ -60,7 +60,7 @@
 
 | 없는 것 | 막히는 기능 | 이슈 |
 | --- | --- | --- |
-| 공고 조회의 검색어·마감일 파라미터 | 클라이언트 필터로 우회 중이라 페이지 경계에서 조건이 샌다 | [#159](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/159) |
+| 공고 조회의 검색어·마감일 파라미터 | 클라이언트 필터로 우회 중이라 페이지 경계에서 조건이 샌다. 서버에 요구할 파라미터와 그 의미는 [`posting-query-contract.md`](posting-query-contract.md) | [#159](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/159) |
 | refresh 재사용·logout 범위 정책 | refresh 일시 실패의 single-flight 공유 | [#79](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/79) |
 | 공고 파싱 실패를 나타내는 필드 | 「점수 산출 불가」의 두 사유(프로필 미입력 / 파싱 실패)를 화면이 가를 수 없다 | [#200](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/200) |
 | 직무·학교 목록 엔드포인트 | 온보딩의 두 피커가 로컬 상수로 돈다 | — |

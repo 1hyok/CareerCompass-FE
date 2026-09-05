@@ -88,10 +88,11 @@ FE 2인. 경계는 **모듈 소유권**이고, 단일 정본은 `.github/scripts
 
 에이전트 하네스(`AGENTS.md`·`CLAUDE.md`·`.claude/`·`.codex/`)는 각자 쓰는 것이 달라 저장소에 올리지 않는다 — `.gitignore` 가 막는다. 저장소가 공유하는 규약은 아래 문서와 `.github/` 의 정책 스크립트다.
 
+- [`docs/manual/`](docs/manual) — 최종 사용자 매뉴얼. 1부 가입과 온보딩 · 2부 게시판 · 3부 피드와 적합도까지 썼다(#289). 지원서·마이 탭·알림은 그 화면이 나온 뒤에 쓴다(#268)
 - [`docs/convention/`](docs/convention) — presentation 패키지 구조, Composable 콜백 기본값, 리소스 네이밍, [색 대비(WCAG AA)](docs/convention/color-contrast.md), [MVI](docs/convention/mvi.md), [Navigation 3](docs/convention/navigation3.md)
 - [`docs/spec/edge-states.md`](docs/spec/edge-states.md) — 엣지 상태 화면별 확정표(오프라인·로딩·빈 결과·권한·점검·세션 만료). **새 화면을 만들기 전에 채울 칸이 마지막 절에 있다**
 - [`docs/spec/error-copy.md`](docs/spec/error-copy.md) — 서버 에러 코드 14종의 사용자 문구·행동·재시도 가능 여부
 - [`docs/spec/notification-screens.md`](docs/spec/notification-screens.md) — 알림 목록·설정 화면의 글로 된 시안(§8·F2-4). Figma 에 없는 두 화면을 #195·#196 이 이것으로 만든다
 - [`docs/testing/screenshot.md`](docs/testing/screenshot.md) — Compose Preview 스크린샷 테스트
 - [`docs/release/`](docs/release) — 배포·Firebase WIF
-- [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마, [베타 운영 규칙과 관찰형 태스크 대본](docs/qa/beta-plan.md)
+- [`docs/qa/`](docs/qa) — QA 기기 기준, 증적 스키마, [실서버 라운드 대본](docs/qa/server-round-script.md)(로그인부터 원문 보기까지의 순서·판정과 계약 드리프트 기록 양식), [베타 운영 규칙과 관찰형 태스크 대본](docs/qa/beta-plan.md)
