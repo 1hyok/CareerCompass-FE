@@ -26,6 +26,10 @@ export const ALLOWED_UNPROTECTED_EXPORTED_COMPONENTS = new Set([
   'com.kakao.sdk.auth.AuthCodeHandlerActivity',
 ]);
 
+export const DATA_EXTRACTION_RULES_RESOURCE = '@xml/data_extraction_rules';
+
+export const BACKUP_SECTIONS = Object.freeze(['cloud-backup', 'device-transfer']);
+
 export const DISABLED_FIREBASE_AUTO_INIT = new Set([
   'firebase_analytics_collection_enabled',
   'firebase_messaging_auto_init_enabled',
@@ -51,12 +55,18 @@ export function inspectPrivacyDefaults(source) {
   if (applicationAttributes.allowBackup !== 'false') {
     violations.push('application must explicitly set android:allowBackup="false"');
   }
-  for (const backupAttribute of ['dataExtractionRules', 'fullBackupContent']) {
-    if (backupAttribute in applicationAttributes) {
-      violations.push(
-        `application must not declare android:${backupAttribute} when backup is disabled`,
-      );
-    }
+  // Android 12+ 에서 allowBackup="false" 는 클라우드 백업만 끈다. 일부 제조사 기기는 기기 간 전송(D2D)을
+  // 그대로 허용하고, <device-transfer> 규칙이 없으면 no-backup·cache 를 뺀 전부가 새 기기로 넘어간다.
+  // 세션 토큰이 그 경로로 따라가면 안 되므로 규칙 파일 선언을 강제한다.
+  // https://developer.android.com/identity/data/autobackup
+  if (applicationAttributes.dataExtractionRules !== DATA_EXTRACTION_RULES_RESOURCE) {
+    violations.push(
+      `application must declare android:dataExtractionRules="${DATA_EXTRACTION_RULES_RESOURCE}"`,
+    );
+  }
+  // 반대로 fullBackupContent 는 API 30 이하용이고, 그 아래에서는 allowBackup="false" 가 전부를 끈다.
+  if ('fullBackupContent' in applicationAttributes) {
+    violations.push('application must not declare android:fullBackupContent when backup is disabled');
   }
 
   const metadataValues = new Map();
@@ -74,6 +84,36 @@ export function inspectPrivacyDefaults(source) {
     }
   }
 
+  return violations;
+}
+
+/**
+ * 규칙 파일이 두 전송 경로 모두에서 앱 데이터 전체를 빼는지 본다.
+ *
+ * 매니페스트가 파일을 가리키기만 하고 안이 비어 있으면 D2D 는 그대로 열려 있다. 섹션이 없으면 그 모드가
+ * 전부 허용이라는 것이 문서의 기본값이라, "없음" 을 통과로 읽지 않는다.
+ */
+export function inspectDataExtractionRules(source) {
+  const violations = [];
+  for (const section of BACKUP_SECTIONS) {
+    const block = new RegExp(`<${section}\\b[^>]*>(.*?)</${section}>`, 's').exec(source);
+    if (!block) {
+      violations.push(`${section} section is missing`);
+      continue;
+    }
+    // 규칙 파일의 속성에는 android: 접두가 없다. 매니페스트용 attributes() 를 그대로 쓰면 전부 빈 객체가 된다.
+    const rules = [...block[1].matchAll(/<exclude\b([^>]*)\/?\s*>/gs)].map((match) =>
+      Object.fromEntries(
+        [...match[1].matchAll(/([A-Za-z][A-Za-z0-9]*)\s*=\s*"([^"]*)"/g)].map((attribute) => [
+          attribute[1],
+          attribute[2],
+        ]),
+      ),
+    );
+    if (!rules.some((rule) => rule.domain === 'root' && rule.path === '.')) {
+      violations.push(`${section} must exclude the whole app data directory`);
+    }
+  }
   return violations;
 }
 

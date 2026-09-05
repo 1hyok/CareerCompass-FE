@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { inspectManifest, inspectPrivacyDefaults } from './verify-android-manifest.mjs';
+import {
+  inspectDataExtractionRules,
+  inspectManifest,
+  inspectPrivacyDefaults,
+} from './verify-android-manifest.mjs';
 
 const disabledFirebaseAutoInit = `
     <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
@@ -13,7 +17,7 @@ const manifest = ({
   components = '',
   cleartext = 'false',
   allowBackup = 'false',
-  backupAttributes = '',
+  backupAttributes = 'android:dataExtractionRules="@xml/data_extraction_rules"',
   metadata = disabledFirebaseAutoInit,
 } = {}) => `
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -65,21 +69,50 @@ test('cleartext traffic must stay explicitly disabled', () => {
   ]);
 });
 
-test('backup stays disabled without backup-rule references', () => {
+test('backup stays disabled and the extraction rules stay wired', () => {
   assert.deepEqual(
     inspectPrivacyDefaults(
       manifest({
         allowBackup: 'true',
-        backupAttributes:
-          'android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules"',
+        backupAttributes: 'android:fullBackupContent="@xml/backup_rules"',
       }),
     ),
     [
       'application must explicitly set android:allowBackup="false"',
-      'application must not declare android:dataExtractionRules when backup is disabled',
+      'application must declare android:dataExtractionRules="@xml/data_extraction_rules"',
       'application must not declare android:fullBackupContent when backup is disabled',
     ],
   );
+});
+
+/**
+ * allowBackup="false" 는 Android 12+ 에서 클라우드 백업만 끈다. 규칙 파일을 가리키지 않으면 기기 간 전송으로
+ * 세션이 새 기기에 그대로 실려 간다. 매니페스트가 가리키기만 하고 파일 안이 비어 있어도 마찬가지다.
+ */
+test('data extraction rules exclude everything from both transfer paths', async () => {
+  assert.deepEqual(inspectPrivacyDefaults(manifest({ backupAttributes: '' })), [
+    'application must declare android:dataExtractionRules="@xml/data_extraction_rules"',
+  ]);
+
+  assert.deepEqual(
+    inspectDataExtractionRules('<data-extraction-rules></data-extraction-rules>'),
+    ['cloud-backup section is missing', 'device-transfer section is missing'],
+  );
+  assert.deepEqual(
+    inspectDataExtractionRules(
+      `<data-extraction-rules>
+         <cloud-backup><exclude domain="root" path="." /></cloud-backup>
+         <device-transfer><exclude domain="file" path="datastore" /></device-transfer>
+       </data-extraction-rules>`,
+    ),
+    ['device-transfer must exclude the whole app data directory'],
+  );
+
+  const rules = await readFile(
+    new URL('../../app/src/main/res/xml/data_extraction_rules.xml', import.meta.url),
+    'utf8',
+  );
+  assert.deepEqual(inspectDataExtractionRules(rules), []);
 });
 
 test('Firebase Analytics and Messaging auto-init stay explicitly disabled', () => {
