@@ -43,18 +43,21 @@ BE 와 AI 는 [CareerCompass-BE](https://github.com/Team-CareerCompass/CareerCom
 | 6월 | 50% | FE 만 달성 | 서버가 착수되지 않아 DB 구축과 서버 MVP 가 통째로 비었다 |
 | 7월 | 70% | 미달 | 붙을 서버가 없다. `core:network` 의 `BASE_URL` 은 아직 `https://api.careercompass.invalid/` 다 |
 | 8월 | 80% | 미달 | 실서버 통합 테스트를 한 적이 없다. FE 내부 검증(단위·스크린샷·계약 스모크)만 돈다 |
-| 9월 | 85% | 부분 | 리팩터링(MVI 전환, Navigation 3 이관)은 했다. 보안 점검과 응답 속도는 착수 전이다 |
+| 9월 | 85% | 부분 | 리팩터링(MVI 전환, Navigation 3 이관)과 앱 보안 점검([#264](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/264))은 했다. API 응답 속도는 서버 몫이라 FE 에서 잴 것이 없다 |
 | 10월 | 90% | 미착수 | |
-| 11월 | 95% | 미착수 | |
+| 11월 | 95% | 일부 | 스토어 자산과 등록 문안은 만들었다([#263](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/263)). 인프라 배포는 서버 몫이고, 스크린샷·방침 게시·Play Console 등록은 [#274](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/274) 가 남았다 |
 | 12월 | 100% | 미착수 | |
 
 저장소별 숫자로 보면 이렇다.
 
-| 저장소 | 이슈 닫힘/열림 | 코드 |
+| 저장소 | 담당 | 코드 |
 |---|---|---|
-| CareerCompass-FE | 115 / 33 | core·onboarding·feed 구현. editor·profile·foryou·notification 은 데이터 계층부터 진행 중 |
-| CareerCompass-BE | 0 / 53 | 커밋 3개가 전부 문서다. 서버 코드 0줄 |
-| CareerCompass-AI | 0 / 31 | 커밋 1개(README). 코드 0줄 |
+| CareerCompass-FE | 정일혁 (`core`·`onboarding`·`feed`·`careercompass`·`platform`) | 구현됨. 남은 것은 서버를 기다리는 것들이다 |
+| CareerCompass-FE | 이준혁 (`editor`·`profile`·`foryou`·`notification`) | 미착수. 모듈 골격만 있고 코틀린 파일이 없다 |
+| CareerCompass-BE | 조영탁 | 커밋 3개가 전부 문서다. 서버 코드 0줄 |
+| CareerCompass-AI | 서성덕 | 커밋 1개(README). 코드 0줄 |
+
+모듈 담당은 `.github/scripts/reconcile-issue-metadata.mjs` 의 `ASSIGNEE_BY_MODULE` 가 정본이고, 이슈 담당자도 그것으로 자동 배정된다.
 
 FE 가 앞선 것이 아니라 서버가 시작되지 않았다. 앱은 서버 응답 계약을 코드로 옮겨 두고 가짜 응답 위에서 검증하는 중이라, 실주소가 나오는 순간 [#265](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/265) 가 실제로 붙는지 확인한다.
 
