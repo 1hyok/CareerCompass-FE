@@ -36,7 +36,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class FeedScreenTest {
+class FeedContentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -465,7 +465,7 @@ private fun ComposeContentTestRule.setPagingFeedContent(
 ) {
     setContent {
         CareerCompassTheme {
-            FeedScreen(
+            FeedContent(
                 state = sampleState(),
                 onEvent = onEvent,
                 listState = rememberLazyListState(),
@@ -487,7 +487,7 @@ private fun ComposeContentTestRule.setFeedContent(
             LocalDensity provides Density(currentDensity.density, fontScale),
         ) {
             CareerCompassTheme {
-                FeedScreen(state = state, onEvent = onEvent)
+                FeedContent(state = state, onEvent = onEvent)
             }
         }
     }

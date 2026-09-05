@@ -25,9 +25,9 @@ import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReaso
 import com.careercompass.feature.feed.presentation.shared.model.failureKind
 
 /**
- * 목록을 못 받았을 때 사유별로 갈리는 화면 — [FeedEntry] 가 상태 없이 그리는 부분만 떼어 냈다.
+ * 목록을 못 받았을 때 사유별로 갈리는 화면 — [FeedScreen] 가 상태 없이 그리는 부분만 떼어 냈다.
  *
- * 이 화면은 [FeedScreen][com.careercompass.feature.feed.presentation.FeedScreen] 을 **통째로 대신한다** —
+ * 이 화면은 [FeedContent][com.careercompass.feature.feed.presentation.FeedContent] 을 **통째로 대신한다** —
  * 헤더의 검색칸·필터·정렬·칩이 함께 사라진다. 그래서 조건 때문에 실패하면 그 조건을 되돌릴 조작이 화면에
  * 하나도 남지 않았고, 「새로고침」은 같은 조건을 그대로 다시 보내 같은 실패를 되풀이했다(#144).
  * [onResetQueryClick] 이 그 막다른 골목의 출구다.

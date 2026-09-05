@@ -57,7 +57,7 @@ public data class OnboardingStep2UiState(
         get() = isInputEnabled && selectedJobIds.isNotEmpty() && interestTags.isNotEmpty()
 }
 
-/** User intentions emitted by [OnboardingStep2Screen]. */
+/** User intentions emitted by [OnboardingStep2Content]. */
 public sealed interface OnboardingStep2Event {
     public data class JobSelectionToggled(
         public val jobId: String,

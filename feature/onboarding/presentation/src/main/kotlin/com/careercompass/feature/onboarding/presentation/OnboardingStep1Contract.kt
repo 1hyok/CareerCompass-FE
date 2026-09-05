@@ -56,7 +56,7 @@ public data class OnboardingStep1UiState(
                 graduationDateError == null
 }
 
-/** User intentions emitted by [OnboardingStep1Screen]. */
+/** User intentions emitted by [OnboardingStep1Content]. */
 public sealed interface OnboardingStep1Event {
     public data class NameChanged(
         public val value: String,

@@ -33,7 +33,7 @@ public sealed interface FeedLoadState {
     ) : FeedLoadState
 }
 
-/** 피드가 요청하는 이동. Entry 가 소비하고 [FeedIntent.ConsumeNavigation] 으로 비운다. */
+/** 피드가 요청하는 이동. Screen 이 소비하고 [FeedIntent.ConsumeNavigation] 으로 비운다. */
 public sealed interface FeedDestination {
     public data class PostingDetail(
         val postingId: Long,
@@ -49,7 +49,7 @@ public sealed interface FeedDestination {
     public data object Profile : FeedDestination
 }
 
-/** 스낵바 한 줄로 끝나는 실패. 문구는 Entry 가 리소스로 만든다. */
+/** 스낵바 한 줄로 끝나는 실패. 문구는 Screen 이 리소스로 만든다. */
 public enum class FeedMessage {
     BookmarkFailed,
     LoadMoreFailed,
@@ -117,7 +117,7 @@ public data class FeedFilterDraft(
 }
 
 /**
- * 피드 홈의 전체 상태 — 도메인 값 그대로. 표시 문구(라벨·D-day·상대 시각)는 Entry 가 만든다.
+ * 피드 홈의 전체 상태 — 도메인 값 그대로. 표시 문구(라벨·D-day·상대 시각)는 Screen 이 만든다.
  *
  * @property profile 마지막으로 받은 내 프로필. 인사말과 적합도 표시 판정의 근거다. 아직 못 받았으면 null.
  * @property searchInput 입력창의 현재 글자. 300ms 뒤 [query] 의 `searchQuery` 로 옮겨진다.
@@ -161,7 +161,7 @@ public data class FeedViewState(
      *
      * 검색어·마감일은 서버 파라미터가 없어 받아 온 페이지 안에서만 걸러진다([FeedQuery.filterClientSide]).
      * 그래서 「받은 것이 없다」와 「서버에 없다」가 다르고, 이 값이 둘을 가른다 — 빈 목록의 사유 판정
-     * (`toEmptyReason`)과 이어 읽기 잠금(`FeedEntry`)이 모두 여기에 기댄다.
+     * (`toEmptyReason`)과 이어 읽기 잠금(`FeedScreen`)이 모두 여기에 기댄다.
      */
     public val hasNext: Boolean get() = nextCursor != null
 

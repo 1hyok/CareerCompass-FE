@@ -83,7 +83,7 @@ public data class OnboardingStep3UiState(
         get() = isInputEnabled && experiences.size < ONBOARDING_MAX_EXPERIENCE_CARDS
 }
 
-/** User intentions emitted by [OnboardingStep3Screen]. */
+/** User intentions emitted by [OnboardingStep3Content]. */
 public sealed interface OnboardingStep3Event {
     public data class ExperienceTypeSelected(
         public val typeId: String,

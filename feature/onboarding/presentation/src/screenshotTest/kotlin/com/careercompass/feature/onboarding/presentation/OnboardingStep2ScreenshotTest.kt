@@ -10,7 +10,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
 @Composable
 public fun OnboardingStep2SelectedPreview() {
     CareerCompassTheme {
-        OnboardingStep2Screen(
+        OnboardingStep2Content(
             state =
                 previewState(
                     selectedJobIds = setOf("backend", "frontend"),
@@ -26,7 +26,7 @@ public fun OnboardingStep2SelectedPreview() {
 @Composable
 public fun OnboardingStep2EmptyPreview() {
     CareerCompassTheme {
-        OnboardingStep2Screen(
+        OnboardingStep2Content(
             state = previewState(),
             onEvent = {},
         )
@@ -38,7 +38,7 @@ public fun OnboardingStep2EmptyPreview() {
 @Composable
 public fun OnboardingStep2SelectionLimitPreview() {
     CareerCompassTheme {
-        OnboardingStep2Screen(
+        OnboardingStep2Content(
             state =
                 previewState(
                     selectedJobIds = setOf("backend", "frontend", "data"),

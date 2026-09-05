@@ -55,7 +55,7 @@ internal const val MY_TAB_THEME_ROW_TAG = "my_tab_theme_row"
  * @param onSessionEnded 로그아웃이 끝났다 — 셸이 시작 목적지를 다시 계산해 로그인 화면으로 되돌린다(#82 의 경로).
  */
 @Composable
-internal fun MyTabPlaceholderEntry(
+internal fun MyTabPlaceholderScreen(
     onSessionEnded: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MyTabPlaceholderViewModel = hiltViewModel(),
@@ -93,7 +93,7 @@ internal fun MyTabPlaceholderEntry(
         if (launch != null) launch() else viewModel.onIntent(MyTabPlaceholderIntent.BiometricEnrollCancelled)
     }
 
-    MyTabPlaceholderScreen(
+    MyTabPlaceholderContent(
         state = state,
         onEvent = { viewModel.onIntent(MyTabPlaceholderIntent.Screen(it)) },
         modifier = modifier,
@@ -106,7 +106,7 @@ internal fun MyTabPlaceholderEntry(
  * 로그아웃 버튼은 진행 중에 꺼진다 — 확인 다이얼로그를 닫은 뒤에도 요청이 남아 있는 동안 다시 눌리지 않게.
  */
 @Composable
-internal fun MyTabPlaceholderScreen(
+internal fun MyTabPlaceholderContent(
     state: MyTabPlaceholderUiState,
     onEvent: (MyTabPlaceholderEvent) -> Unit,
     modifier: Modifier = Modifier,

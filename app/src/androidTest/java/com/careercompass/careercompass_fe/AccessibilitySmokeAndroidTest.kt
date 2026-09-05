@@ -12,11 +12,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import com.careercompass.careercompass_fe.test.FailureArtifactRule
 import com.careercompass.core.ui.theme.CareerCompassTheme
+import com.careercompass.feature.feed.presentation.FeedContent
 import com.careercompass.feature.feed.presentation.FeedContentState
 import com.careercompass.feature.feed.presentation.FeedFilterUiModel
 import com.careercompass.feature.feed.presentation.FeedListingCategory
 import com.careercompass.feature.feed.presentation.FeedListingUiModel
-import com.careercompass.feature.feed.presentation.FeedScreen
 import com.careercompass.feature.feed.presentation.FeedSortUiModel
 import com.careercompass.feature.feed.presentation.FeedSuitabilityState
 import com.careercompass.feature.feed.presentation.FeedUiState
@@ -26,13 +26,13 @@ import com.careercompass.feature.onboarding.presentation.OnboardingApplicationDo
 import com.careercompass.feature.onboarding.presentation.OnboardingExperience
 import com.careercompass.feature.onboarding.presentation.OnboardingExperienceType
 import com.careercompass.feature.onboarding.presentation.OnboardingJobOption
-import com.careercompass.feature.onboarding.presentation.OnboardingStep1Screen
+import com.careercompass.feature.onboarding.presentation.OnboardingStep1Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep1UiState
-import com.careercompass.feature.onboarding.presentation.OnboardingStep2Screen
+import com.careercompass.feature.onboarding.presentation.OnboardingStep2Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep2UiState
-import com.careercompass.feature.onboarding.presentation.OnboardingStep3Screen
+import com.careercompass.feature.onboarding.presentation.OnboardingStep3Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep3UiState
-import com.careercompass.feature.onboarding.presentation.OnboardingStep4Screen
+import com.careercompass.feature.onboarding.presentation.OnboardingStep4Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep4UiState
 import com.careercompass.feature.onboarding.presentation.login.LoginContent
 import com.careercompass.feature.onboarding.presentation.login.LoginUiState
@@ -77,35 +77,35 @@ class AccessibilitySmokeAndroidTest {
     @Test
     fun onboardingStep1_hasNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            OnboardingStep1Screen(state = onboardingStep1State, onEvent = {})
+            OnboardingStep1Content(state = onboardingStep1State, onEvent = {})
         }
     }
 
     @Test
     fun onboardingStep2_hasNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            OnboardingStep2Screen(state = onboardingStep2State, onEvent = {})
+            OnboardingStep2Content(state = onboardingStep2State, onEvent = {})
         }
     }
 
     @Test
     fun onboardingStep3_hasNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            OnboardingStep3Screen(state = onboardingStep3State, onEvent = {})
+            OnboardingStep3Content(state = onboardingStep3State, onEvent = {})
         }
     }
 
     @Test
     fun onboardingStep4_hasNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            OnboardingStep4Screen(state = onboardingStep4State, onEvent = {})
+            OnboardingStep4Content(state = onboardingStep4State, onEvent = {})
         }
     }
 
     @Test
     fun feed_hasNoAutomatedAccessibilityErrors() {
         renderAndCheck {
-            FeedScreen(state = feedState, onEvent = {})
+            FeedContent(state = feedState, onEvent = {})
         }
     }
 

@@ -46,13 +46,13 @@ import java.io.IOException
 /**
  * 단계 화면이 세션 종료를 **화면 밖으로** 넘기는지 — 배너로 삼키지 않는지 본다(#211).
  *
- * ViewModel 테스트는 「401 이면 신호를 올린다」까지만 볼 수 있다. 그 신호가 앱 셸의 콜백까지 닿았는지는 Entry
- * 를 실제로 합성해야 드러난다 — 그래프에서 콜백을 빠뜨리면 ViewModel 테스트는 그대로 초록색이다.
+ * ViewModel 테스트는 「401 이면 신호를 올린다」까지만 볼 수 있다. 그 신호가 앱 셸의 콜백까지 닿았는지는 Screen
+ * 을 실제로 합성해야 드러난다 — 그래프에서 콜백을 빠뜨리면 ViewModel 테스트는 그대로 초록색이다.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class OnboardingStepEntrySessionEndTest {
+class OnboardingStepScreenSessionEndTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -105,7 +105,7 @@ class OnboardingStepEntrySessionEndTest {
         val viewModel = createViewModel()
         composeRule.setContent {
             CareerCompassTheme {
-                OnboardingStep1Entry(
+                OnboardingStep1Screen(
                     viewModel = viewModel,
                     onNavigate = {},
                     onBack = {},

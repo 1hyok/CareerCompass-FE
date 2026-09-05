@@ -43,7 +43,7 @@ internal const val APP_START_SEMANTICS_TAG = "careercompass_app_start"
  * 시작 목적지가 인증 계열(로그인·지문·온보딩)이면 온보딩 그래프에서, 메인이면 피드 그래프에서 시작한다.
  * 하단 탭은 피드 홈과 자리표시자 탭에서만 보이고 상세·원문·게시판 화면에서는 숨긴다.
  * 다른 담당 모듈(foryou·editor·profile·notification)의 화면은 진입점이 생길 때까지 자리표시자다 — 마이 탭만
- * 예외적으로 세션 카드와 지문 로그인 스위치·로그아웃을 그린다([MyTabPlaceholderEntry]). 그 둘 말고는 세션을 끝낼
+ * 예외적으로 세션 카드와 지문 로그인 스위치·로그아웃을 그린다([MyTabPlaceholderScreen]). 그 둘 말고는 세션을 끝낼
  * 방법도, 기기에 남은 지문 등록을 되돌릴 방법도 없어서다.
  *
  * 세션이 왜 끝났는지는 화면이 아니라 여기서 [SessionEndCause] 로 갈라 셸에 넘긴다 — 401 을 만난 피드·온보딩 계열은
@@ -163,7 +163,7 @@ public fun AppNavigation(
                 composable<Route.ApplicationsTab> { PlaceholderTabScreen(tab = CareerCompassBottomTab.Applications) }
                 composable<Route.MyTab> {
                     // 마이 탭에서 세션이 끝나는 길은 로그아웃 버튼뿐이다 — 사용자가 한 일이라 안내하지 않는다.
-                    MyTabPlaceholderEntry(onSessionEnded = { onSessionEnded(SessionEndCause.LoggedOut) })
+                    MyTabPlaceholderScreen(onSessionEnded = { onSessionEnded(SessionEndCause.LoggedOut) })
                 }
                 composable<Route.NotificationsPlaceholder> {
                     PlaceholderScreen(

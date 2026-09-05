@@ -1,481 +1,144 @@
 package com.careercompass.feature.feed.presentation.board
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
+import android.content.res.Resources
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import com.careercompass.core.ui.component.CareerCompassButton
-import com.careercompass.core.ui.component.CareerCompassButtonSize
-import com.careercompass.core.ui.component.CareerCompassButtonVariant
-import com.careercompass.core.ui.component.CareerCompassTextField
-import com.careercompass.core.ui.theme.CareerCompassTheme
+import androidx.compose.ui.platform.LocalResources
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.careercompass.core.ui.failure.FailureKind
+import com.careercompass.core.ui.failure.FailureSurface
+import com.careercompass.core.ui.failure.display
+import com.careercompass.core.ui.failure.sentence
+import com.careercompass.core.ui.failure.title
 import com.careercompass.feature.feed.presentation.R
-import com.careercompass.feature.feed.presentation.shared.component.FeedCard
-import com.careercompass.feature.feed.presentation.shared.component.FeedChoiceTag
-import com.careercompass.feature.feed.presentation.shared.component.FeedMaintenanceNotice
-import com.careercompass.feature.feed.presentation.shared.component.FeedSectionTitle
-import com.careercompass.feature.feed.presentation.shared.component.FeedTopBar
+import kotlinx.coroutines.launch
 
-/** Stateless board registration screen: URL → structure detection → preview → name/type/cycle (spec F2-1). */
+/** 게시판 등록 진입점. 등록이 끝나면 [onBackClick] 으로 목록에 돌아간다(목록은 재진입 시 다시 읽는다). */
 @Composable
 public fun BoardRegisterScreen(
-    state: BoardRegisterUiState,
-    onEvent: (BoardRegisterEvent) -> Unit,
+    onBackClick: () -> Unit,
+    onSessionEnded: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: BoardRegisterViewModel = hiltViewModel(),
 ) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val resources = LocalResources.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(colors.subtleSurface)
-                .windowInsetsPadding(WindowInsets.safeDrawing),
-    ) {
-        FeedTopBar(
-            title = stringResource(R.string.feed_board_register_title),
-            onBackClick = { onEvent(BoardRegisterEvent.BackClicked) },
-            actions = null,
-        )
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = spacing.large, vertical = spacing.small),
-            verticalArrangement = Arrangement.spacedBy(spacing.large),
-        ) {
-            BoardRegisterInfoCard()
-            CareerCompassTextField(
-                value = state.url,
-                onValueChange = { onEvent(BoardRegisterEvent.UrlChanged(it)) },
-                label = stringResource(R.string.feed_board_register_url_label),
-                placeholder = stringResource(R.string.feed_board_register_url_placeholder),
-                errorMessage = state.urlError,
-                isError = state.urlError != null,
-                enabled = !state.isSubmitting,
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Uri,
-                        imeAction = ImeAction.Done,
-                    ),
-            )
-            CareerCompassButton(
-                text = stringResource(R.string.feed_board_register_detect),
-                onClick = { onEvent(BoardRegisterEvent.DetectClicked) },
-                modifier = Modifier.fillMaxWidth(),
-                variant = CareerCompassButtonVariant.Primary,
-                enabled = state.isDetectEnabled,
-            )
-            when (val detection = state.detection) {
-                BoardDetectionState.Idle -> {
-                    Unit
-                }
+    // 제출 중 이탈 차단은 상단 화살표만 막아서는 반쪽이다 — 시스템 뒤로가기와 가장자리 제스처가 그대로
+    // 남으면 사용자는 늘 쓰던 손짓으로 나가고 요청은 그대로 끊긴다(#146). 두 길을 같은 이벤트로 모아
+    // ViewModel 이 한자리에서 판정하게 한다. 제출 중이 아니면 꺼져 있어 평소 뒤로가기는 그대로 동작한다.
+    BackHandler(enabled = state.isSubmitting) { viewModel.onIntent(BoardRegisterIntent.Screen(BoardRegisterEvent.BackClicked)) }
 
-                BoardDetectionState.Detecting -> {
-                    BoardDetectingRow()
-                }
-
-                BoardDetectionState.TimedOut -> {
-                    BoardDetectionTimedOutBox(
-                        retryEnabled = state.isDetectEnabled,
-                        onRetryClick = { onEvent(BoardRegisterEvent.DetectClicked) },
-                    )
-                }
-
-                // 점검은 재시도 버튼 없이 알리기만 한다 — 서버가 돌아와야 답이 달라진다. 그래도 막다른 길은
-                // 아니다: 위의 「구조 분석하기」가 그대로 눌린다.
-                BoardDetectionState.Maintenance -> {
-                    FeedMaintenanceNotice()
-                }
-
-                is BoardDetectionState.Failed -> {
-                    BoardDetectionFailedBox(
-                        reason = detection.reason,
-                        retryEnabled = state.isDetectEnabled,
-                        onRetryClick = { onEvent(BoardRegisterEvent.DetectClicked) },
-                    )
-                }
-
-                is BoardDetectionState.Success -> {
-                    BoardDetectionPreviewCard(detection = detection)
-                    BoardRegisterForm(state = state, onEvent = onEvent)
-                }
-            }
-        }
-        if (state.detection is BoardDetectionState.Success) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(colors.subtleSurface)
-                        .padding(
-                            start = spacing.large,
-                            top = spacing.medium,
-                            end = spacing.large,
-                            bottom = spacing.large,
-                        ),
-                verticalArrangement = Arrangement.spacedBy(spacing.small),
-            ) {
-                if (state.isSubmitting) {
-                    BoardRegisterSubmittingRow()
-                }
-                CareerCompassButton(
-                    text = stringResource(R.string.feed_board_register_submit),
-                    onClick = { onEvent(BoardRegisterEvent.RegisterClicked) },
-                    modifier = Modifier.fillMaxWidth(),
-                    variant = CareerCompassButtonVariant.Primary,
-                    size = CareerCompassButtonSize.Large,
-                    enabled = state.isRegisterEnabled,
-                )
-            }
+    val isBackRequested = state.isBackRequested
+    LaunchedEffect(isBackRequested) {
+        if (isBackRequested) {
+            viewModel.onIntent(BoardRegisterIntent.ConsumeBack)
+            onBackClick()
         }
     }
-}
-
-@Composable
-private fun BoardRegisterInfoCard() {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(colors.primaryContainer, CareerCompassTheme.shapes.largeControl)
-                .padding(spacing.large),
-        verticalArrangement = Arrangement.spacedBy(spacing.xxSmall),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.feed_icon_sparkles),
-                modifier = Modifier.clearAndSetSemantics {},
-                style = CareerCompassTheme.typography.bodyMedium,
-            )
-            Text(
-                text = stringResource(R.string.feed_board_register_info_title),
-                color = colors.onPrimaryContainer,
-                style = CareerCompassTheme.typography.headline4,
-            )
+    val sessionEnded = state.sessionEnded
+    LaunchedEffect(sessionEnded) {
+        if (sessionEnded) {
+            viewModel.onIntent(BoardRegisterIntent.ConsumeSessionEnded)
+            onSessionEnded()
         }
-        Text(
-            text = stringResource(R.string.feed_board_register_info_description),
-            color = colors.onPrimaryContainer,
-            style = CareerCompassTheme.typography.bodyMedium,
+    }
+    val message = state.message
+    LaunchedEffect(message) {
+        if (message == null) return@LaunchedEffect
+        viewModel.onIntent(BoardRegisterIntent.ConsumeMessage)
+        snackbarScope.launch {
+            // 제출 중 뒤로가기는 조급한 사용자가 연달아 누른다. 그대로 두면 안내가 줄을 서서 등록이 끝난
+            // 뒤에도 계속 뜨므로, 새 안내가 앞의 안내를 대신하게 한다.
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(message.toLabel(resources))
+        }
+    }
+
+    val uiState = remember(state, resources) { state.toUiState(resources) }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        BoardRegisterContent(
+            state = uiState,
+            onEvent = { viewModel.onIntent(BoardRegisterIntent.Screen(it)) },
+        )
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
 }
 
-/**
- * 감지 진행 표시.
- *
- * 외부 사이트를 크롤링하는 호출이라 수십 초가 예사다(#134). 얼마나 걸릴지 말해 주지 않으면 사용자가 멈춘
- * 줄 알고 화면을 떠나거나 다시 누르므로, 진행 문구 아래에 걸리는 시간을 함께 적는다.
- */
-@Composable
-private fun BoardDetectingRow() {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        horizontalArrangement = Arrangement.spacedBy(spacing.small),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(20.dp),
-            color = colors.primaryEmphasis,
-            strokeWidth = 2.dp,
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = stringResource(R.string.feed_board_register_detecting),
-                color = colors.onSurfaceVariant,
-                style = CareerCompassTheme.typography.bodyMedium,
-            )
-            Text(
-                text = stringResource(R.string.feed_board_register_detecting_hint),
-                color = colors.mutedContent,
-                style = CareerCompassTheme.typography.caption,
-            )
-        }
-    }
-}
-
-/**
- * 등록 제출 진행 표시.
- *
- * **감지 표시([BoardDetectingRow])와 자리를 나눠 쓰지 않는다.** 감지 표시는 스크롤되는 본문 위쪽에 있고,
- * 「등록하기」를 누른 사용자의 눈은 화면 맨 아래 버튼에 있다. 본문에 세우면 미리보기·폼을 지나 위로
- * 올려야 보이고, 그 사이 사용자는 아무 반응이 없다고 읽는다(#146). 그래서 누른 버튼 **바로 위**,
- * 스크롤되지 않는 하단 영역에 둔다.
- *
- * 문구를 두 줄로 나눈 것도 같은 이유다 — 둘째 줄이 「끝나면 목록으로 돌아간다」를 미리 알려, 멈춘 줄
- * 알고 뒤로가기를 누르는 일을 줄인다. 큰 글꼴(fontScale 2.0)에서는 글자가 잘리는 대신 줄이 늘어나고,
- * 본문이 `weight(1f)` 로 줄어 버튼은 그대로 보인다.
- */
-@Composable
-private fun BoardRegisterSubmittingRow() {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        horizontalArrangement = Arrangement.spacedBy(spacing.small),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(20.dp),
-            color = colors.primaryEmphasis,
-            strokeWidth = 2.dp,
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.feed_board_register_submitting),
-                color = colors.onSurfaceVariant,
-                style = CareerCompassTheme.typography.bodyMedium,
-            )
-            Text(
-                text = stringResource(R.string.feed_board_register_submitting_hint),
-                color = colors.mutedContent,
-                style = CareerCompassTheme.typography.caption,
-            )
-        }
-    }
-}
-
-/**
- * 타임아웃 안내 — 실패([BoardDetectionFailedBox])와 달리 경고 톤이다.
- *
- * 같은 오류 상자에 담으면 사용자가 사이트가 지원되지 않는다고 읽는다. 여기서 알려야 할 것은 「우리가
- * 기다리기를 그만뒀다」와 「다시 시도할 수 있다」뿐이다.
- */
-@Composable
-private fun BoardDetectionTimedOutBox(
-    retryEnabled: Boolean,
-    onRetryClick: () -> Unit,
-) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(colors.warningContainer, CareerCompassTheme.shapes.largeControl)
-                .padding(spacing.large),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium),
-    ) {
-        Column(
-            modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-            verticalArrangement = Arrangement.spacedBy(spacing.xxSmall),
-        ) {
-            Text(
-                text = stringResource(R.string.feed_board_detect_timeout_title),
-                color = colors.onWarningContainer,
-                style = CareerCompassTheme.typography.headline4,
-            )
-            Text(
-                text = stringResource(R.string.feed_board_detect_timeout_description),
-                color = colors.onWarningContainer,
-                style = CareerCompassTheme.typography.bodyMedium,
-            )
-        }
-        CareerCompassButton(
-            text = stringResource(R.string.feed_board_register_retry),
-            onClick = onRetryClick,
-            variant = CareerCompassButtonVariant.Secondary,
-            size = CareerCompassButtonSize.Small,
-            enabled = retryEnabled,
-        )
-    }
-}
-
-@Composable
-private fun BoardDetectionFailedBox(
-    reason: BoardDetectionFailure,
-    retryEnabled: Boolean,
-    onRetryClick: () -> Unit,
-) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(colors.errorContainer, CareerCompassTheme.shapes.largeControl)
-                .padding(spacing.large),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium),
-    ) {
-        Text(
-            text = stringResource(reason.messageRes()),
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            color = colors.onErrorContainer,
-            style = CareerCompassTheme.typography.bodyMedium,
-        )
-        // 재시도해도 같은 답이 오는 사유에는 버튼을 주지 않는다([BoardDetectionFailure.isRetryable], #204).
-        if (reason.isRetryable) {
-            CareerCompassButton(
-                text = stringResource(R.string.feed_board_register_retry),
-                onClick = onRetryClick,
-                variant = CareerCompassButtonVariant.Secondary,
-                size = CareerCompassButtonSize.Small,
-                enabled = retryEnabled,
-            )
-        }
-    }
-}
-
-@Composable
-private fun BoardDetectionPreviewCard(detection: BoardDetectionState.Success) {
-    val colors = CareerCompassTheme.colors
-    val spacing = CareerCompassTheme.spacing
-
-    FeedCard(onClick = null) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.feed_icon_detect_success),
-                modifier = Modifier.clearAndSetSemantics {},
-                style = CareerCompassTheme.typography.bodyMedium,
-            )
-            FeedSectionTitle(
-                text =
-                    stringResource(
-                        R.string.feed_board_register_detect_success,
-                        detection.preview.size,
-                    ),
-            )
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-            detection.preview.forEach { item ->
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .background(colors.subtleSurface, CareerCompassTheme.shapes.control)
-                            .padding(horizontal = spacing.medium, vertical = spacing.small),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = item.title,
-                        color = colors.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = CareerCompassTheme.typography.bodyMedium,
-                    )
-                    item.dateLabel?.let { dateLabel ->
-                        Text(
-                            text = dateLabel,
-                            color = colors.mutedContent,
-                            style = CareerCompassTheme.typography.caption,
-                        )
-                    }
-                }
-            }
-        }
-        if (!detection.dateDetected) {
-            Text(
-                text = stringResource(R.string.feed_board_register_date_missing_warning),
-                color = colors.onWarningContainer,
-                style = CareerCompassTheme.typography.caption,
-            )
-        }
-    }
-}
-
-@Composable
-private fun BoardRegisterForm(
-    state: BoardRegisterUiState,
-    onEvent: (BoardRegisterEvent) -> Unit,
-) {
-    val spacing = CareerCompassTheme.spacing
-
-    CareerCompassTextField(
-        value = state.name,
-        onValueChange = { onEvent(BoardRegisterEvent.NameChanged(it)) },
-        label = stringResource(R.string.feed_board_register_name_label),
-        placeholder = stringResource(R.string.feed_board_register_name_placeholder),
-        enabled = !state.isSubmitting,
+internal fun BoardRegisterViewState.toUiState(resources: Resources): BoardRegisterUiState =
+    BoardRegisterUiState(
+        url = url,
+        urlError =
+            when (urlError) {
+                null -> null
+                BoardUrlError.Invalid -> resources.getString(R.string.feed_board_register_url_invalid)
+                BoardUrlError.Duplicate -> resources.getString(R.string.feed_board_register_url_duplicate)
+            },
+        detection = detection,
+        name = name,
+        type = type,
+        cycle = cycle,
+        isSubmitting = isSubmitting,
     )
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-        FeedSectionTitle(text = stringResource(R.string.feed_board_register_type_title))
-        FlowRow(
-            modifier = Modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
-            verticalArrangement = Arrangement.spacedBy(spacing.xSmall),
-        ) {
-            BoardType.entries.forEach { type ->
-                FeedChoiceTag(
-                    label = stringResource(type.labelRes()),
-                    selected = type == state.type,
-                    onClick = { onEvent(BoardRegisterEvent.TypeSelected(type)) },
-                    role = Role.RadioButton,
-                    enabled = !state.isSubmitting,
-                )
-            }
+
+/**
+ * 안내 문구 — 서버 코드에서 온 것은 실패 표에서 읽고([FailureKind], #204), 이 화면에서만 나는 것은
+ * 여기 남는다.
+ *
+ * 「구조를 분석하지 못했다」·「등록하지 못했다」·「나가지 못한다」는 §9 의 어느 코드도 아니다. 게시판
+ * 등록의 단계(감지 → 등록)와 이탈 차단(#146)이 만들어 내는 상태라, 표에 넣으면 다른 기능이 쓸 수 없는
+ * 행이 하나 늘 뿐이다.
+ *
+ * 스낵바는 한 줄만 허용하므로 표의 제목과 본문을 이어 붙인다.
+ */
+internal fun BoardRegisterMessage.toLabel(resources: Resources): String =
+    when (this) {
+        BoardRegisterMessage.NetworkUnavailable -> {
+            FailureKind.NoConnection.display().sentence(resources)
+        }
+
+        BoardRegisterMessage.DetectFailed -> {
+            resources.getString(R.string.feed_board_register_detect_failed)
+        }
+
+        BoardRegisterMessage.RegisterFailed -> {
+            resources.getString(R.string.feed_board_register_failed)
+        }
+
+        // 점검 문구도 표에서 읽는다 — 화면 한 장을 쓰는 자리(FeedMaintenanceState)와 같은 행이다. 본문은
+        // 화면 한 장용으로 줄바꿈을 품고 있어 한 줄짜리 스낵바에는 제목만 싣는다.
+        BoardRegisterMessage.Maintenance -> {
+            FailureKind.ServiceUnavailable.display().title(resources)
+        }
+
+        BoardRegisterMessage.SubmitInProgress -> {
+            resources.getString(R.string.feed_board_register_submit_in_progress)
+        }
+
+        BoardRegisterMessage.AlreadyRegistered -> {
+            FailureKind.DuplicateBoard.display(FailureSurface.Board).sentence(resources)
+        }
+
+        // 상한은 도메인이 들고 온 값을 그대로 쓴다 — 표의 기본값(MAX_BOARDS)과 어긋나는 순간이 있다면
+        // 사용자에게는 서버가 말한 쪽이 참이다.
+        is BoardRegisterMessage.LimitReached -> {
+            FailureKind.LimitExceeded.display(FailureSurface.Board, itemLimit = limit).sentence(resources)
         }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-        FeedSectionTitle(text = stringResource(R.string.feed_board_register_cycle_title))
-        FlowRow(
-            modifier = Modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.xSmall),
-            verticalArrangement = Arrangement.spacedBy(spacing.xSmall),
-        ) {
-            BoardCollectCycle.entries.forEach { cycle ->
-                FeedChoiceTag(
-                    label = stringResource(cycle.labelRes()),
-                    selected = cycle == state.cycle,
-                    onClick = { onEvent(BoardRegisterEvent.CycleSelected(cycle)) },
-                    role = Role.RadioButton,
-                    enabled = !state.isSubmitting,
-                )
-            }
-        }
-    }
-}

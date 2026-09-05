@@ -264,7 +264,7 @@ class OnboardingInputRestoreTest {
         before.onFileSelected(uploadFile())
         before.onUploadLabelEvent(UploadLabelEvent.LabelChanged("내가 정한 라벨"))
 
-        // 화면(OnboardingStep4Entry)이 rememberSaveable 로 들고 있던 Uri 를 다시 읽어 넘기는 자리다.
+        // 화면(OnboardingStep4Screen)이 rememberSaveable 로 들고 있던 Uri 를 다시 읽어 넘기는 자리다.
         val after = createViewModel(handle.acrossProcessDeath())
         assertNull(after.uiState.value.uploadLabel)
         after.onFileSelected(uploadFile())

@@ -77,7 +77,7 @@ public enum class PostingDetailMessage {
     DraftComingSoon,
 }
 
-/** 공유 시트에 실을 내용. Entry 가 `Intent.ACTION_SEND` 로 바꾼다. */
+/** 공유 시트에 실을 내용. Screen 이 `Intent.ACTION_SEND` 로 바꾼다. */
 public data class PostingShareRequest(
     val title: String,
     val url: String,
@@ -185,7 +185,7 @@ public class PostingDetailViewModel
         private val togglePostingBookmark: TogglePostingBookmarkUseCase,
         private val userProfileRepository: UserProfileRepository,
         private val errorReporter: ErrorReporter,
-        /** Entry 가 상대 시각·마감 표기에 같은 시계를 쓴다. */
+        /** Screen 이 상대 시각·마감 표기에 같은 시계를 쓴다. */
         public val clock: Clock,
     ) : MviViewModel<PostingDetailIntent, PostingDetailViewState, PostingDetailReducerEvent>(
             PostingDetailViewState(

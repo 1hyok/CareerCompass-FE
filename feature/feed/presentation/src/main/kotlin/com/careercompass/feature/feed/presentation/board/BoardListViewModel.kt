@@ -175,7 +175,7 @@ public sealed interface BoardListReducerEvent : ReducerEvent {
  * 카드를 누르면 수정 시트가 열리고, 저장은 바뀐 필드만 `PATCH` 로 보낸다. 진입점은 [onIntent] 하나, 전이는
  * [reduce] 한 곳이다(#246).
  *
- * 등록 화면에서 돌아오면 Entry 가 [BoardListIntent.Refresh] 를 보낸다.
+ * 등록 화면에서 돌아오면 Screen 이 [BoardListIntent.Refresh] 를 보낸다.
  *
  * 수정 시트에서 고치던 값은 [BoardEditInputDraft] 가 [SavedStateHandle] 에 남긴다(#156). 서버에 이미 있는
  * 게시판을 고치는 자리라 **필드 단위로 서버가 이긴다** — 남기는 것은 사용자가 실제로 바꾼 필드뿐이고, 시트를
@@ -192,7 +192,7 @@ public class BoardListViewModel
         private val deleteBoard: DeleteBoardUseCase,
         private val updateBoard: UpdateBoardUseCase,
         private val errorReporter: ErrorReporter,
-        /** Entry 가 마지막 수집 상대 시각에 같은 시계를 쓴다. */
+        /** Screen 이 마지막 수집 상대 시각에 같은 시계를 쓴다. */
         public val clock: Clock,
         savedStateHandle: SavedStateHandle,
     ) : MviViewModel<BoardListIntent, BoardListViewState, BoardListReducerEvent>(BoardListViewState()) {

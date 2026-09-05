@@ -11,8 +11,8 @@ import com.careercompass.core.model.experience.ExperiencePoint
 import com.careercompass.core.model.experience.ExperienceType
 import com.careercompass.feature.onboarding.presentation.OnboardingExperience
 import com.careercompass.feature.onboarding.presentation.OnboardingExperienceType
+import com.careercompass.feature.onboarding.presentation.OnboardingStep3Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep3Event
-import com.careercompass.feature.onboarding.presentation.OnboardingStep3Screen
 import com.careercompass.feature.onboarding.presentation.OnboardingStep3UiState
 import com.careercompass.feature.onboarding.presentation.R
 import com.careercompass.feature.onboarding.presentation.experience.ExperienceDeleteDialog
@@ -28,7 +28,7 @@ import com.careercompass.feature.onboarding.presentation.shared.component.Onboar
  * @param onSessionEnded 401 로 세션이 끝났다 — 앱 셸이 사유를 만료로 갈라 로그인 화면으로 보낸다(#211).
  */
 @Composable
-public fun OnboardingStep3Entry(
+public fun OnboardingStep3Screen(
     viewModel: OnboardingViewModel,
     onNavigate: (OnboardingDestination) -> Unit,
     onBack: () -> Unit,
@@ -52,7 +52,7 @@ public fun OnboardingStep3Entry(
         onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
-        OnboardingStep3Screen(
+        OnboardingStep3Content(
             state = state.step3.toUiState(isInputEnabled = state.isInputEnabled),
             onEvent = { event ->
                 if (event == OnboardingStep3Event.BackClicked) onBack() else viewModel.onIntent(OnboardingIntent.Step3(event))

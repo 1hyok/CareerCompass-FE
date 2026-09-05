@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-public class OnboardingStep1ScreenTest {
+public class OnboardingStep1ContentTest {
     @get:Rule
     public val composeRule = createComposeRule()
 
@@ -185,7 +185,7 @@ public class OnboardingStep1ScreenTest {
             var state by remember { mutableStateOf(completeState) }
 
             CareerCompassTheme {
-                OnboardingStep1Screen(
+                OnboardingStep1Content(
                     state = state,
                     onEvent = { event ->
                         events += event
@@ -234,7 +234,7 @@ public class OnboardingStep1ScreenTest {
     ) {
         composeRule.setContent {
             CareerCompassTheme {
-                OnboardingStep1Screen(
+                OnboardingStep1Content(
                     state = state,
                     onEvent = onEvent,
                 )

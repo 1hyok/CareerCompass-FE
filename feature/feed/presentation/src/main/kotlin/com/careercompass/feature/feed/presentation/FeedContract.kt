@@ -263,7 +263,7 @@ public sealed interface FeedContentState {
 }
 
 /**
- * Complete, display-ready state for [FeedScreen].
+ * Complete, display-ready state for [FeedContent].
  *
  * [activeFilterCount] is the number of filter-sheet conditions (board, deadline, score, unread) that
  * differ from their defaults; the category chip row is not counted because it is visible on its own.
@@ -339,7 +339,7 @@ public sealed interface FeedUiEvent {
      * 「더 찾아보기」·「다시 시도」 — 멈춰 선 이어 읽기를 사용자가 손으로 잇는다
      * ([FeedLoadMoreState.Paused]·[FeedLoadMoreState.Failed], [FeedEmptyReason.MoreAvailable]).
      *
-     * 자동 페이징(`FeedScreen` 의 `onLoadMore`)과 달리 **사용자 의도**라, 자동으로는 가지 않는 자리에서도
+     * 자동 페이징(`FeedContent` 의 `onLoadMore`)과 달리 **사용자 의도**라, 자동으로는 가지 않는 자리에서도
      * 통한다. 둘을 한 통로로 합치지 않는 이유가 그것이다 — 자동 트리거까지 여기로 흘리면 멈춤 판정이
      * 스크롤 한 번에 무의미해진다.
      */

@@ -10,7 +10,7 @@ import com.careercompass.core.ui.theme.CareerCompassTheme
 @Composable
 public fun OnboardingStep3PopulatedPreview() {
     CareerCompassTheme {
-        OnboardingStep3Screen(
+        OnboardingStep3Content(
             state = onboardingStep3PreviewState(),
             onEvent = {},
         )
@@ -22,7 +22,7 @@ public fun OnboardingStep3PopulatedPreview() {
 @Composable
 public fun OnboardingStep3EmptyPreview() {
     CareerCompassTheme {
-        OnboardingStep3Screen(
+        OnboardingStep3Content(
             state = onboardingStep3PreviewState().copy(experiences = emptyList()),
             onEvent = {},
         )
@@ -34,7 +34,7 @@ public fun OnboardingStep3EmptyPreview() {
 @Composable
 public fun OnboardingStep3DisabledPreview() {
     CareerCompassTheme {
-        OnboardingStep3Screen(
+        OnboardingStep3Content(
             state = onboardingStep3PreviewState().copy(isInputEnabled = false),
             onEvent = {},
         )

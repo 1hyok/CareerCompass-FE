@@ -22,7 +22,7 @@ import com.careercompass.feature.onboarding.presentation.pastapplication.UploadL
 import com.careercompass.feature.onboarding.presentation.shared.model.OnboardingFieldError
 
 /**
- * 온보딩 흐름의 실패 사유. 문구는 Entry 가 만든다 — §9 의 코드에서 온 사유는 실패 표(`FailureDisplay`, #204)를
+ * 온보딩 흐름의 실패 사유. 문구는 Screen 이 만든다 — §9 의 코드에서 온 사유는 실패 표(`FailureDisplay`, #204)를
  * 읽고, 화면 고유 사유(파일 형식·크기)만 온보딩 문자열을 쓴다(#236).
  *
  * **세션 만료(401)는 여기 없다** — 화면에 그릴 사유가 아니라 화면을 떠날 신호이기 때문이다(#211).
@@ -64,7 +64,7 @@ public sealed interface OnboardingFailureReason {
     public data object Unknown : OnboardingFailureReason
 }
 
-/** [OnboardingViewModel] 이 요청하는 화면 이동. 뒤로 가기는 상태 변화가 없어 Entry 가 직접 처리한다. */
+/** [OnboardingViewModel] 이 요청하는 화면 이동. 뒤로 가기는 상태 변화가 없어 Screen 이 직접 처리한다. */
 public sealed interface OnboardingDestination {
     /** [step] 화면으로 전진한다(저장 성공 뒤, 또는 재개 지점으로의 이동). */
     public data class Step(
@@ -78,7 +78,7 @@ public sealed interface OnboardingDestination {
     public data object BoardRegister : OnboardingDestination
 }
 
-/** Step 1 입력값과 필드별 검증 사유. 문구 변환은 `OnboardingStep1Entry` 가 한다. */
+/** Step 1 입력값과 필드별 검증 사유. 문구 변환은 `OnboardingStep1Screen` 가 한다. */
 @Immutable
 public data class OnboardingStep1FormState(
     val name: String = "",
@@ -199,7 +199,7 @@ public data class OnboardingStep4FormState(
  *
  * [failure]·[pendingNavigation]·[sessionEnded] 는 단발 신호다. 시트·피커 상태는 null 이면 닫힌 것이다.
  *
- * @property sessionEnded 401 로 세션이 끝났다 — 피드·게시판의 `sessionEnded` 와 같은 신호다(#211). Entry 가
+ * @property sessionEnded 401 로 세션이 끝났다 — 피드·게시판의 `sessionEnded` 와 같은 신호다(#211). Screen 이
  *   소비해 앱 셸의 `onSessionEnded(SessionEndCause.Expired)` 를 부르고, 셸이 시작 목적지를 다시 계산해
  *   로그인 화면으로 보낸다. 온보딩이 판정하는 것은 「끝났다」까지이고, **왜** 끝났는지와 무엇을 알릴지는
  *   셸이 갖는다(#128).

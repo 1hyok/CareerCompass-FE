@@ -96,7 +96,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 | 화면 · 자리 | 컴포넌트 | 문구(리소스 = 값) | 행동 |
 |---|---|---|---|
 | 앱 시작 | 시스템 스플래시(`installSplashScreen`) | 없음 | 없음 — 시작 목적지가 확정될 때까지 유지한다. 네트워크 왕복은 이 경로에 두지 않는다 |
-| 피드 홈 — 첫 조회 | `FeedLoading`(`FeedScreen.kt`, 손으로 그림) | `feed_loading` = 공고를 불러오는 중이에요 | 없음(기다리는 상태) |
+| 피드 홈 — 첫 조회 | `FeedLoading`(`FeedContent.kt`, 손으로 그림) | `feed_loading` = 공고를 불러오는 중이에요 | 없음(기다리는 상태) |
 | 피드 홈 — 이어 읽기 | `FeedLoadingMoreRow` | `feed_loading_more` = 공고를 더 불러오는 중이에요 | 없음 |
 | 피드 홈 — 이어 읽기 멈춤 | `FeedLoadMoreActionRow` | `feed_load_more_paused` = 여기까지 찾았어요 | 「더 찾아보기」(`feed_load_more_action`) → `LoadMoreSelected` |
 | 피드 홈 — 이어 읽기 실패 | `FeedLoadMoreActionRow` | `feed_load_more_failed` = 공고를 더 불러오지 못했어요 | 「다시 시도」(`feed_error_retry`) → `LoadMoreSelected` |
@@ -141,7 +141,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 
 | 화면 | 컴포넌트 | 문구(리소스 = 값) | 버튼 → 동작 |
 |---|---|---|---|
-| 내 게시판 | `BoardListEmpty` — **부품이 아니라 `BoardListScreen.kt` 가 손으로 그린 `Column`**(삽화가 🗂 `feed_icon_board_empty` 라 🔍 고정인 부품을 못 썼다) | `feed_board_list_empty_title` = 등록된 게시판이 없어요 / `feed_board_list_empty_description` = 학교 공지·채용 사이트 URL 을 등록하면 자동으로 공고를 모아요 | 「게시판 등록하기」(`feed_board_list_empty_action`) → `AddBoardClicked` |
+| 내 게시판 | `BoardListEmpty` — **부품이 아니라 `BoardListContent.kt` 가 손으로 그린 `Column`**(삽화가 🗂 `feed_icon_board_empty` 라 🔍 고정인 부품을 못 썼다) | `feed_board_list_empty_title` = 등록된 게시판이 없어요 / `feed_board_list_empty_description` = 학교 공지·채용 사이트 URL 을 등록하면 자동으로 공고를 모아요 | 「게시판 등록하기」(`feed_board_list_empty_action`) → `AddBoardClicked` |
 | 학교 선택 시트 | 맨 `Text` | `onboarding_school_picker_empty` = 검색 결과가 없어요 | 「목록에 없어요. 직접 입력할게요」(`onboarding_school_picker_direct_action`) → 직접 입력 모드. **검색어를 친 뒤에만 뜬다**(`isDirectInputOffered`) |
 | 원문 보기 — 본문이 빈 경우 | 본문 자리를 문구로 대체 | `feed_posting_raw_empty_content` = 본문을 가져오지 못했어요 | 없음 — 상단의 「원본 링크 열기」가 대신한다 |
 | 공고 상세 — 축별 점수가 없음 | 카드 안 캡션 | `feed_posting_detail_breakdown_unavailable` = 축별 세부 점수는 아직 없어요 | 없음 — 「모름」이지 「미충족」이 아니라 0점 축을 그리지 않는다 |
@@ -180,15 +180,15 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 
 **실패 화면을 그리지 않는다.** 401 은 화면이 아니라 이동으로 답한다 — 네트워크 계층이 세션 정리를 이미 끝냈고, 화면이 할 수 있는 일은 로그인으로 보내는 것뿐이기 때문이다. 그래서 `FeedFailureReason` 에 401 이 없다.
 
-정확히는 401 도 `toFeedFailureReason()` 의 `else` 로 떨어져 `Generic` 실패 상태가 **함께** 실린다. 다만 같은 자리에서 `sessionEnded` 가 켜지고(`FeedViewModel.recordFailure`) Entry 의 `LaunchedEffect` 가 곧바로 화면을 걷어내므로 그 실패 화면은 사용자에게 남지 않는다. **이동 배선이 곧 답이고, 사유 분기는 답이 아니다** — 온보딩이 사유를 `SessionExpired` 로 정확히 좁혀 놓고도 이동이 없어 막다른 길이던 것을 #211 이 같은 배선으로 고쳤다. 고치면서 `OnboardingFailureReason` 에서 `SessionExpired` 를 아예 뺐다 — 열거형에 만료가 없으니 온보딩 화면에는 만료를 그리는 자리도 없다.
+정확히는 401 도 `toFeedFailureReason()` 의 `else` 로 떨어져 `Generic` 실패 상태가 **함께** 실린다. 다만 같은 자리에서 `sessionEnded` 가 켜지고(`FeedViewModel.recordFailure`) Screen 의 `LaunchedEffect` 가 곧바로 화면을 걷어내므로 그 실패 화면은 사용자에게 남지 않는다. **이동 배선이 곧 답이고, 사유 분기는 답이 아니다** — 온보딩이 사유를 `SessionExpired` 로 정확히 좁혀 놓고도 이동이 없어 막다른 길이던 것을 #211 이 같은 배선으로 고쳤다. 고치면서 `OnboardingFailureReason` 에서 `SessionExpired` 를 아예 뺐다 — 열거형에 만료가 없으니 온보딩 화면에는 만료를 그리는 자리도 없다.
 
 | 화면 | 무엇이 일어나나 | 문구(리소스 = 값) |
 |---|---|---|
-| 피드 홈 · 공고 상세 · 원문 보기 · 내 게시판 · 게시판 등록 | `sessionEnded = true` → Entry 가 `onSessionEnded` 호출 → 앱 셸(`MainViewModel.onSessionEnded(Expired)`) → NavHost 를 새로 만들고 로그인 화면으로 | 이동 자체에는 문구가 없다 |
+| 피드 홈 · 공고 상세 · 원문 보기 · 내 게시판 · 게시판 등록 | `sessionEnded = true` → Screen 이 `onSessionEnded` 호출 → 앱 셸(`MainViewModel.onSessionEnded(Expired)`) → NavHost 를 새로 만들고 로그인 화면으로 | 이동 자체에는 문구가 없다 |
 | 앱 셸 자신(콜드 스타트 세션 판정 · 메인 뒤 백그라운드 확인) | `SessionEndCause.Expired` 를 실어 로그인으로 | — |
 | 지문 로그인 | 세션 검증이 만료를 알리면 그래프가 지문 화면을 걷어내고 로그인으로(`navigateToLoginAfterSessionExpiry`) | — |
 | 로그인 화면 | 도착했을 때 **만료로 온 경우에만** 배너가 켜져 있다(`AppShellLaunch.sessionExpiryNotice`). 「닫기」를 누르거나 다시 로그인을 시도하면 꺼진다 | `onboarding_failure_session_expired` = 로그인이 만료됐어요. 다시 로그인해 주세요 |
-| 온보딩 Step 1~4 | 사용자가 시킨 저장·업로드·삭제가 401 을 물면 `sessionEnded = true` → Step Entry 가 `OnboardingNavActions.onSessionEnded` → 앱 셸(`Expired`) — 피드와 같은 길(#211). **화면 진입만으로 도는 자동 조회의 401 은 기록만 남긴다** — 세션 정리가 실패해 토큰이 남은 기기에서 「만료 → 재계산 → 다시 온보딩 → 같은 조회」가 손 없이 도는 고리를 막는다. 입력 초안은 NavHost 와 함께 버린다(다음 로그인이 같은 계정이라는 보장이 없다) | 이동 자체에는 문구가 없다 — 배너를 그리지 않는다(로그인 화면이 켠다) |
+| 온보딩 Step 1~4 | 사용자가 시킨 저장·업로드·삭제가 401 을 물면 `sessionEnded = true` → Step Screen 이 `OnboardingNavActions.onSessionEnded` → 앱 셸(`Expired`) — 피드와 같은 길(#211). **화면 진입만으로 도는 자동 조회의 401 은 기록만 남긴다** — 세션 정리가 실패해 토큰이 남은 기기에서 「만료 → 재계산 → 다시 온보딩 → 같은 조회」가 손 없이 도는 고리를 막는다. 입력 초안은 NavHost 와 함께 버린다(다음 로그인이 같은 계정이라는 보장이 없다) | 이동 자체에는 문구가 없다 — 배너를 그리지 않는다(로그인 화면이 켠다) |
 | 온보딩 문서 업로드 카드 | 카드를 실패로 칠하지 않는다 — 화면을 떠나므로 읽힐 자리가 없고, 「재시도」는 같은 401 을 다시 무는 막다른 행동이다(#211) | — (`onboarding_upload_failed_session_expired` 는 지웠다) |
 
 로그아웃(`SessionEndCause.LoggedOut`)은 만료와 갈라 둔다 — 사용자가 방금 누른 결과라 로그인 화면이 덧붙일 말이 없다. 한 번의 재계산에 둘이 겹치면 로그아웃이 이긴다.
@@ -314,7 +314,7 @@ Figma 09 의 「분석 중」은 화면 한 장인데, **앱에는 화면을 통
 3. **빈 결과** — 사유가 하나뿐인가, 여럿인가. 여럿이면 **우선순위와 그 근거**를 KDoc 에 남긴다(기준은 「그 조건을 되돌리면 결과가 달라지는가」). 사유마다 ① 문구 ② 되돌릴 조건이 있으면 그것을 되돌리는 버튼 ③ 없으면 버튼 없이 「언제쯤 달라지는가」를 적는다.
 4. **권한 거부** — 이 화면이 권한을 필요로 하는가. 그렇다면 `CareerCompassPermissionDeniedState` 에 넘길 `benefits`(권한을 켜면 무엇이 좋아지는지, 최소 1개)를 정한다.
 5. **서버 점검(503)** — `FeedFailureReason.Maintenance` 를 갈라 받는가. 갈라 받는다면 화면 한 장이면 `FeedMaintenanceState`(문구 공유), 인라인이면 §2.5 의 문구를 그대로 쓴다. **점검에 새 문구를 짓지 않는다** — 같은 사실을 화면마다 다르게 말하게 된다.
-6. **세션 만료(401)** — 화면에 그리지 않는다. `sessionEnded` 를 올려 Entry 가 `onSessionEnded` 를 부르고 앱 셸이 로그인으로 보낸다. **이 배선을 빼먹으면 막다른 길이 된다**(§3 결함 1이 그 예다).
+6. **세션 만료(401)** — 화면에 그리지 않는다. `sessionEnded` 를 올려 Screen 이 `onSessionEnded` 를 부르고 앱 셸이 로그인으로 보낸다. **이 배선을 빼먹으면 막다른 길이 된다**(§3 결함 1이 그 예다).
 
 그리고 마지막으로 하나 더:
 

@@ -12,8 +12,8 @@ import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import com.careercompass.core.model.posting.SuitabilityLabel
 import com.careercompass.core.ui.theme.CareerCompassTheme
+import com.careercompass.feature.feed.presentation.postingdetail.PostingDetailContent
 import com.careercompass.feature.feed.presentation.postingdetail.PostingDetailContentState
-import com.careercompass.feature.feed.presentation.postingdetail.PostingDetailScreen
 import com.careercompass.feature.feed.presentation.postingdetail.PostingDetailUiModel
 import com.careercompass.feature.feed.presentation.postingdetail.PostingDetailUiState
 import com.careercompass.feature.feed.presentation.postingdetail.PostingFormQuestionUiModel
@@ -253,7 +253,7 @@ private fun PostingDetailPreviewSurface(
 ) {
     CareerCompassTheme(darkTheme = darkTheme) {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            PostingDetailScreen(state = state, onEvent = {})
+            PostingDetailContent(state = state, onEvent = {})
         }
     }
 }

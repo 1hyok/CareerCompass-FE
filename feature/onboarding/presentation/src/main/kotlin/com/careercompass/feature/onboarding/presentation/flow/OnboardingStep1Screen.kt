@@ -5,8 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.careercompass.feature.onboarding.presentation.OnboardingStep1Content
 import com.careercompass.feature.onboarding.presentation.OnboardingStep1Event
-import com.careercompass.feature.onboarding.presentation.OnboardingStep1Screen
 import com.careercompass.feature.onboarding.presentation.OnboardingStep1UiState
 import com.careercompass.feature.onboarding.presentation.R
 import com.careercompass.feature.onboarding.presentation.basicinfo.GraduationDatePickerEvent
@@ -25,7 +25,7 @@ import com.careercompass.feature.onboarding.presentation.shared.util.toMessage
  * @param onSessionEnded 401 로 세션이 끝났다 — 앱 셸이 사유를 만료로 갈라 로그인 화면으로 보낸다(#211).
  */
 @Composable
-public fun OnboardingStep1Entry(
+public fun OnboardingStep1Screen(
     viewModel: OnboardingViewModel,
     onNavigate: (OnboardingDestination) -> Unit,
     onBack: () -> Unit,
@@ -49,7 +49,7 @@ public fun OnboardingStep1Entry(
         onDismiss = { viewModel.onIntent(OnboardingIntent.ConsumeFailure) },
         modifier = modifier,
     ) {
-        OnboardingStep1Screen(
+        OnboardingStep1Content(
             state = state.step1.toUiState(isInputEnabled = state.isInputEnabled),
             onEvent = { event ->
                 if (event == OnboardingStep1Event.BackClicked) onBack() else viewModel.onIntent(OnboardingIntent.Step1(event))

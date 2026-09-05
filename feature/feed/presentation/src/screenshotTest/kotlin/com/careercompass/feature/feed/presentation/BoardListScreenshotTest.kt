@@ -5,8 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.careercompass.core.ui.theme.CareerCompassTheme
+import com.careercompass.feature.feed.presentation.board.BoardListContent
 import com.careercompass.feature.feed.presentation.board.BoardListContentState
-import com.careercompass.feature.feed.presentation.board.BoardListScreen
 import com.careercompass.feature.feed.presentation.board.BoardListUiState
 import com.careercompass.feature.feed.presentation.board.BoardStatus
 import com.careercompass.feature.feed.presentation.board.BoardType
@@ -52,7 +52,7 @@ public fun BoardListDeactivatedPreview() {
 private fun BoardListPreviewSurface(state: BoardListUiState) {
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            BoardListScreen(state = state, onEvent = {})
+            BoardListContent(state = state, onEvent = {})
         }
     }
 }

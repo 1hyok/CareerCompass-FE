@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import com.careercompass.core.ui.theme.CareerCompassTheme
-import com.careercompass.feature.feed.presentation.postingraw.PostingRawScreen
+import com.careercompass.feature.feed.presentation.postingraw.PostingRawContent
 import com.careercompass.feature.feed.presentation.postingraw.PostingRawUiState
 
 @PreviewTest
@@ -26,7 +26,7 @@ public fun PostingRawWithoutLinkPreview() {
 private fun PostingRawPreviewSurface(state: PostingRawUiState) {
     CareerCompassTheme {
         Surface(color = CareerCompassTheme.colors.subtleSurface) {
-            PostingRawScreen(state = state, onEvent = {})
+            PostingRawContent(state = state, onEvent = {})
         }
     }
 }

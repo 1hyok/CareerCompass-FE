@@ -28,7 +28,7 @@ import com.careercompass.feature.onboarding.presentation.pastapplication.UploadL
  *
  * 화면·시트마다 이미 sealed 이벤트 계약이 있으므로(`OnboardingStep1Event` 등), Intent 는 그 이벤트를 어느
  * 화면이 보냈는지로 감싼다. 이벤트 계약을 하나로 합치지 않는 이유는 stateless 화면과 골든이 그 계약을 그대로
- * 쓰기 때문이다. 뒤로 가기·파일 선택기 열기처럼 상태를 바꾸지 않는 갈래는 Entry 가 걸러 여기까지 오지 않는다.
+ * 쓰기 때문이다. 뒤로 가기·파일 선택기 열기처럼 상태를 바꾸지 않는 갈래는 Screen 이 걸러 여기까지 오지 않는다.
  */
 public sealed interface OnboardingIntent : MviIntent {
     public data class Step1(
@@ -63,7 +63,7 @@ public sealed interface OnboardingIntent : MviIntent {
         val event: OnboardingStep4Event,
     ) : OnboardingIntent
 
-    /** Entry 가 파일 선택기에서 읽어 만든 [UploadFile]. 바로 올리지 않고 라벨 시트를 먼저 연다(F1-4). */
+    /** Screen 이 파일 선택기에서 읽어 만든 [UploadFile]. 바로 올리지 않고 라벨 시트를 먼저 연다(F1-4). */
     public data class FileSelected(
         val file: UploadFile,
     ) : OnboardingIntent
@@ -95,7 +95,7 @@ public sealed interface OnboardingIntent : MviIntent {
     public data object ConsumeFailure : OnboardingIntent
 
     /**
-     * Entry 가 세션 종료를 앱 셸에 넘겼다.
+     * Screen 이 세션 종료를 앱 셸에 넘겼다.
      *
      * 넘기기 **전에** 비운다 — 그래프 스코프 상태를 Step 1~4 가 함께 보므로, 전환 중 두 화면이 같은 신호를
      * 읽고 각자 셸을 부를 수 있다. 셸은 그 겹침을 견디지만(재계산 합류), 신호는 한 번만 살아 있는 편이 옳다.

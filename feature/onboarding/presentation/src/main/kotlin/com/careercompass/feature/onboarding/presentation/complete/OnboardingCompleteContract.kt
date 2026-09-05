@@ -14,7 +14,7 @@ public data class OnboardingCompleteUiState(
     }
 }
 
-/** User intentions emitted by [OnboardingCompleteScreen]. */
+/** User intentions emitted by [OnboardingCompleteContent]. */
 public sealed interface OnboardingCompleteEvent {
     public data object ViewFeedClicked : OnboardingCompleteEvent
 

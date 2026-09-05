@@ -11,7 +11,7 @@ import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReaso
 import com.careercompass.feature.feed.presentation.shared.model.failureKind
 
 /**
- * 게시판 목록을 못 받았을 때 사유별로 갈리는 화면 — [BoardListEntry] 가 상태 없이 그리는 부분만 떼어 냈다.
+ * 게시판 목록을 못 받았을 때 사유별로 갈리는 화면 — [BoardListScreen] 가 상태 없이 그리는 부분만 떼어 냈다.
  *
  * 게시판 목록은 스냅샷을 저장하지 않으므로 「오프라인 모드로 보기」는 어느 사유에서도 열지 않는다.
  */

@@ -53,7 +53,7 @@ import com.careercompass.feature.feed.domain.model.FeedDeadlineFilter as DomainD
 
 /*
  * 도메인 → 화면 계약 매핑. 전부 순수 함수다 — `@Composable` 이 아니고, 문구는 [Resources] 로만 만든다.
- * ViewModel 은 이 파일을 모른 채 도메인 값을 상태에 두고, Entry 가 여기서 UiModel 로 바꾼다.
+ * ViewModel 은 이 파일을 모른 채 도메인 값을 상태에 두고, Screen 이 여기서 UiModel 로 바꾼다.
  */
 
 // ---- 공고 유형 ↔ 목록 카테고리 (기능 스펙 F2-3 「공고 유형」) ----
