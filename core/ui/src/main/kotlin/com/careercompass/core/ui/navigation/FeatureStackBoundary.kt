@@ -26,9 +26,3 @@ public interface FeatureStackBoundary {
      */
     public fun onAtRootChanged(isAtRoot: Boolean) {}
 }
-
-/** 바텀바가 없어 셸로 돌아갈 길만 필요한 그래프용 [FeatureStackBoundary]. */
-public fun FeatureStackBoundary(onExit: () -> Unit): FeatureStackBoundary =
-    object : FeatureStackBoundary {
-        override fun exit() = onExit()
-    }

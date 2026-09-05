@@ -14,11 +14,17 @@ import org.junit.Test
 public class FeedLocalNavActionsTest {
     private var exits = 0
     private val external = RecordingExternalActions()
+    private val exitCountingBoundary =
+        object : FeatureStackBoundary {
+            override fun exit() {
+                exits += 1
+            }
+        }
     private val backStack = NavBackStack<NavKey>(FeedRoute.Home)
     private val actions =
         FeedLocalNavActions(
             backStack = backStack,
-            boundary = FeatureStackBoundary { exits += 1 },
+            boundary = exitCountingBoundary,
             externalActions = external,
         )
 

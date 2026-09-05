@@ -16,13 +16,19 @@ import org.junit.Test
 public class OnboardingLocalNavActionsTest {
     private var exits = 0
     private val external = RecordingExternalActions()
+    private val exitCountingBoundary =
+        object : FeatureStackBoundary {
+            override fun exit() {
+                exits += 1
+            }
+        }
 
     private fun actionsOn(start: OnboardingRoute): Pair<OnboardingLocalNavActions, NavBackStack<NavKey>> {
         val backStack = NavBackStack<NavKey>(start)
         val actions =
             OnboardingLocalNavActions(
                 backStack = backStack,
-                boundary = FeatureStackBoundary { exits += 1 },
+                boundary = exitCountingBoundary,
                 externalActions = external,
             )
         return actions to backStack
