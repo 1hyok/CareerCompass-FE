@@ -1,11 +1,14 @@
 package com.careercompass.feature.feed.presentation.postingraw
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.careercompass.core.common.reporting.ErrorReporter
 import com.careercompass.core.domain.error.CoreDataFailure
 import com.careercompass.core.model.posting.PostingDetail
+import com.careercompass.core.ui.mvi.MviIntent
+import com.careercompass.core.ui.mvi.MviViewModel
+import com.careercompass.core.ui.mvi.ReducerEvent
+import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.feed.domain.usecase.OpenPostingDetailUseCase
 import com.careercompass.feature.feed.presentation.navigation.FEED_ARG_POSTING_ID
 import com.careercompass.feature.feed.presentation.reporting.FeedFailureStage
@@ -14,10 +17,6 @@ import com.careercompass.feature.feed.presentation.shared.model.FeedFailureReaso
 import com.careercompass.feature.feed.presentation.shared.model.toFeedFailureReason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import javax.inject.Inject
@@ -45,10 +44,46 @@ public data class PostingRawViewState(
     val postingId: Long,
     val loadState: PostingRawLoadState = PostingRawLoadState.Loading,
     val isBackRequested: Boolean = false,
-    /** 외부 브라우저로 열 원본 링크. Entry 가 `Intent.ACTION_VIEW` 로 바꾸고 [PostingRawViewModel.onOpenUrlConsumed] 로 비운다. */
+    /** 외부 브라우저로 열 원본 링크. Entry 가 `Intent.ACTION_VIEW` 로 바꾸고 [PostingRawIntent.ConsumeOpenUrl] 로 비운다. */
     val openUrl: String? = null,
     val sessionEnded: Boolean = false,
-)
+) : UiState
+
+/** 화면이 [PostingRawViewModel] 에 보내는 것. */
+public sealed interface PostingRawIntent : MviIntent {
+    public data class Screen(
+        val event: PostingRawEvent,
+    ) : PostingRawIntent
+
+    public data object Retry : PostingRawIntent
+
+    public data object ConsumeBack : PostingRawIntent
+
+    public data object ConsumeOpenUrl : PostingRawIntent
+
+    public data object ConsumeSessionEnded : PostingRawIntent
+}
+
+/** 상태가 겪은 것. [PostingRawViewModel] 만 만든다. */
+public sealed interface PostingRawReducerEvent : ReducerEvent {
+    public data object BackRequested : PostingRawReducerEvent
+
+    public data class OpenUrlRequested(
+        val url: String,
+    ) : PostingRawReducerEvent
+
+    public data class LoadStateChanged(
+        val loadState: PostingRawLoadState,
+    ) : PostingRawReducerEvent
+
+    public data object SessionEnded : PostingRawReducerEvent
+
+    public data object BackConsumed : PostingRawReducerEvent
+
+    public data object OpenUrlConsumed : PostingRawReducerEvent
+
+    public data object SessionEndedConsumed : PostingRawReducerEvent
+}
 
 /** 원문 보기 — 상세와 같은 use case 로 본문·원본 링크를 다시 받는다(이미 읽음 처리된 공고라 추가 요청은 없다). */
 @HiltViewModel
@@ -60,12 +95,13 @@ public class PostingRawViewModel
         private val errorReporter: ErrorReporter,
         /** Entry 가 수집 시각 표기에 같은 시계를 쓴다. */
         public val clock: Clock,
-    ) : ViewModel() {
-        private val postingId: Long =
-            requireNotNull(savedStateHandle.get<Long>(FEED_ARG_POSTING_ID)) { "$FEED_ARG_POSTING_ID is required" }
-
-        private val _state = MutableStateFlow(PostingRawViewState(postingId = postingId))
-        public val state: StateFlow<PostingRawViewState> = _state.asStateFlow()
+    ) : MviViewModel<PostingRawIntent, PostingRawViewState, PostingRawReducerEvent>(
+            PostingRawViewState(
+                postingId =
+                    requireNotNull(savedStateHandle.get<Long>(FEED_ARG_POSTING_ID)) { "$FEED_ARG_POSTING_ID is required" },
+            ),
+        ) {
+        private val postingId: Long get() = currentState.postingId
 
         private var loadJob: Job? = null
 
@@ -73,50 +109,54 @@ public class PostingRawViewModel
             load()
         }
 
-        public fun onEvent(event: PostingRawEvent) {
+        override fun onIntent(intent: PostingRawIntent) {
+            when (intent) {
+                is PostingRawIntent.Screen -> onEvent(intent.event)
+                PostingRawIntent.Retry -> load()
+                PostingRawIntent.ConsumeBack -> dispatch(PostingRawReducerEvent.BackConsumed)
+                PostingRawIntent.ConsumeOpenUrl -> dispatch(PostingRawReducerEvent.OpenUrlConsumed)
+                PostingRawIntent.ConsumeSessionEnded -> dispatch(PostingRawReducerEvent.SessionEndedConsumed)
+            }
+        }
+
+        override fun reduce(
+            state: PostingRawViewState,
+            event: PostingRawReducerEvent,
+        ): PostingRawViewState =
+            when (event) {
+                PostingRawReducerEvent.BackRequested -> state.copy(isBackRequested = true)
+                is PostingRawReducerEvent.OpenUrlRequested -> state.copy(openUrl = event.url)
+                is PostingRawReducerEvent.LoadStateChanged -> state.copy(loadState = event.loadState)
+                PostingRawReducerEvent.SessionEnded -> state.copy(sessionEnded = true)
+                PostingRawReducerEvent.BackConsumed -> state.copy(isBackRequested = false)
+                PostingRawReducerEvent.OpenUrlConsumed -> state.copy(openUrl = null)
+                PostingRawReducerEvent.SessionEndedConsumed -> state.copy(sessionEnded = false)
+            }
+
+        private fun onEvent(event: PostingRawEvent) {
             when (event) {
                 PostingRawEvent.BackClicked -> {
-                    _state.update { it.copy(isBackRequested = true) }
+                    dispatch(PostingRawReducerEvent.BackRequested)
                 }
 
                 PostingRawEvent.OpenOriginalClicked -> {
-                    val detail = (_state.value.loadState as? PostingRawLoadState.Loaded)?.detail ?: return
-                    _state.update { it.copy(openUrl = detail.url) }
+                    val detail = (currentState.loadState as? PostingRawLoadState.Loaded)?.detail ?: return
+                    dispatch(PostingRawReducerEvent.OpenUrlRequested(detail.url))
                 }
             }
         }
 
-        public fun retry() {
-            load()
-        }
-
-        public fun onBackConsumed() {
-            _state.update { it.copy(isBackRequested = false) }
-        }
-
-        public fun onOpenUrlConsumed() {
-            _state.update { it.copy(openUrl = null) }
-        }
-
-        public fun onSessionEndedConsumed() {
-            _state.update { it.copy(sessionEnded = false) }
-        }
-
         private fun load() {
             loadJob?.cancel()
-            _state.update { it.copy(loadState = PostingRawLoadState.Loading) }
+            dispatch(PostingRawReducerEvent.LoadStateChanged(PostingRawLoadState.Loading))
             loadJob =
                 viewModelScope.launch {
                     openPostingDetail(postingId)
-                        .onSuccess { detail -> _state.update { it.copy(loadState = PostingRawLoadState.Loaded(detail)) } }
+                        .onSuccess { detail -> dispatch(PostingRawReducerEvent.LoadStateChanged(PostingRawLoadState.Loaded(detail))) }
                         .onFailure { throwable ->
                             errorReporter.recordFeedFailure(FeedFailureStage.PostingRaw, throwable)
-                            _state.update {
-                                it.copy(
-                                    loadState = PostingRawLoadState.Failed(throwable.toFeedFailureReason()),
-                                    sessionEnded = it.sessionEnded || throwable is CoreDataFailure.Unauthorized,
-                                )
-                            }
+                            dispatch(PostingRawReducerEvent.LoadStateChanged(PostingRawLoadState.Failed(throwable.toFeedFailureReason())))
+                            if (throwable is CoreDataFailure.Unauthorized) dispatch(PostingRawReducerEvent.SessionEnded)
                         }
                 }
         }

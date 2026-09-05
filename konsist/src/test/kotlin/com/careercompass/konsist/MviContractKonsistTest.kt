@@ -23,9 +23,9 @@ import java.io.File
  * - **A.** `MviViewModel` 상속체는 `MutableStateFlow`·`MutableSharedFlow`·`Channel` 을 직접
  *   선언하지 않는다. 별도 상태 홀더를 두면 전이가 `reduce` 밖으로 새고 베이스를 도입한 의미가
  *   사라진다.
- * - **B.** `feature/…/presentation` 의 ViewModel 은 `MviViewModel` 을 상속한다. 전환 전
- *   9개는 [PENDING_MVI_MIGRATION] 예외로 두고, 모듈 전환 이슈(#245 onboarding · #246 feed)가
- *   닫힐 때마다 뺀다.
+ * - **B.** `feature/…/presentation` 의 ViewModel 은 `MviViewModel` 을 상속한다. 도입 시점의 전환 전
+ *   9개는 allowlist 예외로 뒀다가 onboarding(#249·#245)·feed(#246) 전환이 끝나 예외를 지웠다 — 이제 새
+ *   ViewModel 은 처음부터 상속해야 한다.
  * - **C.** `MviIntent`·`ReducerEvent` 를 직접 구현하는 화면 계약 타입은 `sealed interface` 다.
  *   열려 있으면 `when` 이 전수 분기를 보장하지 못해 진입점 단일화의 이득이 사라진다.
  *
@@ -35,9 +35,6 @@ import java.io.File
  * 베이스는 `Effect` 타입 파라미터를 두지 않는 3타입이다. 일회성 신호는 `UiState` 의 nullable
  * 필드로 나르므로, 존재하지 않는 타입에 규칙을 걸지 않는다.
  *
- * ### [PENDING_MVI_MIGRATION]
- * 해소된 항목이 남으면 **경고만** 낸다 — 전환 PR 과 목록 정리 PR 이 서로를 깨뜨리지 않게
- * 하는 이 저장소의 관례다([ResponseDtoContractKonsistTest]·[PresentationLayerDependencyKonsistTest] 와 같다).
  */
 class MviContractKonsistTest {
     @get:Rule
@@ -62,7 +59,7 @@ class MviContractKonsistTest {
 
     @Test
     fun `feature presentation 의 ViewModel 은 MviViewModel 을 상속한다`() {
-        val violations = unmigratedViewModels(productionFiles) - PENDING_MVI_MIGRATION
+        val violations = unmigratedViewModels(productionFiles)
 
         check(violations.isEmpty()) {
             buildString {
@@ -75,23 +72,6 @@ class MviContractKonsistTest {
                 appendLine("기준: docs/convention/mvi.md")
             }
         }
-    }
-
-    @Test
-    fun `해소된 항목은 경고로 알린다`() {
-        val stale = PENDING_MVI_MIGRATION - unmigratedViewModels(productionFiles)
-        if (stale.isEmpty()) return
-
-        println(
-            buildString {
-                appendLine("[경고] PENDING_MVI_MIGRATION 에 지금 소스에 없는 항목이 남아 있다 (${stale.size}건).")
-                appendLine("전환이 끝났으면 지운다.")
-                appendLine("목록에서 지워야 다음 미전환 ViewModel 이 이 자리에 숨지 않는다.")
-                appendLine("목록이 비면 규칙 B 의 예외 자체를 지운다.")
-                appendLine()
-                stale.sorted().forEach { appendLine("  $it") }
-            },
-        )
     }
 
     @Test
@@ -370,24 +350,6 @@ class MviContractKonsistTest {
          * 관례라, 선언 타입만 보면 대부분을 놓친다. 그래서 선언 텍스트에서 찾는다.
          */
         val STATE_HOLDER = Regex("""\b(MutableStateFlow|MutableSharedFlow|Channel)\s*[(<]""")
-
-        /** #246 이 뺀다. */
-        private val ISSUE_246_FEED =
-            setOf(
-                "com.careercompass.feature.feed.presentation.board.BoardListViewModel",
-                "com.careercompass.feature.feed.presentation.board.BoardRegisterViewModel",
-                "com.careercompass.feature.feed.presentation.feed.FeedViewModel",
-                "com.careercompass.feature.feed.presentation.postingdetail.PostingDetailViewModel",
-                "com.careercompass.feature.feed.presentation.postingraw.PostingRawViewModel",
-            )
-
-        /**
-         * 전환 전 9개 중 남은 것(onboarding 4개는 #249·#245 가 옮겼다). `app` 의 ViewModel 2개(`MainViewModel`·`MyTabPlaceholderViewModel`)는 이 규칙의
-         * 대상이 아니라 목록에도 없다 — 규칙 B 가 `feature/…/presentation` 만 보기 때문이다.
-         *
-         * 목록이 비면 규칙 B 의 예외(`- PENDING_MVI_MIGRATION`)도 함께 지운다.
-         */
-        val PENDING_MVI_MIGRATION = ISSUE_246_FEED
     }
 }
 

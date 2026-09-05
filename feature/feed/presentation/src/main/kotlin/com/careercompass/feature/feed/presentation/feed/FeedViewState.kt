@@ -3,6 +3,7 @@ package com.careercompass.feature.feed.presentation.feed
 import com.careercompass.core.model.board.Board
 import com.careercompass.core.model.posting.Posting
 import com.careercompass.core.model.user.UserProfile
+import com.careercompass.core.ui.mvi.UiState
 import com.careercompass.feature.feed.domain.model.FeedQuery
 import com.careercompass.feature.feed.domain.model.FeedSnapshot
 import com.careercompass.feature.feed.presentation.FeedListingCategory
@@ -32,7 +33,7 @@ public sealed interface FeedLoadState {
     ) : FeedLoadState
 }
 
-/** 피드가 요청하는 이동. Entry 가 소비하고 [FeedViewModel.onNavigationConsumed] 로 비운다. */
+/** 피드가 요청하는 이동. Entry 가 소비하고 [FeedIntent.ConsumeNavigation] 으로 비운다. */
 public sealed interface FeedDestination {
     public data class PostingDetail(
         val postingId: Long,
@@ -152,7 +153,7 @@ public data class FeedViewState(
     val offlineSnapshot: FeedSnapshot? = null,
     val isOffline: Boolean = false,
     val offlineSavedAt: Instant? = null,
-) {
+) : UiState {
     public val userName: String? get() = profile?.name
 
     /**

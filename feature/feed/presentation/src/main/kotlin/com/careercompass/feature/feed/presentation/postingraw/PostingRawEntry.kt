@@ -47,7 +47,7 @@ public fun PostingRawEntry(
     modifier: Modifier = Modifier,
     viewModel: PostingRawViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -56,21 +56,21 @@ public fun PostingRawEntry(
     val isBackRequested = state.isBackRequested
     LaunchedEffect(isBackRequested) {
         if (isBackRequested) {
-            viewModel.onBackConsumed()
+            viewModel.onIntent(PostingRawIntent.ConsumeBack)
             onBackClick()
         }
     }
     val sessionEnded = state.sessionEnded
     LaunchedEffect(sessionEnded) {
         if (sessionEnded) {
-            viewModel.onSessionEndedConsumed()
+            viewModel.onIntent(PostingRawIntent.ConsumeSessionEnded)
             onSessionEnded()
         }
     }
     val openUrl = state.openUrl
     LaunchedEffect(openUrl) {
         if (openUrl == null) return@LaunchedEffect
-        viewModel.onOpenUrlConsumed()
+        viewModel.onIntent(PostingRawIntent.ConsumeOpenUrl)
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, openUrl.toUri()))
         } catch (_: ActivityNotFoundException) {
@@ -81,7 +81,7 @@ public fun PostingRawEntry(
     Box(modifier = modifier.fillMaxSize()) {
         when (val loadState = state.loadState) {
             PostingRawLoadState.Loading -> {
-                PostingRawChrome(onBackClick = { viewModel.onEvent(PostingRawEvent.BackClicked) }) {
+                PostingRawChrome(onBackClick = { viewModel.onIntent(PostingRawIntent.Screen(PostingRawEvent.BackClicked)) }) {
                     FeedLoadingContent(
                         message = stringResource(R.string.feed_posting_detail_loading),
                         modifier = Modifier.fillMaxSize(),
@@ -90,10 +90,10 @@ public fun PostingRawEntry(
             }
 
             is PostingRawLoadState.Failed -> {
-                PostingRawChrome(onBackClick = { viewModel.onEvent(PostingRawEvent.BackClicked) }) {
+                PostingRawChrome(onBackClick = { viewModel.onIntent(PostingRawIntent.Screen(PostingRawEvent.BackClicked)) }) {
                     PostingRawFailureContent(
                         reason = loadState.reason,
-                        onRetryClick = viewModel::retry,
+                        onRetryClick = { viewModel.onIntent(PostingRawIntent.Retry) },
                     )
                 }
             }
@@ -102,7 +102,7 @@ public fun PostingRawEntry(
                 val uiState = remember(loadState.detail, resources) { loadState.detail.toRawUiState(resources, viewModel.clock) }
                 PostingRawScreen(
                     state = uiState,
-                    onEvent = viewModel::onEvent,
+                    onEvent = { viewModel.onIntent(PostingRawIntent.Screen(it)) },
                 )
             }
         }

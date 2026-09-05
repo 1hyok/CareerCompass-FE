@@ -154,7 +154,7 @@ ObserveSignal(
 | B | `feature/*/presentation` 의 ViewModel 은 `MviViewModel` 을 상속한다 |
 | C | `MviIntent`·`ReducerEvent` 를 직접 구현하는 타입은 `sealed interface` 다 |
 
-규칙 B 는 아직 전환하지 않은 ViewModel 을 `PENDING_MVI_MIGRATION` 예외로 둔다(가드 도입 시점 9개, onboarding #245 · feed #246). 모듈 전환 이슈가 닫힐 때마다 목록에서 빼고, 목록이 비면 예외 자체를 지운다. `app` 의 ViewModel 2개(`MainViewModel`·`MyTabPlaceholderViewModel`)는 규칙 B 의 대상이 아니다. 마무리 이슈가 처리한다.
+규칙 B 는 도입 시점(#244)에 전환 전 ViewModel 9개를 `PENDING_MVI_MIGRATION` 예외로 뒀고, onboarding(#249·#245)·feed(#246) 전환이 끝나면서 예외를 지웠다. 이제 `feature/*/presentation` 의 새 ViewModel 은 처음부터 `MviViewModel` 을 상속해야 한다. `app` 의 ViewModel 2개(`MainViewModel`·`MyTabPlaceholderViewModel`)는 규칙 B 의 대상이 아니다. 마무리 이슈가 처리한다.
 
 세 규칙은 프로덕션 소스만 본다. 테스트 더블이 `MviViewModel` 을 상속하며 보조 상태 홀더를 드는 것은 규칙 A 의 대상이 아니다.
 
