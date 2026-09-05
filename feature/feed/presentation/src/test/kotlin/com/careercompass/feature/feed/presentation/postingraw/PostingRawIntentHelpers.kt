@@ -17,4 +17,6 @@ internal fun PostingRawViewModel.onBackConsumed() = onIntent(PostingRawIntent.Co
 
 internal fun PostingRawViewModel.onOpenUrlConsumed() = onIntent(PostingRawIntent.ConsumeOpenUrl)
 
+internal fun PostingRawViewModel.onOpenUrlRejectedConsumed() = onIntent(PostingRawIntent.ConsumeOpenUrlRejected)
+
 internal fun PostingRawViewModel.onSessionEndedConsumed() = onIntent(PostingRawIntent.ConsumeSessionEnded)

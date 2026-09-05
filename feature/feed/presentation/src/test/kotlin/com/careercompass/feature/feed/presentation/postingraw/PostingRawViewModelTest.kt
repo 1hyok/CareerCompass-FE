@@ -53,6 +53,29 @@ class PostingRawViewModelTest {
         assertTrue(!viewModel.state.value.isBackRequested)
     }
 
+    /**
+     * 원본 주소는 사용자가 등록한 게시판에서 크롤러가 긁어 온 값이다. 그대로 `ACTION_VIEW` 로 넘기면 서버(또는 그
+     * 게시판)가 고른 다른 앱의 딥링크가 열린다. 웹 주소가 아닌 것은 열지 않고, 계약 위반이니 결함으로 남긴다.
+     */
+    @Test
+    fun `웹 주소가 아닌 원본 링크는 열지 않고 결함으로 남긴다`() {
+        val viewModel =
+            viewModel(
+                FakePostingRepository(
+                    details = listOf(postingDetail(id = POSTING_ID, url = "intent://scan/#Intent;scheme=zxing;end")),
+                ),
+            )
+
+        viewModel.onEvent(PostingRawEvent.OpenOriginalClicked)
+
+        assertNull(viewModel.state.value.openUrl)
+        assertTrue(viewModel.state.value.openUrlRejected)
+        assertEquals(listOf("posting_raw"), reporter.stages)
+
+        viewModel.onOpenUrlRejectedConsumed()
+        assertTrue(!viewModel.state.value.openUrlRejected)
+    }
+
     @Test
     fun `실패는 네트워크 여부를 구분하고 다시 시도로 복구한다`() {
         val repository = FakePostingRepository(details = listOf(postingDetail(id = POSTING_ID)))

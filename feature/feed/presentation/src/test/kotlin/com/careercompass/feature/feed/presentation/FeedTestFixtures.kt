@@ -96,13 +96,14 @@ internal fun postingDetail(
     similar: List<Posting> = emptyList(),
     dueDate: LocalDate? = null,
     rawContent: String = "본문",
+    url: String? = null,
 ): PostingDetail =
     PostingDetail(
         id = id,
         title = "공고 $id",
         type = type,
         board = PostingBoardRef(id = 1L, name = "게시판 1"),
-        url = "https://example.com/postings/$id",
+        url = url ?: "https://example.com/postings/$id",
         rawContent = rawContent,
         dueDate = dueDate,
         collectedAt = NOON_TODAY,
