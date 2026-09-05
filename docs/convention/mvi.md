@@ -93,7 +93,7 @@ internal fun LoginContent(state: LoginUiState, onIntent: (LoginIntent) -> Unit, 
 ```
 
 - `Screen` 은 stateful 이고 ViewModel 을 주입받는다.
-- `Content` 는 stateless 이고, 프리뷰 · screenshotTest · Robolectric 의 진입점이다. 화면을 그리려고 ViewModel 을 조립하지 않는다. 기본은 `internal` 이고, 다른 모듈의 androidTest 가 합성하는 것(`FeedContent` · `LoginContent` 의 접근성 스모크)만 public 이다.
+- `Content` 는 stateless 이고, 프리뷰 · screenshotTest · Robolectric 의 진입점이다. 화면을 그리려고 ViewModel 을 조립하지 않는다. 기본은 `internal` 이고, 다른 모듈의 androidTest 가 합성하는 것(app 의 접근성 스모크가 그리는 `FeedContent` · `OnboardingStep1~4Content` · `LoginContent`)만 public 이다.
 
 ### 옛 이름과의 대응
 
