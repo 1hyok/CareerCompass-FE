@@ -1,6 +1,6 @@
 # API 주소와 빌드 타입
 
-앱이 보내는 모든 HTTP 요청의 도착지는 `core/network` 의 `BuildConfig.BASE_URL` 하나로 정해진다. `NetworkModule` 이 만드는 Retrofit 네 개(일반·재발급·업로드·구조 감지)가 모두 이 값을 `baseUrl` 로 받는다.
+앱이 우리 서버로 보내는 API 요청의 도착지는 `core/network` 의 `BuildConfig.BASE_URL` 하나로 정해진다. `NetworkModule` 이 만드는 Retrofit 네 개(일반·재발급·업로드·구조 감지)가 모두 이 값을 `baseUrl` 로 받는다. 앱이 보내는 HTTP 요청 전부는 아니다. 소셜 로그인 SDK(카카오·구글)와 Firebase(Crashlytics·FCM)는 각자 자기 서버로 가고 이 값과 무관하다.
 
 ## 어느 빌드가 어느 주소를 쓰나
 
@@ -9,7 +9,7 @@
 | `debug` | `BASE_URL_DEV` | 자리표시자 `https://api.careercompass.invalid/api/v1/` | 로컬 `assembleDebug`, 계측 테스트, 에뮬레이터·실기기 QA 빌드 |
 | `release` | `BASE_URL_PROD` | 같은 자리표시자 | Firebase App Distribution APK, Play 내부 테스트 AAB |
 
-값은 저장소에 두지 않는다. 루트 `local.properties`(gitignore)를 먼저 보고, 없으면 같은 이름의 환경변수를 본다. 사람마다 다른 개발 서버를 쓸 수 있고, 운영 주소가 커밋에 남지 않게 하려는 경로 제한이다. 서명 키·소셜 로그인 키와 같은 규칙이다.
+값은 저장소에 두지 않는다. 루트 `local.properties`(gitignore)를 먼저 보고, 없으면 같은 이름의 환경변수를 본다. 사람마다 다른 개발 서버를 쓸 수 있고, 운영 주소가 커밋에 남지 않게 하려는 경로 제한이다. 소셜 로그인 키와 같은 규칙이고, 읽는 코드도 `build-logic` 의 `externalBuildValue` 하나를 함께 쓴다. release 서명 키는 `local.properties` 만 보므로 환경변수 폴백이 없다.
 
 자리표시자의 `.invalid` 는 예약 TLD 라 어떤 DNS 로도 해석되지 않는다. 주소를 아직 넣지 않은 빌드는 남의 서버로 요청을 보내는 대신 연결 자체에 실패한다.
 
