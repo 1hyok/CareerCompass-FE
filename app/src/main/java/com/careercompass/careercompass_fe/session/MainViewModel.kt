@@ -1,7 +1,6 @@
 package com.careercompass.careercompass_fe.session
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.careercompass.careercompass_fe.navigation.AppDeepLink
 import com.careercompass.core.common.reporting.ErrorReporter
@@ -13,20 +12,97 @@ import com.careercompass.core.domain.usecase.auth.ResolveSessionEntryUseCase
 import com.careercompass.core.domain.usecase.auth.SessionEntry
 import com.careercompass.core.domain.usecase.auth.SessionEntryDestination
 import com.careercompass.core.model.settings.ThemeMode
+import com.careercompass.core.ui.mvi.MviIntent
+import com.careercompass.core.ui.mvi.MviViewModel
+import com.careercompass.core.ui.mvi.ReducerEvent
+import com.careercompass.core.ui.mvi.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 시작 목적지 결정 — 기능 스펙 F1-1.
+ * 앱 셸의 상태 — `MainActivity` 가 테마·NavHost·딥링크에 쓰는 값 셋을 한 곳에 둔다.
+ *
+ * @property launch 초기 진입 시 null(로딩)이며, 세션·프로필 확인 뒤 확정된다. 콜드 스타트의 시스템 스플래시는 이 값이
+ *   확정될 때까지 유지된다.
+ * @property themeMode 이 기기에서 고른 화면 테마(#210). 첫 값은 [ThemeMode.System] 이고 저장소를 읽는 즉시 갈린다.
+ * @property pendingDeepLink 아직 적용하지 않은 딥링크(`careercompass://postings/{id}`) — `MainActivity` 가 intent 에서
+ *   파싱해 싣고, `AppNavigation` 이 피드 그래프 안에서 이동한 뒤 [MainIntent.ConsumeDeepLink] 로 비운다. 로그인·온보딩
+ *   중에 들어온 것은 인증을 마칠 때까지 여기 머문다.
+ */
+public data class AppShellState(
+    val launch: AppShellLaunch? = null,
+    val themeMode: ThemeMode = ThemeMode.System,
+    val pendingDeepLink: AppDeepLink? = null,
+) : UiState
+
+/** 액티비티·내비게이션이 [MainViewModel] 에 보내는 것. */
+public sealed interface MainIntent : MviIntent {
+    /** intent 의 딥링크를 보관한다. 계약에 맞지 않아 파싱이 null 이면 무시한다 — 보관 중인 것도 지우지 않는다. */
+    public data class DeepLinkReceived(
+        val link: AppDeepLink?,
+    ) : MainIntent
+
+    public data object ConsumeDeepLink : MainIntent
+
+    /**
+     * 화면이 알려 온 세션 종료 — 사유를 싣고 시작 목적지를 다시 계산한다.
+     *
+     * 피드·상세·게시판의 401 은 [SessionEndCause.Expired], 마이 탭 로그아웃은 [SessionEndCause.LoggedOut] 이다.
+     */
+    public data class SessionEnded(
+        val cause: SessionEndCause,
+    ) : MainIntent
+
+    /**
+     * 지문 확인 뒤 세션 검증이 만료를 알렸다 — 시작 목적지는 다시 계산하지 않고 안내만 켠다.
+     *
+     * 온보딩 그래프가 스스로 지문 화면을 걷어내고 로그인 화면으로 옮기므로 NavHost 를 새로 만들 이유가 없다.
+     * 더 중요한 이유는 재계산이 이 경로를 가둘 수 있다는 것이다: 세션 정리가 실패해 토큰이 남은 기기에서는
+     * 다시 계산해도 지문 화면이 나와 로그인 화면에 영영 닿지 못한다. 지문 화면 자체에는 알리지 않는다 — 그
+     * 화면은 세션이 살아 있다고 믿고 뜬 자리라 그 시점엔 알릴 만료가 아직 없다.
+     */
+    public data object RaiseSessionExpiryNotice : MainIntent
+
+    /**
+     * 만료 안내를 끈다 — 닫기를 눌렀거나 다시 로그인을 시도했을 때.
+     *
+     * [AppShellLaunch.revision] 은 그대로라 NavHost 를 다시 만들지 않는다. 안내는 상태라 회전으로 사라지지도,
+     * 두 번 뜨지도 않고, 여기로 꺼야 비로소 없어진다.
+     */
+    public data object ConsumeSessionExpiryNotice : MainIntent
+}
+
+/** 상태가 겪은 것. [MainViewModel] 만 만든다. */
+public sealed interface MainReducerEvent : ReducerEvent {
+    public data class ThemeModeChanged(
+        val mode: ThemeMode,
+    ) : MainReducerEvent
+
+    public data class DeepLinkStored(
+        val link: AppDeepLink,
+    ) : MainReducerEvent
+
+    public data object DeepLinkConsumed : MainReducerEvent
+
+    /**
+     * 시작 목적지가 확정됐다. [clearDeepLink] 는 첫 계산이 아닐 때 참이다 — 다른 계정으로 로그인해 남의 알림 공고가
+     * 열리지 않게 소비되지 않은 딥링크를 버린다.
+     */
+    public data class Launched(
+        val launch: AppShellLaunch,
+        val clearDeepLink: Boolean,
+    ) : MainReducerEvent
+
+    public data object SessionExpiryNoticeRaised : MainReducerEvent
+
+    public data object SessionExpiryNoticeConsumed : MainReducerEvent
+}
+
+/**
+ * 시작 목적지 결정 — 기능 스펙 F1-1. 진입점은 [onIntent] 하나, 전이는 [reduce] 한 곳이다(#252).
  *
  * - 세션 없음 → [AppStartDestination.Login]
  * - 세션 있음 + 이 계정이 이 기기에서 지문 로그인을 켬 → [AppStartDestination.BiometricLogin] (지문 확인 뒤 세션 검증과
@@ -41,12 +117,16 @@ import javax.inject.Inject
  * 목적이다(#74). 지문 경로는 그렇지 않다 — 지문 성공은 저장된 세션을 그대로 쓰겠다는 확인이라 서버가 그 세션을 아직
  * 받아 주는지 **먼저** 확인해야 피드에 들어갔다가 401 로 튕겨 나오는 두 번 이동이 없다(#81).
  *
- * 결과는 [AppShellLaunch] 로 흘린다 — 세션 종료 뒤 같은 목적지가 나와도 [AppShellLaunch.revision] 이 올라 NavHost 가
+ * 결과는 [AppShellState.launch] 로 흘린다 — 세션 종료 뒤 같은 목적지가 나와도 [AppShellLaunch.revision] 이 올라 NavHost 가
  * 새로 만들어진다.
  *
- * 세션이 **왜** 끝났는지도 여기서 정한다(#128). 화면은 사실만 알려 주고([onSessionEnded]) 판정과 안내 여부는 셸이
- * 갖는다 — 만료로 로그인 화면에 닿았을 때만 [AppShellLaunch.sessionExpiryNotice] 를 켠다. 셸이 스스로 401 을 만나는
+ * 세션이 **왜** 끝났는지도 여기서 정한다(#128). 화면은 사실만 알려 주고([MainIntent.SessionEnded]) 판정과 안내 여부는
+ * 셸이 갖는다 — 만료로 로그인 화면에 닿았을 때만 [AppShellLaunch.sessionExpiryNotice] 를 켠다. 셸이 스스로 401 을 만나는
  * 자리(콜드 스타트의 세션 진입 판정·메인 뒤 백그라운드 확인)도 같은 만료다.
+ *
+ * 테마 구독을 `init` 에서 바로 시작하는 이유 — 첫 컴포지션 때 이미 값이 있어야 반대 테마가 한 프레임 스쳤다 바뀌지
+ * 않는다. 시스템 스플래시가 [AppShellState.launch] 확정까지 화면을 붙들고 있고 그쪽은 세션·프로필을 보므로, 같은
+ * 저장소 계열의 값 하나를 읽는 이 흐름이 늦을 일은 사실상 없다.
  */
 @HiltViewModel
 public class MainViewModel
@@ -58,32 +138,7 @@ public class MainViewModel
         appSettingsRepository: AppSettingsRepository,
         private val errorReporter: ErrorReporter,
         private val savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
-        private val _launch = MutableStateFlow<AppShellLaunch?>(null)
-
-        /** 초기 진입 시 null(로딩)이며, 세션·프로필 확인 뒤 확정된다. */
-        public val launch: StateFlow<AppShellLaunch?> = _launch.asStateFlow()
-
-        /**
-         * 이 기기에서 고른 화면 테마(#210). 첫 값은 [ThemeMode.System] 이고 저장소를 읽는 즉시 갈린다.
-         *
-         * `Eagerly` 인 이유 — 구독은 첫 컴포지션에서 시작하는데, 그때 이미 값이 있어야 반대 테마가 한 프레임
-         * 스쳤다 바뀌지 않는다. 시스템 스플래시가 [launch] 확정까지 화면을 붙들고 있고 그쪽은 세션·프로필을
-         * 보므로, 같은 저장소 계열의 값 하나를 읽는 이 흐름이 늦을 일은 사실상 없다.
-         */
-        public val themeMode: StateFlow<ThemeMode> =
-            appSettingsRepository.themeMode
-                .stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.System)
-
-        private val _pendingDeepLink = MutableStateFlow<AppDeepLink?>(null)
-
-        /**
-         * 아직 적용하지 않은 딥링크(`careercompass://postings/{id}`) — `MainActivity` 가 intent 에서 파싱해 싣고,
-         * `AppNavigation` 이 피드 그래프 안에서 이동한 뒤 [consumeDeepLink] 로 비운다. 로그인·온보딩 중에 들어온 것은
-         * 인증을 마칠 때까지 여기 머문다.
-         */
-        public val pendingDeepLink: StateFlow<AppDeepLink?> = _pendingDeepLink.asStateFlow()
-
+    ) : MviViewModel<MainIntent, AppShellState, MainReducerEvent>(AppShellState()) {
         /**
          * NavHost 세대 번호. 액티비티 저장 상태에 실려 프로세스를 건넌다.
          *
@@ -102,51 +157,70 @@ public class MainViewModel
         private var pendingCause: SessionEndCause? = null
 
         init {
+            viewModelScope.launch {
+                appSettingsRepository.themeMode.collect { mode -> dispatch(MainReducerEvent.ThemeModeChanged(mode)) }
+            }
             refresh()
         }
 
-        /** intent 의 딥링크를 보관한다. 계약에 맞지 않아 파싱이 null 이면 무시한다 — 보관 중인 것도 지우지 않는다. */
-        public fun onDeepLink(link: AppDeepLink?) {
-            if (link != null) _pendingDeepLink.value = link
+        override fun onIntent(intent: MainIntent) {
+            when (intent) {
+                is MainIntent.DeepLinkReceived -> {
+                    intent.link?.let { dispatch(MainReducerEvent.DeepLinkStored(it)) }
+                }
+
+                MainIntent.ConsumeDeepLink -> {
+                    dispatch(MainReducerEvent.DeepLinkConsumed)
+                }
+
+                is MainIntent.SessionEnded -> {
+                    reportCause(intent.cause)
+                    refresh()
+                }
+
+                MainIntent.RaiseSessionExpiryNotice -> {
+                    dispatch(MainReducerEvent.SessionExpiryNoticeRaised)
+                }
+
+                MainIntent.ConsumeSessionExpiryNotice -> {
+                    dispatch(MainReducerEvent.SessionExpiryNoticeConsumed)
+                }
+            }
         }
 
-        public fun consumeDeepLink() {
-            _pendingDeepLink.value = null
-        }
+        override fun reduce(
+            state: AppShellState,
+            event: MainReducerEvent,
+        ): AppShellState =
+            when (event) {
+                is MainReducerEvent.ThemeModeChanged -> {
+                    state.copy(themeMode = event.mode)
+                }
 
-        /**
-         * 화면이 알려 온 세션 종료 — 사유를 싣고 시작 목적지를 다시 계산한다.
-         *
-         * 피드·상세·게시판의 401 은 [SessionEndCause.Expired], 마이 탭 로그아웃은 [SessionEndCause.LoggedOut] 이다.
-         * 계산이 진행 중이면 합류하되 사유는 남아 이번 계산이 소비한다 — 두 화면이 같은 종료를 동시에 알려도
-         * 초기화는 한 번이고, 늦게 도착한 401 이 방금 한 로그아웃을 만료로 바꾸지 않는다.
-         */
-        public fun onSessionEnded(cause: SessionEndCause) {
-            reportCause(cause)
-            refresh()
-        }
+                is MainReducerEvent.DeepLinkStored -> {
+                    state.copy(pendingDeepLink = event.link)
+                }
 
-        /**
-         * 지문 확인 뒤 세션 검증이 만료를 알렸다 — 시작 목적지는 다시 계산하지 않고 안내만 켠다.
-         *
-         * 온보딩 그래프가 스스로 지문 화면을 걷어내고 로그인 화면으로 옮기므로 NavHost 를 새로 만들 이유가 없다.
-         * 더 중요한 이유는 재계산이 이 경로를 가둘 수 있다는 것이다: 세션 정리가 실패해 토큰이 남은 기기에서는
-         * 다시 계산해도 지문 화면이 나와 로그인 화면에 영영 닿지 못한다. 지문 화면 자체에는 알리지 않는다 — 그
-         * 화면은 세션이 살아 있다고 믿고 뜬 자리라 그 시점엔 알릴 만료가 아직 없다.
-         */
-        public fun raiseSessionExpiryNotice() {
-            _launch.update { it?.copy(sessionExpiryNotice = true) }
-        }
+                MainReducerEvent.DeepLinkConsumed -> {
+                    state.copy(pendingDeepLink = null)
+                }
 
-        /**
-         * 만료 안내를 끈다 — 닫기를 눌렀거나 다시 로그인을 시도했을 때.
-         *
-         * [AppShellLaunch.revision] 은 그대로라 NavHost 를 다시 만들지 않는다. 안내는 상태라 회전으로 사라지지도,
-         * 두 번 뜨지도 않고, 여기로 꺼야 비로소 없어진다.
-         */
-        public fun consumeSessionExpiryNotice() {
-            _launch.update { if (it?.sessionExpiryNotice == true) it.copy(sessionExpiryNotice = false) else it }
-        }
+                is MainReducerEvent.Launched -> {
+                    state.copy(launch = event.launch, pendingDeepLink = if (event.clearDeepLink) null else state.pendingDeepLink)
+                }
+
+                MainReducerEvent.SessionExpiryNoticeRaised -> {
+                    state.copy(launch = state.launch?.copy(sessionExpiryNotice = true))
+                }
+
+                MainReducerEvent.SessionExpiryNoticeConsumed -> {
+                    if (state.launch?.sessionExpiryNotice == true) {
+                        state.copy(launch = state.launch.copy(sessionExpiryNotice = false))
+                    } else {
+                        state
+                    }
+                }
+            }
 
         /**
          * 시작 목적지를 다시 계산하고 NavHost 를 새로 만들게 한다.
@@ -170,8 +244,9 @@ public class MainViewModel
          * 새 시작 목적지를 흘린다.
          *
          * [revision] 이 오르면 NavHost 가 새로 만들어지고 이전 백스택이 버려진다. 올리는 경우는 둘이다.
-         * - **다시 계산**([launch] 가 이미 있다): 세션이 끝났다는 뜻이라 언제나 버린다. 목적지가 같아도(로그인 →
-         *   만료 → 다시 로그인) 이전 백스택은 남으면 안 되는데, 목적지 값만 키로 쓰면 같은 값이라 아무 일도 없다.
+         * - **다시 계산**([AppShellState.launch] 가 이미 있다): 세션이 끝났다는 뜻이라 언제나 버린다. 목적지가
+         *   같아도(로그인 → 만료 → 다시 로그인) 이전 백스택은 남으면 안 되는데, 목적지 값만 키로 쓰면 같은 값이라
+         *   아무 일도 없다.
          * - **콜드 스타트인데 인증이 다시 필요하다**([AppStartDestination.requiresAuthentication]): 되살아난
          *   백스택이 로그인·지문 게이트를 건너뛴다.
          *
@@ -183,20 +258,25 @@ public class MainViewModel
          * 남겨 두면 한참 뒤의 계산에 엉뚱하게 붙으므로 목적지와 무관하게 비운다.
          *
          * 첫 계산이 아니면 소비되지 않은 딥링크를 버린다 — 다른 계정으로 로그인해 남의 알림 공고가 열리지 않게.
-         * 첫 계산([launch] 가 아직 null)에서는 지킨다: 앱이 뜨기 전에 받은 딥링크가 거기 있다.
+         * 첫 계산([AppShellState.launch] 가 아직 null)에서는 지킨다: 앱이 뜨기 전에 받은 딥링크가 거기 있다.
          */
         private fun emit(destination: AppStartDestination) {
-            if (_launch.value != null || destination.requiresAuthentication) revision += 1
+            val isRecalculation = currentState.launch != null
+            if (isRecalculation || destination.requiresAuthentication) revision += 1
             savedStateHandle[KEY_REVISION] = revision
             val cause = pendingCause
             pendingCause = null
-            if (_launch.value != null) _pendingDeepLink.value = null
-            _launch.value =
-                AppShellLaunch(
-                    revision = revision,
-                    destination = destination,
-                    sessionExpiryNotice = cause == SessionEndCause.Expired && destination == AppStartDestination.Login,
-                )
+            dispatch(
+                MainReducerEvent.Launched(
+                    launch =
+                        AppShellLaunch(
+                            revision = revision,
+                            destination = destination,
+                            sessionExpiryNotice = cause == SessionEndCause.Expired && destination == AppStartDestination.Login,
+                        ),
+                    clearDeepLink = isRecalculation,
+                ),
+            )
         }
 
         /** 로그아웃이 이긴다 — 사용자가 끝낸 세션에 뒤늦게 돌아온 401 이 만료 안내를 붙이지 않는다. */

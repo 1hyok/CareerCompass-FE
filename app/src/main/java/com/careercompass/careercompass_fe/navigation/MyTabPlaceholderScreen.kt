@@ -60,12 +60,12 @@ internal fun MyTabPlaceholderEntry(
     modifier: Modifier = Modifier,
     viewModel: MyTabPlaceholderViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     val sessionEnded = state.sessionEnded
     LaunchedEffect(sessionEnded) {
         if (!sessionEnded) return@LaunchedEffect
-        viewModel.onSessionEndedConsumed()
+        viewModel.onIntent(MyTabPlaceholderIntent.ConsumeSessionEnded)
         onSessionEnded()
     }
 
@@ -73,29 +73,29 @@ internal fun MyTabPlaceholderEntry(
     val launchEnrollPrompt =
         rememberBiometricEnrollPrompt { result ->
             when (result) {
-                BiometricEnrollPromptResult.Succeeded -> viewModel.onBiometricEnrollSucceeded()
-                BiometricEnrollPromptResult.Cancelled -> viewModel.onBiometricEnrollCancelled()
-                is BiometricEnrollPromptResult.Failed -> viewModel.onBiometricEnrollFailed(result.cause)
+                BiometricEnrollPromptResult.Succeeded -> viewModel.onIntent(MyTabPlaceholderIntent.BiometricEnrollSucceeded)
+                BiometricEnrollPromptResult.Cancelled -> viewModel.onIntent(MyTabPlaceholderIntent.BiometricEnrollCancelled)
+                is BiometricEnrollPromptResult.Failed -> viewModel.onIntent(MyTabPlaceholderIntent.BiometricEnrollFailed(result.cause))
             }
         }
     val canEnrollBiometric = launchEnrollPrompt != null
     LaunchedEffect(canEnrollBiometric) {
-        viewModel.onBiometricAvailabilityChanged(canEnrollBiometric)
+        viewModel.onIntent(MyTabPlaceholderIntent.BiometricAvailabilityChanged(canEnrollBiometric))
     }
 
     val enrollPromptRequested = state.isEnrollPromptRequested
     LaunchedEffect(enrollPromptRequested) {
         if (!enrollPromptRequested) return@LaunchedEffect
-        viewModel.onEnrollPromptRequestConsumed()
+        viewModel.onIntent(MyTabPlaceholderIntent.ConsumeEnrollPromptRequest)
         // 등록할 수 없는 기기에서는 스위치가 잠겨 있어 요청이 오지 않는다. 그래도 오면 잠금이 풀리지 않으므로
         // 취소와 같게 되돌린다.
         val launch = launchEnrollPrompt
-        if (launch != null) launch() else viewModel.onBiometricEnrollCancelled()
+        if (launch != null) launch() else viewModel.onIntent(MyTabPlaceholderIntent.BiometricEnrollCancelled)
     }
 
     MyTabPlaceholderScreen(
         state = state,
-        onEvent = viewModel::onEvent,
+        onEvent = { viewModel.onIntent(MyTabPlaceholderIntent.Screen(it)) },
         modifier = modifier,
     )
 }

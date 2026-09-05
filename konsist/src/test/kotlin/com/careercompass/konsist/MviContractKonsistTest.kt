@@ -23,7 +23,7 @@ import java.io.File
  * - **A.** `MviViewModel` 상속체는 `MutableStateFlow`·`MutableSharedFlow`·`Channel` 을 직접
  *   선언하지 않는다. 별도 상태 홀더를 두면 전이가 `reduce` 밖으로 새고 베이스를 도입한 의미가
  *   사라진다.
- * - **B.** `feature/…/presentation` 의 ViewModel 은 `MviViewModel` 을 상속한다. 도입 시점의 전환 전
+ * - **B.** `feature/…/presentation` 과 `app` 의 ViewModel 은 `MviViewModel` 을 상속한다. 도입 시점의 전환 전
  *   9개는 allowlist 예외로 뒀다가 onboarding(#249·#245)·feed(#246) 전환이 끝나 예외를 지웠다 — 이제 새
  *   ViewModel 은 처음부터 상속해야 한다.
  * - **C.** `MviIntent`·`ReducerEvent` 를 직접 구현하는 화면 계약 타입은 `sealed interface` 다.
@@ -58,7 +58,7 @@ class MviContractKonsistTest {
     }
 
     @Test
-    fun `feature presentation 의 ViewModel 은 MviViewModel 을 상속한다`() {
+    fun `feature presentation 과 app 의 ViewModel 은 MviViewModel 을 상속한다`() {
         val violations = unmigratedViewModels(productionFiles)
 
         check(violations.isEmpty()) {
@@ -126,7 +126,7 @@ class MviContractKonsistTest {
     }
 
     @Test
-    fun `규칙 B - feature presentation 의 미전환 ViewModel 만 잡는다`() {
+    fun `규칙 B - feature presentation 과 app 의 미전환 ViewModel 을 잡는다`() {
         val root = fixture.newFolder("rule-b")
         root.writeKotlin(
             "feature/sample/presentation/src/main/kotlin/sample/LegacyViewModel.kt",
@@ -163,8 +163,8 @@ class MviContractKonsistTest {
 
         val violations = unmigratedViewModels(fixtureFiles(root))
 
-        // app 은 규칙 B 의 대상이 아니고(마무리 이슈 몫), 추상 베이스와 전환된 것도 위반이 아니다.
-        assertEquals(setOf("sample.LegacyViewModel"), violations)
+        // 앱 셸도 대상이다(#252). 추상 베이스와 전환된 것은 위반이 아니다.
+        assertEquals(setOf("sample.LegacyViewModel", "app.AppViewModel"), violations)
     }
 
     @Test
@@ -233,11 +233,11 @@ class MviContractKonsistTest {
         assertEquals(emptySet<String>(), unmigratedViewModels(files))
     }
 
-    /** 규칙 B 위반 후보 — `feature/…/presentation` main 소스의 미전환 ViewModel FQN. */
+    /** 규칙 B 위반 후보 — `feature/…/presentation`·`app` main 소스의 미전환 ViewModel FQN. */
     private fun unmigratedViewModels(files: List<KoFileDeclaration>): Set<String> {
         val extendsMvi = mviViewModelSubclassTest(files)
         return files
-            .filter { FEATURE_PRESENTATION_MAIN.containsMatchIn(it.normalizedProjectPath()) }
+            .filter { VIEW_MODEL_SOURCE_ROOTS.containsMatchIn(it.normalizedProjectPath()) }
             .flatMap { file ->
                 file
                     .classes()
@@ -342,8 +342,13 @@ class MviContractKonsistTest {
         const val MVI_VIEW_MODEL = "MviViewModel"
         const val VIEW_MODEL_SUFFIX = "ViewModel"
 
-        /** 시작에 붙이지 않는다 — 회귀 fixture 는 저장소 밖 임시 디렉터리 밑에서 같은 구조를 만든다. */
-        val FEATURE_PRESENTATION_MAIN = Regex("""feature/[^/]+/presentation/src/main/""")
+        /**
+         * 규칙 B 가 보는 프로덕션 소스 뿌리 — feature 의 presentation 과 앱 셸(`app`). 앱 셸의 ViewModel 2개도
+         * #252 에서 옮겨 예외가 없다.
+         *
+         * 시작에 붙이지 않는다 — 회귀 fixture 는 저장소 밖 임시 디렉터리 밑에서 같은 구조를 만든다.
+         */
+        val VIEW_MODEL_SOURCE_ROOTS = Regex("""(?:^|/)(?:feature/[^/]+/presentation|app)/src/main/""")
 
         /**
          * 상태 홀더 선언. 타입을 생략하고 `= MutableStateFlow(...)` 로 추론시키는 것이 이 저장소의
