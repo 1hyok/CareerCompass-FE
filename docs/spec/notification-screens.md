@@ -2,9 +2,17 @@
 
 > 시안이 없는 두 화면의 **글로 된 시안**이다(#202). 기획 폴더의 `_알림_화면_명세.md`(2026-09-04)를 저장소로 옮겼다 — #195·#196 을 만드는 사람이 읽을 수 있어야 하는 문서를 한 사람의 노트북에 두지 않는다. 정본 우선순위와 불일치 판정은 [`canon.md`](canon.md).
 
-Figma 어느 페이지에도 알림 목록과 알림 설정 화면이 없다. 03 에 알림으로 보이는 작은 화면이 하나 있으나
-항목 구조가 읽히지 않고, 05 의 설정 화면은 스위치 몇 개뿐이라 API_SPEC §8 의 항목을 담지 못한다.
-그래서 **시안보다 명세를 먼저 쓴다.** 시안은 이 문서를 그대로 옮겨 그리면 된다.
+처음(2026-09-04)에는 Figma 어느 페이지에도 알림 목록과 알림 설정 화면이 없었다. 03 에 알림으로 보이는 작은 화면이
+하나 있으나 항목 구조가 읽히지 않고, 05 의 설정 화면은 스위치 몇 개뿐이라 API_SPEC §8 의 항목을 담지 못했다.
+그래서 시안보다 명세를 먼저 썼고, 2026-09-05 에 이 문서를 그대로 옮겨 Figma [13 Notification](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=164-3) 페이지에
+화면 7장을 그렸다. 값이 어긋나면 [`canon.md`](canon.md) 의 우선순위대로 API_SPEC·명세서를 따르고 시안을 고친다.
+
+| 화면 | Figma |
+| --- | --- |
+| 알림 목록 | [01 · 알림 목록](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=166-2) · [02 · 빈 상태](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=167-2) · [03 · 권한 꺼짐 띠](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=167-80) |
+| 알림 설정 | [04 · 알림 설정](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=168-2) · [05 · 권한 꺼짐](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=169-16) |
+| 다크 모드 | [06 · 알림 목록 (Dark)](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=169-159) · [07 · 알림 설정 (Dark)](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=169-229) |
+| 스위치 | [Switch](https://www.figma.com/design/osiio5ZAcJreMsKUqjY2QW/?node-id=165-7) (state=on/off). 라이브러리에 스위치 컴포넌트가 없어 13 페이지의 로컬 컴포넌트로 두었다. 구현은 `Switch` 를 그대로 쓴다 |
 
 - 정본: API_SPEC §8, 명세서 F2-4.
 - 구현 이슈: [FE #195](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/195)(목록)·[#196](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/196)(설정)·[#197](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/197)(FCM·권한 동의).
@@ -115,7 +123,8 @@ Android 13+ 는 `POST_NOTIFICATIONS` 런타임 권한이다. 꺼져 있으면 **
 ## 3. 다크 모드
 
 두 화면 모두 `core:ui` 의 의미 색 역할만 쓴다(`surface`·`onSurface`·`mutedContent`·`outline`·`primary`).
-팔레트 값을 직접 쓰지 않으면 다크는 저절로 따라온다 — 07 Dark Mode 페이지에 따로 그릴 것은 **없다.**
+팔레트 값을 직접 쓰지 않으면 다크는 저절로 따라온다. 13 페이지의 06·07 은 07 Dark Mode 의 값(#0a0a0a 바탕,
+#171717 카드, #262626 선)으로 그린 대비 확인용 시안이고, 구현이 따로 맞출 값은 없다.
 다만 읽지 않음 점과 「사라진 게시판」 태그는 대비가 얕아지기 쉬우니 대비 검증 대상에 넣는다
 (FE [#205](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/205)).
 
