@@ -39,19 +39,25 @@
 
 ## 기능별 구현 범위
 
+칸마다 그것을 추적하는 이슈와 한 줄 이유를 달았다. 이슈 번호는 2026-09-06 에 세 저장소를 조회해 확인한 것이다.
+
 | 기능 | 앱 | 서버 | AI |
 |---|---|---|---|
-| F1-1·F1-2 가입과 프로필 | 온보딩 4단계 입력 구현. 마이 탭의 프로필 관리는 미구현 | 미착수 | 해당 없음 |
-| F1-3 경험 카드 | 온보딩에서 등록·수정 구현. 마이 탭 목록은 미구현 | 미착수 | 해당 없음 |
-| F1-4 과거 지원서 | 업로드와 라벨 지정 구현. 목록 관리는 미구현 | 미착수 | 항목 분류 미착수 |
-| F2-1·F2-2 게시판 등록과 수집 | 등록·감지 결과·수정·일시중지 구현 | 크롤러 미착수 | 해당 없음 |
-| F2-3 피드와 공고 상세 | 목록·필터·정렬·상세·원문·오프라인·엣지 상태 구현 | 미착수 | 해당 없음 |
-| F2-4 알림 | 미구현 | 미착수 | 해당 없음 |
-| F3 적합도 분석 | 4축 표시·충족 여부·미표시 사유·분석 중 상태 구현 | 미착수 | 미착수 |
-| F4 자기소개서 | 미구현 | 미착수 | 미착수 |
-| 추가 기능 3종 | 미구현 | 미착수 | 미착수 |
+| F1-1·F1-2 가입과 프로필 | 온보딩 4단계 입력 구현. 마이 탭의 프로필 관리는 미구현. `profile` 담당 미착수 ([#174](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/174)~[#177](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/177)) | 담당 미착수. 인증 [BE #10](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/10)~[BE #14](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/14), 프로필 [BE #15](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/15)~[BE #17](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/17) | 해당 없음 |
+| F1-3 경험 카드 | 온보딩에서 등록·수정 구현. 마이 탭 목록은 미구현. `profile` 담당 미착수 ([#178](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/178)·[#179](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/179)) | 담당 미착수 ([BE #18](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/18)) | 해당 없음 |
+| F1-4 과거 지원서 | 업로드와 라벨 지정 구현. 목록 관리는 미구현. `profile` 담당 미착수 ([#180](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/180)·[#181](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/181)) | 담당 미착수 ([BE #19](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/19)·[BE #20](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/20)) | 항목 분류 담당 미착수 ([AI #21](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/21)~[AI #23](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/23)) |
+| F2-1·F2-2 게시판 등록과 수집 | 등록·감지 결과·수정·일시중지 구현 | 크롤러 담당 미착수 ([BE #21](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/21)~[BE #27](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/27)) | 해당 없음 |
+| F2-3 피드와 공고 상세 | 목록·필터·정렬·상세·원문·오프라인·엣지 상태 구현 | 담당 미착수 ([BE #28](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/28)~[BE #30](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/30)) | 해당 없음 |
+| F2-4 알림 | 미구현. `notification` 담당 미착수 ([#194](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/194)~[#197](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/197)) | 담당 미착수 ([BE #44](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/44)~[BE #47](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/47)) | 해당 없음 |
+| F3 적합도 분석 | 4축 표시·충족 여부·미표시 사유·분석 중 상태 구현 | 담당 미착수 ([BE #31](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/31)~[BE #35](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/35)) | 담당 미착수. 파싱 [AI #7](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/7)~[AI #9](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/9), 채점 [AI #11](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/11)~[AI #15](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/15) |
+| F4 자기소개서 | 미구현. `editor` 담당 미착수 ([#182](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/182)~[#189](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/189)) | 담당 미착수 ([BE #36](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/36)~[BE #40](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/40)) | 담당 미착수. 양식 추출 [AI #10](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/10), 생성 [AI #16](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/16)~[AI #20](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/20) |
+| 추가 기능 3종 | 미구현. `foryou` 담당 미착수 ([#190](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/190)~[#193](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/193)) | 담당 미착수 ([BE #41](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/41)~[BE #43](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/43)) | 담당 미착수 ([AI #24](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/24)~[AI #26](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/26)) |
 
-앱에서 구현이라고 적은 것은 화면과 상태 처리까지다. 그 화면이 실제 데이터로 도는 것은 서버가 선 뒤에 [#265](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/265) 에서 확인한다.
+이 표의 미구현·미착수 칸은 이유가 전부 한 종류다. 담당이 착수 전이라 그 모듈에 코드가 없다. 앱의 네 모듈은 이준혁, 서버는 조영탁, AI 는 서성덕 몫이고 세 사람 다 첫 커밋 전이다. 선행 대기와 우리가 미룬 것은 이 표에 없다. 그 둘은 아래 남은 것과 그 이유에 있다.
+
+어느 기능 행에도 안 들어가는 공통 기반도 통째로 열려 있다. 서버 골격과 공통 응답·페이징 규약([BE #1](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/1)~[BE #9](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/9)), AI 게이트웨이([AI #1](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/1)~[AI #6](https://github.com/Team-CareerCompass/CareerCompass-AI/issues/6)) 다.
+
+앱에서 구현이라고 적은 것은 화면과 상태 처리까지다. 그 화면이 실제 데이터로 도는 것은 서버가 선 뒤에 [#265](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/265) 에서 확인한다. 구현이라고 적은 칸에도 서버 계약이 빈 데가 있지만, 화면과 상태 처리가 서 있으므로 그것을 미구현으로 내리지 않는다. 그런 공백은 칸이 아니라 이슈로 따로 추적한다. 공고 조회에 검색어·마감일 파라미터가 없어 피드가 클라이언트에서 거르는 것은 [#159](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/159)([BE #28](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/28) 과 [#285](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/285) 를 blocked_by 로 걸고 있다), refresh 재사용 정책이 안 정해진 것은 [#79](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/79)([BE #11](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/11)·[BE #12](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/12) 를 걸고 있다) 다.
 
 ## 역할별 실제 기여
 
@@ -67,13 +73,15 @@
 
 ## 남은 것과 그 이유
 
+이유를 세 갈래로 가른다. 담당 미착수는 그 몫을 맡은 사람이 첫 커밋 전인 것, 선행 대기는 남이 먼저 해야 우리가 움직일 수 있는 것, 우리가 미룬 것은 지금 손댈 수 있는데 뒤로 둔 것이다.
+
 | 남은 것 | 왜 아직인가 |
 |---|---|
-| 앱과 서버 연동 | 서버 주소가 없다. [BE #7](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/7) 이 나오면 [#265](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/265) 가 하루 안에 붙는다 |
-| 통합 테스트 | 같은 이유다. 실서버 없이는 계약 대조까지가 한계다 |
-| 앱의 네 모듈 | 담당이 착수 전이다. 이슈 24건이 열려 있다 |
-| 베타 테스트 | 앱이 실서버에 붙어야 열 수 있다 |
-| 스토어 등록 | 스크린샷은 남은 화면이 나온 뒤, 개인정보처리방침은 서버의 LLM 전송 범위 결정([BE #48](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/48)) 뒤다 |
+| 앱과 서버 연동 | 선행 대기. 서버 주소가 없다. [#265](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/265) 가 [BE #7](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/7) 을 blocked_by 로 걸고 있고, 주소가 나오면 하루 안에 붙는다. 우리가 미룬 몫은 dev·prod BASE_URL 분리([#286](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/286)) 다 |
+| 통합 테스트 | 선행 대기. 같은 이유다. 실서버 없이는 계약 대조까지가 한계다. 라운드 대본과 드리프트 기록 양식([#287](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/287))은 서버 없이 쓸 수 있으므로 우리가 미룬 몫이다 |
+| 앱의 네 모듈 | 담당 미착수. 이준혁 담당 이슈 24건([#174](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/174)~[#197](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/197))이 열려 있다 |
+| 베타 테스트 | 선행 대기. 앱이 실서버에 붙어야 열 수 있고, [#266](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/266) 이 [#265](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/265) 를 blocked_by 로 걸고 있다. 운영 규칙과 관찰형 태스크 대본([#288](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/288))은 지금 쓸 수 있으므로 우리가 미룬 몫이다 |
+| 스토어 등록 | 선행 대기와 우리가 미룬 것이 섞여 있다. 스크린샷은 남은 화면([#185](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/185)), 개인정보처리방침은 서버의 LLM 전송 범위 결정([BE #48](https://github.com/Team-CareerCompass/CareerCompass-BE/issues/48)) 뒤다([#274](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/274) 가 둘을 blocked_by 로 걸고 있다). 게시처와 절차([#290](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/290)), Play Console 계정과 앱 등록([#292](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/292)), 문의 이메일([#293](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/293))은 우리가 미룬 몫이다 |
 
 ## 아직 못 적는 것
 
