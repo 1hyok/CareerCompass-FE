@@ -11,6 +11,7 @@ android {
 dependencies {
     implementation(projects.feature.notification.domain)
     implementation(projects.core.common)
+    implementation(projects.core.data)
     implementation(projects.core.network)
 
     testImplementation(libs.coroutines.test)

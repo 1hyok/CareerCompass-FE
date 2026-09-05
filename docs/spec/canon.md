@@ -65,6 +65,7 @@
 | 공고 파싱 실패를 나타내는 필드 | 「점수 산출 불가」의 두 사유(프로필 미입력 / 파싱 실패)를 화면이 가를 수 없다 | [#200](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/200) |
 | 직무·학교 목록 엔드포인트 | 온보딩의 두 피커가 로컬 상수로 돈다 | — |
 | `GET /notifications` 의 응답 스키마 | 알림 목록 화면 | [#195](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/195) |
+| FCM 토큰 갱신 엔드포인트 | 토큰이 바뀌면 알림이 조용히 끊긴다. 앱이 제안하는 계약은 [`fcm-token-lifecycle.md`](fcm-token-lifecycle.md) | [#197](https://github.com/Team-CareerCompass/CareerCompass-FE/issues/197) |
 
 ## 새 불일치를 발견하면
 

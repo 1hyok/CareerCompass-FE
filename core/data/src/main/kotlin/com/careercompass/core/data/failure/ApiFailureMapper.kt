@@ -18,8 +18,12 @@ import java.io.IOException
  * 오래 걸리는 서버 작업을 기다리는 화면은 그 원본에서 타임아웃 하나만 더 갈라 본다
  * (`CoreDataFailure.NetworkUnavailable.isTimeout`). 여기서 사유를 새로 만들지 않은 것은 의도다 — 사유를 늘리면
  * 갈라 볼 이유가 없는 나머지 화면까지 `is NetworkUnavailable` 이 빗나가 일반 오류로 내려앉는다.
+ *
+ * `public` 인 이유 — 서버를 부르는 리포지토리 구현이 `core:data` 에만 있지는 않다. feature 모듈의 data
+ * 계층(`feature:notification:data` 등)도 같은 표로 실패를 옮겨야 하는데, 모듈마다 복사하면 §9 의 정본이
+ * 여럿이 되어 코드가 늘 때마다 한쪽만 갱신된다. `mapAuthFailure` 는 인증 API 전용이라 닫아 둔다.
  */
-internal fun <T> Result<T>.mapDataFailure(): Result<T> =
+public fun <T> Result<T>.mapDataFailure(): Result<T> =
     when (val exception = exceptionOrNull()) {
         is ApiException -> Result.failure(exception.toDataFailure())
         is IOException -> Result.failure(CoreDataFailure.NetworkUnavailable(exception))

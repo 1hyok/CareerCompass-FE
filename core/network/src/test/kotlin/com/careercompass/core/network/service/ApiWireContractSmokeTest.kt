@@ -2,12 +2,15 @@ package com.careercompass.core.network.service
 
 import com.careercompass.core.network.dto.BiometricRegisterRequestDto
 import com.careercompass.core.network.dto.BoardDetectRequestDto
+import com.careercompass.core.network.dto.BoardNotificationDto
 import com.careercompass.core.network.dto.BoardRegisterRequestDto
 import com.careercompass.core.network.dto.BoardUpdateRequestDto
 import com.careercompass.core.network.dto.ExperienceRequestDto
 import com.careercompass.core.network.dto.JobInterestDto
 import com.careercompass.core.network.dto.JobInterestsRequestDto
 import com.careercompass.core.network.dto.LogoutRequestDto
+import com.careercompass.core.network.dto.NotificationSettingsDto
+import com.careercompass.core.network.dto.QuietHoursDto
 import com.careercompass.core.network.dto.RefreshRequestDto
 import com.careercompass.core.network.dto.SocialLoginRequestDto
 import com.careercompass.core.network.dto.TagsRequestDto
@@ -63,6 +66,7 @@ class ApiWireContractSmokeTest {
     private lateinit var postingService: PostingApiService
     private lateinit var boardService: BoardApiService
     private lateinit var boardDetectService: BoardDetectApiService
+    private lateinit var notificationService: NotificationApiService
 
     @Before
     fun setUp() {
@@ -97,6 +101,7 @@ class ApiWireContractSmokeTest {
         postingService = publicRetrofit.create(PostingApiService::class.java)
         boardService = publicRetrofit.create(BoardApiService::class.java)
         boardDetectService = publicRetrofit.create(BoardDetectApiService::class.java)
+        notificationService = publicRetrofit.create(NotificationApiService::class.java)
     }
 
     @Test
@@ -482,6 +487,63 @@ class ApiWireContractSmokeTest {
             assertExactlyOneRecordedRequest("POST", "/api/v1/boards/3/retry")
         }
 
+    // ── §8 알림 ──
+
+    /**
+     * `GET /notifications` 의 응답 스키마는 API_SPEC 에 없다 — 여기 고정하는 모양은 FE 제안이고
+     * 근거는 `docs/spec/notification-screens.md` 다(서버 저장소 CareerCompass-BE #45).
+     * 설정은 명세 예시 그대로고, 주간 리포트는 대상이 피드 전체라 `targetId` 가 `null` 로 온다.
+     */
+    @Test
+    fun `notification list, read-all, and settings preserve routes, query, and schema`() =
+        runTest {
+            val settings =
+                """
+                {"newPosting":true,"dueSoon":true,"boardError":true,"weeklyReport":false,
+                 "quietHours":{"start":"23:00","end":"08:00"},"weekendOff":false,
+                 "perBoard":[{"boardId":3,"enabled":true}]}
+                """.trimIndent()
+            installExpectation(
+                method = "GET",
+                path = "/api/v1/notifications",
+                requestQueryParameters = mapOf("limit" to "20"),
+                responseBody =
+                    """
+                    {"ok":true,"data":{"notifications":[
+                     {"id":9,"type":"dueSoon","title":"마감 D-1","body":"2026 카카오 SW 인턴십 마감이 하루 남았어요",
+                      "receivedAt":"2026-05-18T07:00:00+09:00","isRead":false,"targetId":101},
+                     {"id":10,"type":"weeklyReport","title":"이번 주 요약","body":"새 공고 12건 · 마감 임박 3건",
+                      "receivedAt":"2026-05-17T09:00:00+09:00","isRead":true,"targetId":null}],
+                     "nextCursor":"eyJ"}}
+                    """.trimIndent(),
+            )
+            installExpectation(method = "POST", path = "/api/v1/notifications/read-all", responseBody = """{"ok":true}""")
+            installExpectation(method = "GET", path = "/api/v1/notifications/settings", responseBody = """{"ok":true,"data":$settings}""")
+            installExpectation(
+                method = "PUT",
+                path = "/api/v1/notifications/settings",
+                requestBody = wireJson.parseToJsonElement(settings).jsonObject,
+                responseBody = """{"ok":true,"data":$settings}""",
+            )
+
+            val page = requireNotNull(notificationService.getNotifications(cursor = null, limit = 20).data)
+            val stored = requireNotNull(notificationService.getSettings().data)
+            val updated = requireNotNull(notificationService.updateSettings(STORED_SETTINGS).data)
+
+            assertEquals(listOf("dueSoon", "weeklyReport"), page.notifications.map { it.type })
+            assertEquals(101L, page.notifications.first().targetId)
+            assertEquals(null, page.notifications.last().targetId)
+            assertEquals("eyJ", page.nextCursor)
+            assertEquals(true, notificationService.markAllRead().ok)
+            assertEquals("23:00", requireNotNull(stored.quietHours).start)
+            assertEquals(false, stored.weeklyReport)
+            assertEquals(3L, updated.perBoard.single().boardId)
+            assertExactlyOneRecordedRequest("GET", "/api/v1/notifications")
+            assertExactlyOneRecordedRequest("POST", "/api/v1/notifications/read-all")
+            assertExactlyOneRecordedRequest("GET", "/api/v1/notifications/settings")
+            assertExactlyOneRecordedRequest("PUT", "/api/v1/notifications/settings")
+        }
+
     private suspend fun assertSocialLoginContract(
         provider: SocialLoginProvider,
         expectedPath: String,
@@ -676,6 +738,18 @@ class ApiWireContractSmokeTest {
     }
 
     companion object {
+        /** §8 설정 스키마의 명세 예시 값 그대로 — `PUT` 요청 본문이 응답과 같은 모양임을 고정한다. */
+        private val STORED_SETTINGS =
+            NotificationSettingsDto(
+                newPosting = true,
+                dueSoon = true,
+                boardError = true,
+                weeklyReport = false,
+                quietHours = QuietHoursDto(start = "23:00", end = "08:00"),
+                weekendOff = false,
+                perBoard = listOf(BoardNotificationDto(boardId = 3, enabled = true)),
+            )
+
         private const val ENABLE_ENV = "RUN_API_CONTRACT_SMOKE"
         private const val MOCKSERVER_VERSION = "7.6.0"
         private val JSON_MEDIA_TYPE = "application/json".toMediaType()

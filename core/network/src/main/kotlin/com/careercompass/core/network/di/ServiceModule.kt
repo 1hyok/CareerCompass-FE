@@ -4,6 +4,7 @@ import com.careercompass.core.network.service.AuthApiService
 import com.careercompass.core.network.service.BoardApiService
 import com.careercompass.core.network.service.BoardDetectApiService
 import com.careercompass.core.network.service.ExperienceApiService
+import com.careercompass.core.network.service.NotificationApiService
 import com.careercompass.core.network.service.PastApplicationApiService
 import com.careercompass.core.network.service.PostingApiService
 import com.careercompass.core.network.service.TokenApiService
@@ -69,4 +70,10 @@ public object ServiceModule {
     public fun provideBoardDetectApiService(
         @Named(NetworkQualifiers.BOARD_DETECT_RETROFIT) retrofit: Retrofit,
     ): BoardDetectApiService = retrofit.create()
+
+    @Provides
+    @Singleton
+    public fun provideNotificationApiService(
+        @Named(NetworkQualifiers.MAIN_RETROFIT) retrofit: Retrofit,
+    ): NotificationApiService = retrofit.create()
 }
